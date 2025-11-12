@@ -7,12 +7,13 @@ binding affinity calculations.
 """
 
 from typing import Any, List, Optional
+
 from ..base import (
-    CircuitTemplate,
     CircuitCategory,
+    CircuitTemplate,
     ComplexityRating,
     ParameterSpec,
-    ResourceEstimate
+    ResourceEstimate,
 )
 
 
@@ -39,28 +40,28 @@ class MolecularDockingCircuit(CircuitTemplate):
                 type="int",
                 description="Number of rotatable bonds in ligand",
                 required=True,
-                range=(1, 20)
+                range=(1, 20),
             ),
             ParameterSpec(
                 name="energy_levels",
                 type="int",
                 description="Number of energy levels to encode",
                 default=8,
-                range=(4, 32)
+                range=(4, 32),
             ),
             ParameterSpec(
                 name="optimization_depth",
                 type="int",
                 description="Depth of optimization layers",
                 default=2,
-                range=(1, 10)
+                range=(1, 10),
             ),
             ParameterSpec(
                 name="include_electrostatics",
                 type="bool",
                 description="Include electrostatic interactions",
-                default=True
-            )
+                default=True,
+            ),
         ]
 
         super().__init__(
@@ -74,12 +75,12 @@ class MolecularDockingCircuit(CircuitTemplate):
                 "Protein-ligand docking",
                 "Binding pose prediction",
                 "Virtual screening of drug candidates",
-                "Lead optimization"
+                "Lead optimization",
             ],
             references=[
                 "Quantum Drug Discovery Applications (2023)",
-                "Variational Quantum Docking (2022)"
-            ]
+                "Variational Quantum Docking (2022)",
+            ],
         )
 
     def build(self, **kwargs) -> Any:
@@ -98,6 +99,7 @@ class MolecularDockingCircuit(CircuitTemplate):
 
         # Qubits needed: log2(energy_levels) per bond
         import math
+
         qubits_per_bond = max(1, int(math.ceil(math.log2(energy_levels))))
         num_qubits = num_bonds * qubits_per_bond
 
@@ -114,7 +116,7 @@ class MolecularDockingCircuit(CircuitTemplate):
             two_qubit_gates=two_qubit_gates,
             measurement_count=num_qubits,
             execution_time_estimate=0.5 * opt_depth * num_bonds,
-            error_budget=0.02
+            error_budget=0.02,
         )
 
 
@@ -141,29 +143,29 @@ class ProteinFoldingCircuit(CircuitTemplate):
                 type="int",
                 description="Length of protein sequence",
                 required=True,
-                range=(3, 50)
+                range=(3, 50),
             ),
             ParameterSpec(
                 name="lattice_dimensions",
                 type="int",
                 description="Lattice dimensions (2D or 3D)",
                 default=2,
-                range=(2, 3)
+                range=(2, 3),
             ),
             ParameterSpec(
                 name="qaoa_layers",
                 type="int",
                 description="Number of QAOA layers",
                 default=2,
-                range=(1, 8)
+                range=(1, 8),
             ),
             ParameterSpec(
                 name="interaction_model",
                 type="str",
                 description="Interaction model to use",
                 default="hp",
-                constraints={"one_of": ["hp", "miyazawa_jernigan", "full"]}
-            )
+                constraints={"one_of": ["hp", "miyazawa_jernigan", "full"]},
+            ),
         ]
 
         super().__init__(
@@ -177,12 +179,9 @@ class ProteinFoldingCircuit(CircuitTemplate):
                 "Protein structure prediction",
                 "Enzyme design",
                 "Antibody engineering",
-                "Therapeutic protein development"
+                "Therapeutic protein development",
             ],
-            references=[
-                "Quantum protein folding (2012)",
-                "QAOA for protein folding (2021)"
-            ]
+            references=["Quantum protein folding (2012)", "QAOA for protein folding (2021)"],
         )
 
     def build(self, **kwargs) -> Any:
@@ -201,7 +200,8 @@ class ProteinFoldingCircuit(CircuitTemplate):
 
         # Qubits needed for encoding positions
         import math
-        positions_per_residue = 2 ** dimensions
+
+        positions_per_residue = 2**dimensions
         qubits_per_residue = int(math.ceil(math.log2(positions_per_residue)))
         num_qubits = seq_length * qubits_per_residue
 
@@ -218,7 +218,7 @@ class ProteinFoldingCircuit(CircuitTemplate):
             two_qubit_gates=two_qubit_gates,
             measurement_count=num_qubits,
             execution_time_estimate=1.0 * qaoa_layers * seq_length,
-            error_budget=0.03
+            error_budget=0.03,
         )
 
 
@@ -245,28 +245,28 @@ class BindingAffinityCircuit(CircuitTemplate):
                 type="int",
                 description="Number of atoms in the system",
                 required=True,
-                range=(2, 100)
+                range=(2, 100),
             ),
             ParameterSpec(
                 name="basis_size",
                 type="int",
                 description="Size of basis set for each atom",
                 default=4,
-                range=(2, 8)
+                range=(2, 8),
             ),
             ParameterSpec(
                 name="vqe_layers",
                 type="int",
                 description="Number of VQE ansatz layers",
                 default=2,
-                range=(1, 10)
+                range=(1, 10),
             ),
             ParameterSpec(
                 name="include_solvation",
                 type="bool",
                 description="Include solvation effects",
-                default=False
-            )
+                default=False,
+            ),
         ]
 
         super().__init__(
@@ -280,12 +280,12 @@ class BindingAffinityCircuit(CircuitTemplate):
                 "Binding affinity prediction",
                 "Lead compound ranking",
                 "Structure-activity relationship analysis",
-                "Virtual screening"
+                "Virtual screening",
             ],
             references=[
                 "Quantum chemistry for drug discovery (2020)",
-                "VQE for binding energy (2021)"
-            ]
+                "VQE for binding energy (2021)",
+            ],
         )
 
     def build(self, **kwargs) -> Any:
@@ -304,6 +304,7 @@ class BindingAffinityCircuit(CircuitTemplate):
 
         # Qubits for molecular orbitals
         import math
+
         num_orbitals = num_atoms * basis_size
         num_qubits = int(math.ceil(math.log2(num_orbitals))) + num_orbitals // 2
 
@@ -320,13 +321,9 @@ class BindingAffinityCircuit(CircuitTemplate):
             two_qubit_gates=two_qubit_gates,
             measurement_count=100,  # Multiple measurements for energy estimation
             execution_time_estimate=0.8 * vqe_layers * num_atoms,
-            error_budget=0.015
+            error_budget=0.015,
         )
 
 
 # Export all drug discovery circuits
-__all__ = [
-    "MolecularDockingCircuit",
-    "ProteinFoldingCircuit",
-    "BindingAffinityCircuit"
-]
+__all__ = ["MolecularDockingCircuit", "ProteinFoldingCircuit", "BindingAffinityCircuit"]

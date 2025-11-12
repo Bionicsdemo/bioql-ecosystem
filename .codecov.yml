@@ -1,0 +1,121 @@
+# Codecov Configuration for BioQL Ecosystem
+# Documentation: https://docs.codecov.com/docs/codecov-yaml
+
+codecov:
+  require_ci_to_pass: yes
+  notify:
+    wait_for_ci: yes
+
+coverage:
+  precision: 2
+  round: down
+  range: "60...100"
+
+  status:
+    project:
+      default:
+        target: 70%
+        threshold: 2%
+        base: auto
+        if_ci_failed: error
+        informational: false
+        only_pulls: false
+
+    patch:
+      default:
+        target: 70%
+        threshold: 5%
+        base: auto
+        if_ci_failed: error
+
+    changes:
+      default:
+        if_ci_failed: error
+
+# Paths to include in coverage
+coverage_paths:
+  - Spectrix_framework/
+  - Quillow/
+  - QPHAROS/
+  - Server_bioql/
+  - BioQL_agents/
+  - BioQL_Lab_Notebook/
+  - bioql_quillow_docking/
+  - Quantum_graph/
+
+# Paths to ignore
+ignore:
+  - "tests/"
+  - "*/tests/"
+  - "**/*_test.py"
+  - "**/*_tests.py"
+  - "**/test_*.py"
+  - "docs/"
+  - "*/docs/"
+  - "documentation/"
+  - "htmlcov/"
+  - "test_results/"
+  - "Test/"
+  - ".pytest_cache/"
+  - "**/__pycache__/"
+  - "**/*.pyc"
+  - "**/venv/"
+  - "**/.venv/"
+  - "**/env/"
+  - "**/node_modules/"
+  - "deployment_scripts/"
+  - "scripts/"
+  - "schemas/"
+  - "bioql_website/"
+  - "BIOQL_DEMO/"
+  - "ai/"
+  - "*.sh"
+  - "*.md"
+  - "setup.py"
+  - "**/setup.py"
+  - "**/__init__.py"
+  - "**/conftest.py"
+
+# Comment configuration
+comment:
+  layout: "reach,diff,flags,tree,reach"
+  behavior: default
+  require_changes: false
+  require_base: false
+  require_head: true
+  branches:
+    - main
+    - develop
+
+# Flag configuration for different test types
+flags:
+  unittests:
+    paths:
+      - Spectrix_framework/
+      - Quillow/
+      - QPHAROS/
+      - Server_bioql/
+    carryforward: true
+
+  integration:
+    paths:
+      - Spectrix_framework/
+      - Quillow/
+      - QPHAROS/
+      - Server_bioql/
+      - BioQL_agents/
+    carryforward: true
+
+# GitHub checks configuration
+github_checks:
+  annotations: true
+
+# Require changes configuration
+# Do not fail if coverage decreases by less than threshold
+parsers:
+  gcov:
+    branch_detection:
+      conditional: yes
+      loop: yes
+      method: no
+      macro: no

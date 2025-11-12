@@ -1,0 +1,37 @@
+# BioQL Ecosystem - Git Submodules Configuration
+# This file manages the nested repositories within the BioQL project
+
+# BioQL Agents - Agent-based quantum computing system
+[submodule "BioQL_agents"]
+	path = BioQL_agents
+	url = <REPLACE_WITH_BIOQL_AGENTS_REPO_URL>
+	branch = main
+
+# BioQL Server - Backend server infrastructure
+[submodule "Server_bioql"]
+	path = Server_bioql
+	url = <REPLACE_WITH_SERVER_BIOQL_REPO_URL>
+	branch = main
+
+# BioQL Website - Frontend web interface
+[submodule "bioql_website"]
+	path = bioql_website
+	url = https://github.com/Bionicsdemo/spectrix.git
+	branch = main
+
+# BioQL Quillow Docking - Quantum-classical docking integration
+[submodule "bioql_quillow_docking"]
+	path = bioql_quillow_docking
+	url = <REPLACE_WITH_BIOQL_QUILLOW_DOCKING_REPO_URL>
+	branch = main
+
+# Note: The following directories are regular directories (not separate repos yet):
+# - Spectrix_framework (BioQL Framework core)
+# - Quillow (Quantum Error Correction system)
+# - QPHAROS (Quantum drug discovery platform)
+# - Quantum_graph (Graph visualization system)
+#
+# If you want to convert these to submodules, they need to be:
+# 1. Initialized as separate git repositories
+# 2. Pushed to remote repositories
+# 3. Added as submodules using: git submodule add <url> <path>

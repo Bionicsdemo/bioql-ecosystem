@@ -13,16 +13,17 @@ Features:
 - Streaming responses
 """
 
-from dataclasses import dataclass
-from typing import Optional, List, Dict, Any
-from pathlib import Path
 import asyncio
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 # Optional dependencies
 try:
-    from fastapi import FastAPI, HTTPException, Depends
+    from fastapi import Depends, FastAPI, HTTPException
     from fastapi.responses import StreamingResponse
     from pydantic import BaseModel, Field
+
     _fastapi_available = True
 except ImportError:
     _fastapi_available = False
@@ -33,6 +34,7 @@ try:
     from loguru import logger
 except ImportError:
     import logging
+
     logger = logging.getLogger(__name__)
 
 
@@ -40,6 +42,7 @@ if _fastapi_available:
     # Request/Response models
     class GenerateRequest(BaseModel):
         """Request for code generation."""
+
         prompt: str = Field(..., description="Natural language description")
         max_length: int = Field(512, description="Maximum generation length")
         temperature: float = Field(0.7, ge=0.0, le=2.0, description="Sampling temperature")
@@ -53,12 +56,13 @@ if _fastapi_available:
                     "max_length": 512,
                     "temperature": 0.7,
                     "top_p": 0.9,
-                    "stream": False
+                    "stream": False,
                 }
             }
 
     class GenerateResponse(BaseModel):
         """Response with generated code."""
+
         code: str = Field(..., description="Generated BioQL code")
         prompt: str = Field(..., description="Original prompt")
         model: str = Field(..., description="Model used")
@@ -66,6 +70,7 @@ if _fastapi_available:
 
     class HealthResponse(BaseModel):
         """Health check response."""
+
         status: str
         model_loaded: bool
         model_name: str
@@ -94,7 +99,7 @@ if _fastapi_available:
             model_path: str,
             model_name: Optional[str] = None,
             quantization: Optional[str] = None,
-            use_vllm: bool = True
+            use_vllm: bool = True,
         ):
             """
             Initialize serving API.
@@ -125,7 +130,7 @@ if _fastapi_available:
             app = FastAPI(
                 title="BioQL Foundational Model API",
                 description="Production API for BioQL quantum code generation",
-                version="1.0.0"
+                version="1.0.0",
             )
 
             @app.on_event("startup")
@@ -138,7 +143,7 @@ if _fastapi_available:
                     model_path=self.model_path,
                     model_name=self.model_name,
                     quantization=self.quantization,
-                    use_vllm=self.use_vllm
+                    use_vllm=self.use_vllm,
                 )
                 self.inference_engine.load_model()
                 logger.info("✅ Model loaded and ready")
@@ -150,7 +155,7 @@ if _fastapi_available:
                     status="healthy",
                     model_loaded=self.inference_engine is not None,
                     model_name=self.model_path,
-                    version="1.0.0"
+                    version="1.0.0",
                 )
 
             @app.post("/generate", response_model=GenerateResponse)
@@ -182,21 +187,19 @@ if _fastapi_available:
                     config = GenerationConfig(
                         max_length=request.max_length,
                         temperature=request.temperature,
-                        top_p=request.top_p
+                        top_p=request.top_p,
                     )
 
                     # Generate
                     result = self.inference_engine.generate(
-                        prompt=request.prompt,
-                        config=config,
-                        stream=False
+                        prompt=request.prompt, config=config, stream=False
                     )
 
                     return GenerateResponse(
                         code=result.generated_code,
                         prompt=request.prompt,
                         model=self.model_path,
-                        metadata=result.metadata
+                        metadata=result.metadata,
                     )
 
                 except Exception as e:
@@ -224,20 +227,16 @@ if _fastapi_available:
                     config = GenerationConfig(
                         max_length=request.max_length,
                         temperature=request.temperature,
-                        top_p=request.top_p
+                        top_p=request.top_p,
                     )
 
                     # Stream generation
                     for chunk in self.inference_engine.generate_stream(
-                        prompt=request.prompt,
-                        config=config
+                        prompt=request.prompt, config=config
                     ):
                         yield chunk
 
-                return StreamingResponse(
-                    stream_generator(),
-                    media_type="text/plain"
-                )
+                return StreamingResponse(stream_generator(), media_type="text/plain")
 
             @app.post("/batch")
             async def batch_generate(requests: List[GenerateRequest]):
@@ -260,22 +259,19 @@ if _fastapi_available:
                     results = []
                     for req in requests:
                         config = GenerationConfig(
-                            max_length=req.max_length,
-                            temperature=req.temperature,
-                            top_p=req.top_p
+                            max_length=req.max_length, temperature=req.temperature, top_p=req.top_p
                         )
 
-                        result = self.inference_engine.generate(
-                            prompt=req.prompt,
-                            config=config
-                        )
+                        result = self.inference_engine.generate(prompt=req.prompt, config=config)
 
-                        results.append(GenerateResponse(
-                            code=result.generated_code,
-                            prompt=req.prompt,
-                            model=self.model_path,
-                            metadata=result.metadata
-                        ))
+                        results.append(
+                            GenerateResponse(
+                                code=result.generated_code,
+                                prompt=req.prompt,
+                                model=self.model_path,
+                                metadata=result.metadata,
+                            )
+                        )
 
                     return results
 
@@ -286,12 +282,7 @@ if _fastapi_available:
             self.app = app
             return app
 
-        def start(
-            self,
-            host: str = "0.0.0.0",
-            port: int = 8000,
-            reload: bool = False
-        ):
+        def start(self, host: str = "0.0.0.0", port: int = 8000, reload: bool = False):
             """
             Start serving API.
 
@@ -310,18 +301,16 @@ if _fastapi_available:
             logger.info(f"Starting BioQL API on {host}:{port}")
 
             import uvicorn
-            uvicorn.run(
-                self.app,
-                host=host,
-                port=port,
-                reload=reload
-            )
+
+            uvicorn.run(self.app, host=host, port=port, reload=reload)
 
 else:
     # Stub when FastAPI not available
     class BioQLServingAPI:
         def __init__(self, *args, **kwargs):
-            raise ImportError("FastAPI required for serving. Install with: pip install fastapi uvicorn")
+            raise ImportError(
+                "FastAPI required for serving. Install with: pip install fastapi uvicorn"
+            )
 
 
 def serve_model(
@@ -330,7 +319,7 @@ def serve_model(
     host: str = "0.0.0.0",
     port: int = 8000,
     quantization: Optional[str] = None,
-    use_vllm: bool = True
+    use_vllm: bool = True,
 ):
     """
     Quick serving helper.
@@ -363,10 +352,7 @@ def serve_model(
         raise ImportError("FastAPI required")
 
     api = BioQLServingAPI(
-        model_path=model_path,
-        model_name=model_name,
-        quantization=quantization,
-        use_vllm=use_vllm
+        model_path=model_path, model_name=model_name, quantization=quantization, use_vllm=use_vllm
     )
 
     api.start(host=host, port=port)

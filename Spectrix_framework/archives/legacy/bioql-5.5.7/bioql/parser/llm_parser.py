@@ -9,10 +9,10 @@ import json
 from typing import Any, Dict, List, Optional, Type, Union
 
 import httpx
+from bioql.ir import BioQLProgram, validator
 from loguru import logger
 from pydantic import BaseModel
 
-from bioql.ir import BioQLProgram, validator
 from .nl_parser import NaturalLanguageParser, ParseError
 
 
@@ -30,6 +30,7 @@ class LLMConfig(BaseModel):
 
 class LLMParsingError(ParseError):
     """Exception raised when LLM parsing fails."""
+
     pass
 
 
@@ -113,11 +114,7 @@ class LLMParser:
             headers["anthropic-version"] = "2023-06-01"
             base_url = base_url or "https://api.anthropic.com"
 
-        return httpx.AsyncClient(
-            base_url=base_url,
-            headers=headers,
-            timeout=self.config.timeout
-        )
+        return httpx.AsyncClient(base_url=base_url, headers=headers, timeout=self.config.timeout)
 
     async def parse_async(self, text: str, program_name: Optional[str] = None) -> BioQLProgram:
         """
@@ -146,11 +143,10 @@ class LLMParser:
                 program.name = program_name
 
             # Add audit entry
-            program.add_audit_entry("llm_parsed", {
-                "provider": self.config.provider,
-                "model": self.config.model,
-                "input_text": text
-            })
+            program.add_audit_entry(
+                "llm_parsed",
+                {"provider": self.config.provider, "model": self.config.model, "input_text": text},
+            )
 
             logger.success(f"Successfully parsed with LLM: {program.name}")
             return program
@@ -171,6 +167,7 @@ class LLMParser:
             BioQLProgram instance
         """
         import asyncio
+
         return asyncio.run(self.parse_async(text, program_name))
 
     async def _call_llm_api(self, text: str) -> Dict[str, Any]:
@@ -190,11 +187,11 @@ class LLMParser:
             "model": self.config.model,
             "messages": [
                 {"role": "system", "content": PromptTemplate.SYSTEM_PROMPT},
-                {"role": "user", "content": prompt}
+                {"role": "user", "content": prompt},
             ],
             "max_tokens": self.config.max_tokens,
             "temperature": self.config.temperature,
-            "response_format": {"type": "json_object"}
+            "response_format": {"type": "json_object"},
         }
 
         response = await self.client.post("/chat/completions", json=payload)
@@ -215,9 +212,7 @@ class LLMParser:
             "max_tokens": self.config.max_tokens,
             "temperature": self.config.temperature,
             "system": PromptTemplate.SYSTEM_PROMPT,
-            "messages": [
-                {"role": "user", "content": prompt}
-            ]
+            "messages": [{"role": "user", "content": prompt}],
         }
 
         response = await self.client.post("/v1/messages", json=payload)
@@ -251,10 +246,7 @@ class HybridParser:
         self.llm_parser = LLMParser(llm_config) if llm_config else None
 
     async def parse_async(
-        self,
-        text: str,
-        program_name: Optional[str] = None,
-        use_llm: bool = True
+        self, text: str, program_name: Optional[str] = None, use_llm: bool = True
     ) -> BioQLProgram:
         """
         Parse using hybrid approach (async version).
@@ -276,10 +268,7 @@ class HybridParser:
         return self.pattern_parser.parse(text, program_name)
 
     def parse(
-        self,
-        text: str,
-        program_name: Optional[str] = None,
-        use_llm: bool = True
+        self, text: str, program_name: Optional[str] = None, use_llm: bool = True
     ) -> BioQLProgram:
         """
         Parse using hybrid approach (sync version).
@@ -293,6 +282,7 @@ class HybridParser:
             BioQLProgram instance
         """
         import asyncio
+
         return asyncio.run(self.parse_async(text, program_name, use_llm))
 
     async def close(self) -> None:
@@ -306,7 +296,7 @@ async def parse_natural_language(
     text: str,
     program_name: Optional[str] = None,
     llm_config: Optional[LLMConfig] = None,
-    use_llm: bool = True
+    use_llm: bool = True,
 ) -> BioQLProgram:
     """
     Convenience function for parsing natural language.
@@ -328,10 +318,4 @@ async def parse_natural_language(
 
 
 # Export main classes
-__all__ = [
-    "LLMConfig",
-    "LLMParser",
-    "LLMParsingError",
-    "HybridParser",
-    "parse_natural_language"
-]
+__all__ = ["LLMConfig", "LLMParser", "LLMParsingError", "HybridParser", "parse_natural_language"]

@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional, Type, Union
 # Optional jsonschema import
 try:
     import jsonschema
+
     _jsonschema_available = True
 except ImportError:
     _jsonschema_available = False
@@ -58,7 +59,7 @@ class SchemaValidator:
         except ValidationError as e:
             raise BioQLValidationError(
                 f"Program validation failed: {e}",
-                [{"field": err["loc"], "message": err["msg"]} for err in e.errors()]
+                [{"field": err["loc"], "message": err["msg"]} for err in e.errors()],
             )
         except json.JSONDecodeError as e:
             raise BioQLValidationError(f"Invalid JSON: {e}")
@@ -84,7 +85,7 @@ class SchemaValidator:
         except ValidationError as e:
             raise BioQLValidationError(
                 f"Result validation failed: {e}",
-                [{"field": err["loc"], "message": err["msg"]} for err in e.errors()]
+                [{"field": err["loc"], "message": err["msg"]} for err in e.errors()],
             )
         except json.JSONDecodeError as e:
             raise BioQLValidationError(f"Invalid JSON: {e}")
@@ -110,16 +111,12 @@ class SchemaValidator:
         except ValidationError as e:
             raise BioQLValidationError(
                 f"Molecule validation failed: {e}",
-                [{"field": err["loc"], "message": err["msg"]} for err in e.errors()]
+                [{"field": err["loc"], "message": err["msg"]} for err in e.errors()],
             )
         except json.JSONDecodeError as e:
             raise BioQLValidationError(f"Invalid JSON: {e}")
 
-    def validate_json_schema(
-        self,
-        data: Dict[str, Any],
-        schema: Dict[str, Any]
-    ) -> bool:
+    def validate_json_schema(self, data: Dict[str, Any], schema: Dict[str, Any]) -> bool:
         """
         Validate data against a JSON schema.
 
@@ -139,7 +136,7 @@ class SchemaValidator:
         except jsonschema.ValidationError as e:
             raise BioQLValidationError(
                 f"Schema validation failed: {e.message}",
-                [{"path": list(e.absolute_path), "message": e.message}]
+                [{"path": list(e.absolute_path), "message": e.message}],
             )
 
 
@@ -148,6 +145,7 @@ class SchemaGenerator:
 
     def __init__(self, output_dir: Optional[Path] = None):
         import tempfile
+
         # Use temp directory if default path is not writable
         if output_dir is None:
             default_path = Path("schemas")
@@ -237,13 +235,7 @@ class ComplianceValidator:
     """Validates BioQL programs for regulatory compliance."""
 
     def __init__(self):
-        self.required_fields = [
-            "id",
-            "name",
-            "version",
-            "created_at",
-            "created_by"
-        ]
+        self.required_fields = ["id", "name", "version", "created_at", "created_by"]
 
     def validate_21cfr_part11_compliance(self, program: BioQLProgram) -> Dict[str, Any]:
         """
@@ -255,11 +247,7 @@ class ComplianceValidator:
         Returns:
             Compliance report
         """
-        report = {
-            "compliant": True,
-            "issues": [],
-            "recommendations": []
-        }
+        report = {"compliant": True, "issues": [], "recommendations": []}
 
         # Check required metadata
         for field in self.required_fields:
@@ -293,11 +281,7 @@ class ComplianceValidator:
         Returns:
             Compliance report
         """
-        report = {
-            "compliant": True,
-            "issues": [],
-            "recommendations": []
-        }
+        report = {"compliant": True, "issues": [], "recommendations": []}
 
         # Check validation status
         if "validation_status" not in program.metadata:
@@ -328,5 +312,5 @@ __all__ = [
     "ComplianceValidator",
     "validator",
     "schema_generator",
-    "compliance_validator"
+    "compliance_validator",
 ]

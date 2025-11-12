@@ -22,14 +22,17 @@ __all__ = [
     "visualize_complex",
 ]
 
+
 # Lazy imports to avoid hard dependencies
 def show(*args, **kwargs):
     """Display molecular structure in viewer."""
     try:
         from .pymol_viz import show as _show
+
         return _show(*args, **kwargs)
     except ImportError:
         from .py3dmol_viz import show as _show
+
         return _show(*args, **kwargs)
 
 
@@ -37,15 +40,18 @@ def save_image(*args, **kwargs):
     """Save molecular visualization as image."""
     try:
         from .pymol_viz import save_image as _save
+
         return _save(*args, **kwargs)
     except ImportError:
         from .py3dmol_viz import save_image as _save
+
         return _save(*args, **kwargs)
 
 
 def save_session(*args, **kwargs):
     """Save PyMOL session file."""
     from .pymol_viz import save_session as _save
+
     return _save(*args, **kwargs)
 
 
@@ -53,7 +59,9 @@ def visualize_complex(*args, **kwargs):
     """Visualize protein-ligand complex."""
     try:
         from .pymol_viz import visualize_complex as _viz
+
         return _viz(*args, **kwargs)
     except ImportError:
         from .py3dmol_viz import visualize_complex as _viz
+
         return _viz(*args, **kwargs)

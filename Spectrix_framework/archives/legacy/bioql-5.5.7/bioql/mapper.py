@@ -17,8 +17,8 @@ Version: 3.0.0
 
 from __future__ import annotations
 
-import re
 import math
+import re
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
@@ -28,6 +28,7 @@ try:
     from loguru import logger
 except ImportError:
     import logging
+
     logger = logging.getLogger(__name__)
 
 from bioql.ir import (
@@ -38,13 +39,14 @@ from bioql.ir import (
     QuantumGate,
 )
 
-
 # ============================================================================
 # Intent and Context Models
 # ============================================================================
 
+
 class Intent(str, Enum):
     """Natural language intent types."""
+
     CREATE_CIRCUIT = "create_circuit"
     CREATE_SUPERPOSITION = "create_superposition"
     CREATE_ENTANGLEMENT = "create_entanglement"
@@ -62,6 +64,7 @@ class Intent(str, Enum):
 @dataclass
 class Context:
     """Context information for NL mapping."""
+
     domain: Optional[BioQLDomain] = None
     intent: Intent = Intent.UNKNOWN
     entities: Dict[str, Any] = field(default_factory=dict)
@@ -74,6 +77,7 @@ class Context:
 @dataclass
 class QuantumGateMapping:
     """Mapping result from NL to quantum gates."""
+
     gates: List[Dict[str, Any]] = field(default_factory=list)
     qubits_used: Set[int] = field(default_factory=set)
     parameters: List[BioQLParameter] = field(default_factory=list)
@@ -84,6 +88,7 @@ class QuantumGateMapping:
 @dataclass
 class HardwareBackend:
     """Hardware backend specification."""
+
     name: str
     native_gates: Set[str]
     connectivity: List[Tuple[int, int]]
@@ -100,24 +105,36 @@ IBM_QUANTUM = HardwareBackend(
     name="IBM Quantum",
     native_gates={"id", "rz", "sx", "x", "cx"},
     connectivity=[
-        (0, 1), (1, 0), (1, 2), (2, 1), (2, 3), (3, 2), (3, 4), (4, 3),
-        (0, 5), (5, 0), (1, 6), (6, 1), (2, 7), (7, 2), (3, 8), (8, 3),
-        (4, 9), (9, 4), (5, 6), (6, 5), (6, 7), (7, 6), (7, 8), (8, 7),
-        (8, 9), (9, 8)
+        (0, 1),
+        (1, 0),
+        (1, 2),
+        (2, 1),
+        (2, 3),
+        (3, 2),
+        (3, 4),
+        (4, 3),
+        (0, 5),
+        (5, 0),
+        (1, 6),
+        (6, 1),
+        (2, 7),
+        (7, 2),
+        (3, 8),
+        (8, 3),
+        (4, 9),
+        (9, 4),
+        (5, 6),
+        (6, 5),
+        (6, 7),
+        (7, 6),
+        (7, 8),
+        (8, 7),
+        (8, 9),
+        (9, 8),
     ],
     max_qubits=127,
-    gate_fidelities={
-        "id": 0.9999,
-        "rz": 0.9999,
-        "sx": 0.9995,
-        "x": 0.9995,
-        "cx": 0.99
-    },
-    properties={
-        "t1": 100e-6,  # 100 microseconds
-        "t2": 150e-6,
-        "readout_fidelity": 0.98
-    }
+    gate_fidelities={"id": 0.9999, "rz": 0.9999, "sx": 0.9995, "x": 0.9995, "cx": 0.99},
+    properties={"t1": 100e-6, "t2": 150e-6, "readout_fidelity": 0.98},  # 100 microseconds
 )
 
 IONQ = HardwareBackend(
@@ -125,37 +142,36 @@ IONQ = HardwareBackend(
     native_gates={"gpi", "gpi2", "ms"},  # IonQ native gates
     connectivity=[(i, j) for i in range(11) for j in range(11) if i != j],  # All-to-all
     max_qubits=11,
-    gate_fidelities={
-        "gpi": 0.9998,
-        "gpi2": 0.9998,
-        "ms": 0.997  # Mølmer-Sørensen gate
-    },
-    properties={
-        "topology": "all-to-all",
-        "gate_time_1q": 10e-6,
-        "gate_time_2q": 200e-6
-    }
+    gate_fidelities={"gpi": 0.9998, "gpi2": 0.9998, "ms": 0.997},  # Mølmer-Sørensen gate
+    properties={"topology": "all-to-all", "gate_time_1q": 10e-6, "gate_time_2q": 200e-6},
 )
 
 RIGETTI = HardwareBackend(
     name="Rigetti",
     native_gates={"rx", "rz", "cz"},
     connectivity=[
-        (0, 1), (1, 0), (1, 2), (2, 1), (2, 3), (3, 2),
-        (0, 7), (7, 0), (1, 8), (8, 1), (2, 9), (9, 2),
-        (3, 10), (10, 3), (7, 8), (8, 7), (8, 9), (9, 8)
+        (0, 1),
+        (1, 0),
+        (1, 2),
+        (2, 1),
+        (2, 3),
+        (3, 2),
+        (0, 7),
+        (7, 0),
+        (1, 8),
+        (8, 1),
+        (2, 9),
+        (9, 2),
+        (3, 10),
+        (10, 3),
+        (7, 8),
+        (8, 7),
+        (8, 9),
+        (9, 8),
     ],
     max_qubits=80,
-    gate_fidelities={
-        "rx": 0.998,
-        "rz": 0.9999,
-        "cz": 0.94
-    },
-    properties={
-        "architecture": "Aspen-M",
-        "t1": 20e-6,
-        "t2": 18e-6
-    }
+    gate_fidelities={"rx": 0.998, "rz": 0.9999, "cz": 0.94},
+    properties={"architecture": "Aspen-M", "t1": 20e-6, "t2": 18e-6},
 )
 
 
@@ -163,31 +179,70 @@ RIGETTI = HardwareBackend(
 # Context Analyzer
 # ============================================================================
 
+
 class ContextAnalyzer:
     """Analyzes natural language context for better mapping."""
 
     def __init__(self):
         self.domain_keywords = {
             BioQLDomain.DOCKING: [
-                "dock", "binding", "ligand", "receptor", "protein", "molecule",
-                "affinity", "pose", "complex", "interaction"
+                "dock",
+                "binding",
+                "ligand",
+                "receptor",
+                "protein",
+                "molecule",
+                "affinity",
+                "pose",
+                "complex",
+                "interaction",
             ],
             BioQLDomain.ALIGNMENT: [
-                "align", "sequence", "match", "gap", "similarity", "blast",
-                "needleman", "wunsch", "smith", "waterman"
+                "align",
+                "sequence",
+                "match",
+                "gap",
+                "similarity",
+                "blast",
+                "needleman",
+                "wunsch",
+                "smith",
+                "waterman",
             ],
             BioQLDomain.FOLDING: [
-                "fold", "folding", "structure", "conformation", "secondary",
-                "tertiary", "helix", "sheet", "coil", "rosetta"
+                "fold",
+                "folding",
+                "structure",
+                "conformation",
+                "secondary",
+                "tertiary",
+                "helix",
+                "sheet",
+                "coil",
+                "rosetta",
             ],
             BioQLDomain.OPTIMIZATION: [
-                "optimize", "minimize", "maximize", "energy", "cost",
-                "objective", "constraint", "vqe", "qaoa", "variational"
+                "optimize",
+                "minimize",
+                "maximize",
+                "energy",
+                "cost",
+                "objective",
+                "constraint",
+                "vqe",
+                "qaoa",
+                "variational",
             ],
             BioQLDomain.SIMULATION: [
-                "simulate", "simulation", "dynamics", "trajectory", "evolution",
-                "hamiltonian", "propagate", "time-evolve"
-            ]
+                "simulate",
+                "simulation",
+                "dynamics",
+                "trajectory",
+                "evolution",
+                "hamiltonian",
+                "propagate",
+                "time-evolve",
+            ],
         }
 
         self.intent_patterns = {
@@ -195,27 +250,27 @@ class ContextAnalyzer:
                 r"(?:create|make|generate)\s+superposition",
                 r"(?:put|place)\s+.*\s+in\s+superposition",
                 r"hadamard\s+(?:gate|on|to)",
-                r"equal\s+superposition"
+                r"equal\s+superposition",
             ],
             Intent.CREATE_ENTANGLEMENT: [
                 r"(?:create|make|generate)\s+entangle",
                 r"entangle\s+qubit",
                 r"cnot\s+(?:gate|from|between)",
                 r"bell\s+state",
-                r"epr\s+pair"
+                r"epr\s+pair",
             ],
             Intent.APPLY_GATE: [
                 r"apply\s+(?:gate|operator)",
                 r"(?:add|insert)\s+gate",
                 r"rotate\s+(?:by|around)",
-                r"flip\s+qubit"
+                r"flip\s+qubit",
             ],
             Intent.MEASURE: [
                 r"measure\s+qubit",
                 r"read\s+(?:out|qubit)",
                 r"observe\s+state",
-                r"collapse\s+(?:to|into)"
-            ]
+                r"collapse\s+(?:to|into)",
+            ],
         }
 
     def analyze(self, text: str, history: Optional[List[str]] = None) -> Context:
@@ -229,9 +284,7 @@ class ContextAnalyzer:
         Returns:
             Context object with extracted information
         """
-        context = Context(
-            session_history=history or []
-        )
+        context = Context(session_history=history or [])
 
         text_lower = text.lower()
 
@@ -346,7 +399,7 @@ class ContextAnalyzer:
         angle_patterns = [
             r"(\d+\.?\d*)\s*(?:rad|radians?)",
             r"(\d+\.?\d*)\s*(?:deg|degrees?)",
-            r"(\d+\.?\d*)\s*pi"
+            r"(\d+\.?\d*)\s*pi",
         ]
         for pattern in angle_patterns:
             match = re.search(pattern, text)
@@ -394,6 +447,7 @@ class ContextAnalyzer:
 # Domain-Specific Mapper
 # ============================================================================
 
+
 class DomainSpecificMapper:
     """Maps domain-specific concepts to quantum circuits."""
 
@@ -404,7 +458,7 @@ class DomainSpecificMapper:
             "molecular_orbital": self._map_molecular_orbital,
             "electron_density": self._map_electron_density,
             "interaction_energy": self._map_interaction_energy,
-            "pharmacophore": self._map_pharmacophore
+            "pharmacophore": self._map_pharmacophore,
         }
 
         # Protein folding domain mappings
@@ -413,7 +467,7 @@ class DomainSpecificMapper:
             "hydrophobic_interaction": self._map_hydrophobic_interaction,
             "backbone_angle": self._map_backbone_angle,
             "contact_map": self._map_contact_map,
-            "folding_energy": self._map_folding_energy
+            "folding_energy": self._map_folding_energy,
         }
 
         # Sequence analysis domain mappings
@@ -421,14 +475,11 @@ class DomainSpecificMapper:
             "pattern_search": self._map_pattern_search,
             "similarity_score": self._map_similarity_score,
             "motif_detection": self._map_motif_detection,
-            "alignment_score": self._map_alignment_score
+            "alignment_score": self._map_alignment_score,
         }
 
     def map_domain_concept(
-        self,
-        concept: str,
-        domain: BioQLDomain,
-        num_qubits: int = 4
+        self, concept: str, domain: BioQLDomain, num_qubits: int = 4
     ) -> QuantumCircuit:
         """
         Map a domain-specific concept to a quantum circuit.
@@ -469,29 +520,25 @@ class DomainSpecificMapper:
                 "molecular_orbital": "Quantum representation of molecular orbital states",
                 "electron_density": "Electron distribution in molecular systems",
                 "interaction_energy": "Energy landscape of molecular interactions",
-                "pharmacophore": "3D arrangement of molecular features"
+                "pharmacophore": "3D arrangement of molecular features",
             },
             BioQLDomain.FOLDING: {
                 "secondary_structure": "Alpha helix and beta sheet formations",
                 "hydrophobic_interaction": "Non-polar amino acid clustering",
                 "backbone_angle": "Phi and psi dihedral angles",
                 "contact_map": "Spatial proximity of residues",
-                "folding_energy": "Potential energy surface of protein"
+                "folding_energy": "Potential energy surface of protein",
             },
             BioQLDomain.ALIGNMENT: {
                 "pattern_search": "Quantum search for sequence patterns",
                 "similarity_score": "Sequence similarity calculation",
                 "motif_detection": "Finding conserved sequence motifs",
-                "alignment_score": "Optimal alignment scoring"
-            }
+                "alignment_score": "Optimal alignment scoring",
+            },
         }
         return vocabularies.get(domain, {})
 
-    def extend_domain(
-        self,
-        domain: BioQLDomain,
-        custom_mappings: Dict[str, Any]
-    ) -> None:
+    def extend_domain(self, domain: BioQLDomain, custom_mappings: Dict[str, Any]) -> None:
         """
         Extend domain with custom mappings.
 
@@ -736,21 +783,14 @@ class DomainSpecificMapper:
 # Hardware Mapper
 # ============================================================================
 
+
 class HardwareMapper:
     """Maps and optimizes quantum circuits for specific hardware."""
 
     def __init__(self):
-        self.backends = {
-            "ibm": IBM_QUANTUM,
-            "ionq": IONQ,
-            "rigetti": RIGETTI
-        }
+        self.backends = {"ibm": IBM_QUANTUM, "ionq": IONQ, "rigetti": RIGETTI}
 
-    def transpile_for_hardware(
-        self,
-        circuit: QuantumCircuit,
-        backend_name: str
-    ) -> QuantumCircuit:
+    def transpile_for_hardware(self, circuit: QuantumCircuit, backend_name: str) -> QuantumCircuit:
         """
         Transpile circuit for specific hardware backend.
 
@@ -776,9 +816,7 @@ class HardwareMapper:
             params = gate.get("params", [])
 
             # Decompose to native gates
-            native_gates = self._decompose_to_native(
-                gate_type, qubits, params, backend
-            )
+            native_gates = self._decompose_to_native(gate_type, qubits, params, backend)
             transpiled.gates.extend(native_gates)
 
         # Optimize connectivity
@@ -789,11 +827,7 @@ class HardwareMapper:
 
         return transpiled
 
-    def optimize_gate_set(
-        self,
-        circuit: QuantumCircuit,
-        native_gates: Set[str]
-    ) -> QuantumCircuit:
+    def optimize_gate_set(self, circuit: QuantumCircuit, native_gates: Set[str]) -> QuantumCircuit:
         """
         Optimize circuit to use only native gates.
 
@@ -819,9 +853,7 @@ class HardwareMapper:
         return optimized
 
     def optimize_connectivity(
-        self,
-        circuit: QuantumCircuit,
-        topology: List[Tuple[int, int]]
+        self, circuit: QuantumCircuit, topology: List[Tuple[int, int]]
     ) -> QuantumCircuit:
         """
         Optimize circuit for hardware connectivity constraints.
@@ -861,11 +893,7 @@ class HardwareMapper:
 
         return optimized
 
-    def estimate_fidelity(
-        self,
-        circuit: QuantumCircuit,
-        backend: HardwareBackend
-    ) -> float:
+    def estimate_fidelity(self, circuit: QuantumCircuit, backend: HardwareBackend) -> float:
         """
         Estimate circuit fidelity on given backend.
 
@@ -891,16 +919,12 @@ class HardwareMapper:
         # Account for readout error
         if "readout_fidelity" in backend.properties:
             readout_fidelity = backend.properties["readout_fidelity"]
-            fidelity *= readout_fidelity ** circuit.num_qubits
+            fidelity *= readout_fidelity**circuit.num_qubits
 
         return fidelity
 
     def _decompose_to_native(
-        self,
-        gate_type: str,
-        qubits: List[int],
-        params: List[float],
-        backend: HardwareBackend
+        self, gate_type: str, qubits: List[int], params: List[float], backend: HardwareBackend
     ) -> List[Dict[str, Any]]:
         """Decompose gate to native gates for backend."""
         native_gates = backend.native_gates
@@ -921,10 +945,7 @@ class HardwareMapper:
         return [{"gate": gate_type, "qubits": qubits, "params": params}]
 
     def _decompose_for_ibm(
-        self,
-        gate_type: str,
-        qubits: List[int],
-        params: List[float]
+        self, gate_type: str, qubits: List[int], params: List[float]
     ) -> List[Dict[str, Any]]:
         """Decompose gates for IBM Quantum."""
         gates = []
@@ -945,11 +966,11 @@ class HardwareMapper:
             # RX/RY decomposed to RZ and SX
             angle = params[0] if params else 0
             if gate_type == "rx":
-                gates.append({"gate": "rz", "qubits": qubits, "params": [-math.pi/2]})
+                gates.append({"gate": "rz", "qubits": qubits, "params": [-math.pi / 2]})
                 gates.append({"gate": "sx", "qubits": qubits, "params": []})
                 gates.append({"gate": "rz", "qubits": qubits, "params": [angle]})
                 gates.append({"gate": "sx", "qubits": qubits, "params": []})
-                gates.append({"gate": "rz", "qubits": qubits, "params": [math.pi/2]})
+                gates.append({"gate": "rz", "qubits": qubits, "params": [math.pi / 2]})
             else:  # ry
                 gates.append({"gate": "sx", "qubits": qubits, "params": []})
                 gates.append({"gate": "rz", "qubits": qubits, "params": [angle]})
@@ -961,10 +982,7 @@ class HardwareMapper:
         return gates
 
     def _decompose_for_ionq(
-        self,
-        gate_type: str,
-        qubits: List[int],
-        params: List[float]
+        self, gate_type: str, qubits: List[int], params: List[float]
     ) -> List[Dict[str, Any]]:
         """Decompose gates for IonQ."""
         # IonQ uses GPI, GPI2, and MS gates
@@ -972,36 +990,29 @@ class HardwareMapper:
         return [{"gate": gate_type, "qubits": qubits, "params": params}]
 
     def _decompose_for_rigetti(
-        self,
-        gate_type: str,
-        qubits: List[int],
-        params: List[float]
+        self, gate_type: str, qubits: List[int], params: List[float]
     ) -> List[Dict[str, Any]]:
         """Decompose gates for Rigetti."""
         gates = []
 
         if gate_type == "h":
             # H = RZ(π/2) · RX(π/2) · RZ(π/2)
-            gates.append({"gate": "rz", "qubits": qubits, "params": [math.pi/2]})
-            gates.append({"gate": "rx", "qubits": qubits, "params": [math.pi/2]})
-            gates.append({"gate": "rz", "qubits": qubits, "params": [math.pi/2]})
+            gates.append({"gate": "rz", "qubits": qubits, "params": [math.pi / 2]})
+            gates.append({"gate": "rx", "qubits": qubits, "params": [math.pi / 2]})
+            gates.append({"gate": "rz", "qubits": qubits, "params": [math.pi / 2]})
         elif gate_type == "cnot":
             # CNOT decomposed using CZ
-            gates.append({"gate": "rz", "qubits": [qubits[1]], "params": [math.pi/2]})
-            gates.append({"gate": "rx", "qubits": [qubits[1]], "params": [math.pi/2]})
+            gates.append({"gate": "rz", "qubits": [qubits[1]], "params": [math.pi / 2]})
+            gates.append({"gate": "rx", "qubits": [qubits[1]], "params": [math.pi / 2]})
             gates.append({"gate": "cz", "qubits": qubits, "params": []})
-            gates.append({"gate": "rx", "qubits": [qubits[1]], "params": [-math.pi/2]})
-            gates.append({"gate": "rz", "qubits": [qubits[1]], "params": [-math.pi/2]})
+            gates.append({"gate": "rx", "qubits": [qubits[1]], "params": [-math.pi / 2]})
+            gates.append({"gate": "rz", "qubits": [qubits[1]], "params": [-math.pi / 2]})
         else:
             gates.append({"gate": gate_type, "qubits": qubits, "params": params})
 
         return gates
 
-    def _decompose_gate(
-        self,
-        gate: Dict[str, Any],
-        native_gates: Set[str]
-    ) -> List[Dict[str, Any]]:
+    def _decompose_gate(self, gate: Dict[str, Any], native_gates: Set[str]) -> List[Dict[str, Any]]:
         """Generic gate decomposition."""
         # Simplified decomposition
         return [gate]
@@ -1014,10 +1025,7 @@ class HardwareMapper:
         return reversed_gate
 
     def _route_with_swaps(
-        self,
-        q0: int,
-        q1: int,
-        topology: List[Tuple[int, int]]
+        self, q0: int, q1: int, topology: List[Tuple[int, int]]
     ) -> List[Dict[str, Any]]:
         """Route qubits using SWAP gates (simplified)."""
         # Simplified routing - just return empty list
@@ -1029,6 +1037,7 @@ class HardwareMapper:
 # Enhanced NL Mapper (Main Class)
 # ============================================================================
 
+
 class EnhancedNLMapper:
     """
     Enhanced Natural Language Mapper with context awareness,
@@ -1039,7 +1048,7 @@ class EnhancedNLMapper:
         self,
         enable_context_awareness: bool = True,
         enable_domain_specialization: bool = True,
-        enable_hardware_optimization: bool = True
+        enable_hardware_optimization: bool = True,
     ):
         """
         Initialize the Enhanced NL Mapper.
@@ -1064,11 +1073,7 @@ class EnhancedNLMapper:
 
         logger.info("Enhanced NL Mapper initialized")
 
-    def map_to_gates(
-        self,
-        text: str,
-        context: Optional[Context] = None
-    ) -> List[QuantumGate]:
+    def map_to_gates(self, text: str, context: Optional[Context] = None) -> List[QuantumGate]:
         """
         Map natural language text to quantum gates.
 
@@ -1125,11 +1130,7 @@ class EnhancedNLMapper:
         context = self.context_analyzer.analyze(text, self.session_history)
         return context.intent
 
-    def resolve_ambiguity(
-        self,
-        text: str,
-        candidates: List[Dict[str, Any]]
-    ) -> QuantumGateMapping:
+    def resolve_ambiguity(self, text: str, candidates: List[Dict[str, Any]]) -> QuantumGateMapping:
         """
         Resolve ambiguous natural language by selecting best mapping.
 
@@ -1158,15 +1159,13 @@ class EnhancedNLMapper:
             gates=best_candidate.get("gates", []),
             qubits_used=set(best_candidate.get("qubits", [])),
             confidence=best_score,
-            description=best_candidate.get("description", "")
+            description=best_candidate.get("description", ""),
         )
 
         return mapping
 
     def generate_circuit(
-        self,
-        text: str,
-        constraints: Optional[Dict[str, Any]] = None
+        self, text: str, constraints: Optional[Dict[str, Any]] = None
     ) -> QuantumCircuit:
         """
         Generate a complete quantum circuit from natural language.
@@ -1281,5 +1280,5 @@ __all__ = [
     "HardwareBackend",
     "IBM_QUANTUM",
     "IONQ",
-    "RIGETTI"
+    "RIGETTI",
 ]

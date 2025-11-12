@@ -12,24 +12,26 @@ Binding affinity is crucial for drug design:
 """
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Any, Tuple
-import numpy as np
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
 
 try:
-    from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+    from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
     from qiskit.circuit import Parameter
-    from qiskit.circuit.library import TwoLocal, EfficientSU2
+    from qiskit.circuit.library import EfficientSU2, TwoLocal
+
     QISKIT_AVAILABLE = True
 except ImportError:
     QISKIT_AVAILABLE = False
 
 from ..base import (
-    CircuitTemplate,
     CircuitCategory,
+    CircuitTemplate,
     ComplexityRating,
     ParameterSpec,
-    ResourceEstimate
+    ResourceEstimate,
 )
 
 
@@ -49,6 +51,7 @@ class BindingAffinityResult:
         interaction_types: Types of interactions detected
         metadata: Additional metadata
     """
+
     binding_energy: Optional[float] = None
     binding_affinity_kd: Optional[float] = None
     interaction_score: Optional[float] = None
@@ -96,15 +99,13 @@ class VQECircuit:
             raise ImportError("Qiskit is required for VQE circuits")
 
         # Use EfficientSU2 ansatz for VQE
-        ansatz = EfficientSU2(
-            num_qubits=self.n_qubits,
-            reps=self.depth,
-            entanglement='linear'
-        )
+        ansatz = EfficientSU2(num_qubits=self.n_qubits, reps=self.depth, entanglement="linear")
 
         return ansatz
 
-    def optimize(self, hamiltonian: Any, initial_params: Optional[np.ndarray] = None) -> Tuple[float, np.ndarray]:
+    def optimize(
+        self, hamiltonian: Any, initial_params: Optional[np.ndarray] = None
+    ) -> Tuple[float, np.ndarray]:
         """
         Optimize circuit parameters to find ground state energy.
 
@@ -169,7 +170,7 @@ class BindingAffinityCircuit(CircuitTemplate):
         receptor_pdb: str,
         n_qubits: int = 12,
         vqe_depth: int = 3,
-        active_site: Optional[Tuple[float, float, float]] = None
+        active_site: Optional[Tuple[float, float, float]] = None,
     ):
         """
         Initialize binding affinity circuit.
@@ -191,27 +192,27 @@ class BindingAffinityCircuit(CircuitTemplate):
                     name="ligand_smiles",
                     type="str",
                     description="SMILES string of ligand",
-                    required=True
+                    required=True,
                 ),
                 ParameterSpec(
                     name="receptor_pdb",
                     type="str",
                     description="Path to receptor PDB file",
-                    required=True
+                    required=True,
                 ),
                 ParameterSpec(
                     name="n_qubits",
                     type="int",
                     description="Number of qubits",
                     default=12,
-                    range=(6, 30)
+                    range=(6, 30),
                 ),
                 ParameterSpec(
                     name="vqe_depth",
                     type="int",
                     description="VQE circuit depth",
                     default=3,
-                    range=(1, 10)
+                    range=(1, 10),
                 ),
             ],
             tags=["binding", "affinity", "vqe", "docking", "drug-discovery", "quantum-chemistry"],
@@ -219,13 +220,13 @@ class BindingAffinityCircuit(CircuitTemplate):
                 "Calculate binding affinity",
                 "Screen drug candidates",
                 "Optimize lead compounds",
-                "Virtual screening"
+                "Virtual screening",
             ],
             references=[
                 "VQE for Molecular Docking (Nature Chemistry, 2020)",
                 "Quantum Computing for Drug Discovery (Science, 2021)",
-                "Binding Affinity Prediction with Quantum Circuits (JCTC, 2022)"
-            ]
+                "Binding Affinity Prediction with Quantum Circuits (JCTC, 2022)",
+            ],
         )
 
         self.ligand_smiles = ligand_smiles
@@ -250,8 +251,8 @@ class BindingAffinityCircuit(CircuitTemplate):
         circuit = vqe.build()
 
         # Add measurements
-        qr = QuantumRegister(self.n_qubits, 'q')
-        cr = ClassicalRegister(self.n_qubits, 'c')
+        qr = QuantumRegister(self.n_qubits, "q")
+        cr = ClassicalRegister(self.n_qubits, "c")
         full_circuit = QuantumCircuit(qr, cr)
         full_circuit.compose(circuit, inplace=True)
         full_circuit.measure(qr, cr)
@@ -275,7 +276,7 @@ class BindingAffinityCircuit(CircuitTemplate):
             raise ImportError("Qiskit is required for Hamiltonian encoding")
 
         # Build Hamiltonian encoding circuit
-        qr = QuantumRegister(self.n_qubits, 'q')
+        qr = QuantumRegister(self.n_qubits, "q")
         circuit = QuantumCircuit(qr)
 
         # Prepare initial state (occupied molecular orbitals)
@@ -285,7 +286,7 @@ class BindingAffinityCircuit(CircuitTemplate):
         # Apply interaction terms (simplified)
         # In production, use actual molecular orbital calculations
         for i in range(0, self.n_qubits - 1, 2):
-            circuit.rzz(Parameter('theta_{}'.format(i)), qr[i], qr[i + 1])
+            circuit.rzz(Parameter("theta_{}".format(i)), qr[i], qr[i + 1])
 
         return circuit
 
@@ -359,8 +360,8 @@ class BindingAffinityCircuit(CircuitTemplate):
                 "receptor": self.receptor_pdb,
                 "n_qubits": self.n_qubits,
                 "vqe_depth": self.vqe_depth,
-                "active_site": self.active_site
-            }
+                "active_site": self.active_site,
+            },
         )
 
     def estimate_resources(self, **kwargs) -> ResourceEstimate:
@@ -392,7 +393,7 @@ class BindingAffinityCircuit(CircuitTemplate):
             measurement_count=self.n_qubits,
             classical_memory=self.n_qubits * 100,  # For optimization
             execution_time_estimate=execution_time,
-            error_budget=0.01  # High accuracy required
+            error_budget=0.01,  # High accuracy required
         )
 
     def _construct_hamiltonian(self) -> Any:
@@ -405,12 +406,12 @@ class BindingAffinityCircuit(CircuitTemplate):
         # In production, use actual molecular orbital calculations
         # For now, return a simplified Hamiltonian representation
         hamiltonian = {
-            'type': 'molecular_interaction',
-            'terms': [
-                {'operator': 'ZZ', 'coefficient': -0.5},
-                {'operator': 'XX', 'coefficient': -0.3},
-                {'operator': 'YY', 'coefficient': -0.2},
-            ]
+            "type": "molecular_interaction",
+            "terms": [
+                {"operator": "ZZ", "coefficient": -0.5},
+                {"operator": "XX", "coefficient": -0.3},
+                {"operator": "YY", "coefficient": -0.2},
+            ],
         }
         return hamiltonian
 
@@ -454,22 +455,22 @@ class BindingAffinityCircuit(CircuitTemplate):
         # In production, use actual 3D structure analysis
 
         # Check for hydrogen bonding potential
-        if any(x in self.ligand_smiles for x in ['O', 'N']):
-            interactions.append('hydrogen_bonding')
+        if any(x in self.ligand_smiles for x in ["O", "N"]):
+            interactions.append("hydrogen_bonding")
 
         # Check for hydrophobic interactions
-        if 'C' in self.ligand_smiles:
-            interactions.append('hydrophobic')
+        if "C" in self.ligand_smiles:
+            interactions.append("hydrophobic")
 
         # Check for aromatic interactions
-        if 'c' in self.ligand_smiles or 'C1=C' in self.ligand_smiles:
-            interactions.append('pi_stacking')
+        if "c" in self.ligand_smiles or "C1=C" in self.ligand_smiles:
+            interactions.append("pi_stacking")
 
         # Check for electrostatic interactions
-        if any(x in self.ligand_smiles for x in ['+', '-', 'N', 'O']):
-            interactions.append('electrostatic')
+        if any(x in self.ligand_smiles for x in ["+", "-", "N", "O"]):
+            interactions.append("electrostatic")
 
-        return interactions if interactions else ['van_der_waals']
+        return interactions if interactions else ["van_der_waals"]
 
     def _calculate_confidence(self, binding_energy: float) -> float:
         """

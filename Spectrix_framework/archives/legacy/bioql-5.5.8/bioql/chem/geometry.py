@@ -5,13 +5,24 @@ Provides geometry optimization using available backends (RDKit, OpenMM, OpenBabe
 """
 
 import tempfile
-from pathlib import Path
-from typing import Optional, Union, Dict, Any
+import warnings
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, Optional, Union
 
 from ..logger import get_logger
 
 logger = get_logger(__name__)
+
+# Conditional OpenBabel import
+try:
+    from openbabel import openbabel as ob
+
+    HAS_OPENBABEL = True
+except ImportError:
+    HAS_OPENBABEL = False
+    ob = None
+    warnings.warn("OpenBabel not installed. Geometry optimization will use RDKit as fallback.")
 
 
 @dataclass
@@ -90,9 +101,7 @@ class GeometryOptimizer:
                         molecule_path, smiles, output_path, max_iterations, force_field
                     )
                 elif backend == "openmm":
-                    return self._optimize_openmm(
-                        molecule_path, smiles, output_path, max_iterations
-                    )
+                    return self._optimize_openmm(molecule_path, smiles, output_path, max_iterations)
                 elif backend == "openbabel":
                     return self._optimize_openbabel(
                         molecule_path, smiles, output_path, max_iterations, force_field
@@ -177,7 +186,10 @@ class GeometryOptimizer:
         self, molecule_path, smiles, output_path, max_iterations, force_field
     ) -> OptimizationResult:
         """Optimize using OpenBabel."""
-        from openbabel import openbabel as ob
+        if not HAS_OPENBABEL:
+            raise ImportError(
+                "OpenBabel is not installed. Install with: pip install openbabel-wheel"
+            )
 
         # Load or create molecule
         mol = ob.OBMol()

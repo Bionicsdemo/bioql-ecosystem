@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BioQL Lab Notebook - Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Animated background particles */
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            animation: float 20s infinite;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.3;
+            }
+            90% {
+                opacity: 0.3;
+            }
+            100% {
+                transform: translateY(-100vh) translateX(100px);
+                opacity: 0;
+            }
+        }
+
+        .particle:nth-child(1) { width: 80px; height: 80px; left: 10%; animation-delay: 0s; }
+        .particle:nth-child(2) { width: 60px; height: 60px; left: 30%; animation-delay: 4s; }
+        .particle:nth-child(3) { width: 100px; height: 100px; left: 50%; animation-delay: 8s; }
+        .particle:nth-child(4) { width: 70px; height: 70px; left: 70%; animation-delay: 12s; }
+        .particle:nth-child(5) { width: 90px; height: 90px; left: 90%; animation-delay: 16s; }
+
+        .login-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 50px 40px;
+            width: 90%;
+            max-width: 450px;
+            position: relative;
+            z-index: 10;
+            animation: slideIn 0.6s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo-container {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            display: inline-block;
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+            }
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 15px 40px rgba(102, 126, 234, 0.6);
+            }
+        }
+
+        .logo svg {
+            width: 50px;
+            height: 50px;
+        }
+
+        h1 {
+            color: #2d3748;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #718096;
+            font-size: 16px;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            color: #4a5568;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: #f7fafc;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        input[type="text"]::placeholder {
+            color: #a0aec0;
+        }
+
+        .error-message {
+            display: none;
+            color: #e53e3e;
+            font-size: 14px;
+            margin-top: 8px;
+            padding: 10px;
+            background: #fff5f5;
+            border-left: 3px solid #e53e3e;
+            border-radius: 4px;
+            animation: shake 0.5s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn-login:active {
+            transform: translateY(0);
+        }
+
+        .btn-login:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .info-text {
+            text-align: center;
+            margin-top: 25px;
+            color: #718096;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .info-text code {
+            background: #edf2f7;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #667eea;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        /* Loading spinner */
+        .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .btn-login.loading .btn-text {
+            display: none;
+        }
+
+        .btn-login.loading .spinner {
+            display: block;
+        }
+
+        /* Responsive design */
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 40px 30px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .subtitle {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Background particles -->
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+
+    <div class="login-container">
+        <div class="logo-container">
+            <div class="logo">
+                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- DNA Helix / Science Icon -->
+                    <path d="M30 20 Q 50 30, 70 20" stroke="white" stroke-width="4" fill="none"/>
+                    <path d="M30 40 Q 50 50, 70 40" stroke="white" stroke-width="4" fill="none"/>
+                    <path d="M30 60 Q 50 70, 70 60" stroke="white" stroke-width="4" fill="none"/>
+                    <path d="M30 80 Q 50 90, 70 80" stroke="white" stroke-width="4" fill="none"/>
+                    <circle cx="30" cy="20" r="4" fill="white"/>
+                    <circle cx="70" cy="20" r="4" fill="white"/>
+                    <circle cx="30" cy="40" r="4" fill="white"/>
+                    <circle cx="70" cy="40" r="4" fill="white"/>
+                    <circle cx="30" cy="60" r="4" fill="white"/>
+                    <circle cx="70" cy="60" r="4" fill="white"/>
+                    <circle cx="30" cy="80" r="4" fill="white"/>
+                    <circle cx="70" cy="80" r="4" fill="white"/>
+                    <line x1="35" y1="30" x2="65" y2="30" stroke="white" stroke-width="2"/>
+                    <line x1="35" y1="50" x2="65" y2="50" stroke="white" stroke-width="2"/>
+                    <line x1="35" y1="70" x2="65" y2="70" stroke="white" stroke-width="2"/>
+                </svg>
+            </div>
+            <h1>BioQL Lab Notebook</h1>
+            <p class="subtitle">Quantum-powered biological research platform</p>
+        </div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="apiKey">API Key</label>
+                <div class="input-wrapper">
+                    <input
+                        type="text"
+                        id="apiKey"
+                        name="apiKey"
+                        placeholder="bioql_your_api_key_here"
+                        autocomplete="off"
+                        required
+                    />
+                </div>
+                <div class="error-message" id="errorMessage"></div>
+            </div>
+
+            <button type="submit" class="btn-login" id="loginBtn">
+                <span class="btn-text">Access Lab Notebook</span>
+                <div class="spinner"></div>
+            </button>
+        </form>
+
+        <p class="info-text">
+            Your API key must start with <code>bioql_</code><br>
+            It will be securely stored in your browser.
+        </p>
+    </div>
+
+    <script>
+        const loginForm = document.getElementById('loginForm');
+        const apiKeyInput = document.getElementById('apiKey');
+        const errorMessage = document.getElementById('errorMessage');
+        const loginBtn = document.getElementById('loginBtn');
+
+        // Remove error message when user starts typing
+        apiKeyInput.addEventListener('input', () => {
+            errorMessage.classList.remove('show');
+            apiKeyInput.style.borderColor = '#e2e8f0';
+        });
+
+        // Handle form submission
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const apiKey = apiKeyInput.value.trim();
+
+            // Validate API key format
+            if (!apiKey) {
+                showError('Please enter your API key');
+                return;
+            }
+
+            if (!apiKey.startsWith('bioql_')) {
+                showError('Invalid API key format. API key must start with "bioql_"');
+                return;
+            }
+
+            if (apiKey.length < 10) {
+                showError('API key is too short. Please enter a valid API key');
+                return;
+            }
+
+            // Show loading state
+            loginBtn.classList.add('loading');
+            loginBtn.disabled = true;
+
+            // Simulate API validation (add a small delay for UX)
+            setTimeout(() => {
+                try {
+                    // Save API key to localStorage
+                    localStorage.setItem('bioql_api_key', apiKey);
+
+                    // Redirect to notebook page
+                    window.location.href = 'notebook.html';
+                } catch (error) {
+                    loginBtn.classList.remove('loading');
+                    loginBtn.disabled = false;
+                    showError('Failed to save API key. Please check your browser settings.');
+                }
+            }, 800);
+        });
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.add('show');
+            apiKeyInput.style.borderColor = '#e53e3e';
+
+            // Add shake animation to input
+            apiKeyInput.style.animation = 'none';
+            setTimeout(() => {
+                apiKeyInput.style.animation = 'shake 0.5s ease';
+            }, 10);
+        }
+
+        // Check if user is already logged in
+        window.addEventListener('load', () => {
+            const savedApiKey = localStorage.getItem('bioql_api_key');
+            if (savedApiKey && savedApiKey.startsWith('bioql_')) {
+                // Auto-fill the API key
+                apiKeyInput.value = savedApiKey;
+            }
+        });
+
+        // Add keyboard shortcut (Enter key)
+        apiKeyInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                loginForm.dispatchEvent(new Event('submit'));
+            }
+        });
+    </script>
+</body>
+</html>

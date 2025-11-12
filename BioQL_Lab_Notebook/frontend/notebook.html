@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BioQL Lab Notebook</title>
+
+    <!-- Monaco Editor -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/editor/editor.main.css">
+
+    <!-- 3Dmol.js for molecular visualization -->
+    <script src="https://3Dmol.csb.pitt.edu/build/3Dmol-min.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #2563eb;
+            --primary-hover: #1d4ed8;
+            --secondary-color: #64748b;
+            --background: #f8fafc;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --code-bg: #1e293b;
+            --sidebar-width: 260px;
+            --header-height: 64px;
+            --toolbar-height: 56px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            height: var(--header-height);
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--primary-color), #7c3aed);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+        }
+
+        .notebook-title {
+            font-size: 16px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid transparent;
+            cursor: text;
+        }
+
+        .notebook-title:hover {
+            background: var(--background);
+            border-color: var(--border);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            background: var(--background);
+            cursor: pointer;
+        }
+
+        .user-info:hover {
+            background: var(--border);
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #10b981, #3b82f6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .user-name {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* Layout */
+        .main-container {
+            display: flex;
+            position: fixed;
+            top: var(--header-height);
+            left: 0;
+            right: 0;
+            bottom: var(--toolbar-height);
+        }
+
+        /* Left Sidebar */
+        .left-sidebar {
+            width: var(--sidebar-width);
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .sidebar-section {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sidebar-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-new-notebook {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: background 0.2s;
+        }
+
+        .btn-new-notebook:hover {
+            background: var(--primary-hover);
+        }
+
+        .notebook-item, .template-item, .settings-item {
+            padding: 10px 12px;
+            margin-bottom: 4px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .notebook-item:hover, .template-item:hover, .settings-item:hover {
+            background: var(--background);
+        }
+
+        .notebook-item.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .item-icon {
+            font-size: 16px;
+        }
+
+        .item-info {
+            flex: 1;
+        }
+
+        .item-name {
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .item-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .notebook-item.active .item-meta {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* Editor Area */
+        .editor-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            background: var(--background);
+        }
+
+        .notebook-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .cell {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 16px;
+            overflow: hidden;
+            transition: box-shadow 0.2s;
+        }
+
+        .cell:hover {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .cell.focused {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .cell-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: var(--background);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .cell-type {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            letter-spacing: 0.5px;
+        }
+
+        .cell-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .cell-btn {
+            padding: 4px 8px;
+            background: transparent;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+
+        .cell-btn:hover {
+            background: var(--surface);
+            color: var(--text-primary);
+        }
+
+        .cell-content {
+            padding: 0;
+        }
+
+        .code-editor {
+            min-height: 120px;
+            height: auto;
+        }
+
+        .markdown-editor {
+            padding: 16px;
+            min-height: 100px;
+            font-family: inherit;
+            font-size: 14px;
+            border: none;
+            outline: none;
+            width: 100%;
+            resize: vertical;
+        }
+
+        .markdown-preview {
+            padding: 16px;
+            line-height: 1.6;
+        }
+
+        .markdown-preview h1 { font-size: 24px; margin-bottom: 16px; }
+        .markdown-preview h2 { font-size: 20px; margin-bottom: 12px; }
+        .markdown-preview h3 { font-size: 18px; margin-bottom: 10px; }
+        .markdown-preview p { margin-bottom: 12px; }
+        .markdown-preview code { background: var(--background); padding: 2px 6px; border-radius: 4px; }
+
+        .cell-output {
+            padding: 16px;
+            background: #f9fafb;
+            border-top: 1px solid var(--border);
+            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+            font-size: 13px;
+            color: var(--text-primary);
+            white-space: pre-wrap;
+        }
+
+        .output-empty {
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .add-cell-container {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin: 24px 0;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .notebook-container:hover .add-cell-container {
+            opacity: 1;
+        }
+
+        .add-cell-btn {
+            padding: 8px 16px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .add-cell-btn:hover {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        /* Right Sidebar */
+        .right-sidebar {
+            width: var(--sidebar-width);
+            background: var(--surface);
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .panel {
+            border-bottom: 1px solid var(--border);
+        }
+
+        .panel-header {
+            padding: 12px 16px;
+            background: var(--background);
+            font-weight: 600;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+        }
+
+        .panel-header:hover {
+            background: var(--border);
+        }
+
+        .panel-content {
+            padding: 16px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .panel-content.collapsed {
+            display: none;
+        }
+
+        .ai-chat {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .ai-message {
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .ai-message.user {
+            background: var(--primary-color);
+            color: white;
+            align-self: flex-end;
+            max-width: 80%;
+        }
+
+        .ai-message.assistant {
+            background: var(--background);
+            align-self: flex-start;
+            max-width: 80%;
+        }
+
+        .ai-input-container {
+            padding: 12px 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        .ai-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: inherit;
+            resize: none;
+        }
+
+        .ai-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .molecular-viewer {
+            width: 100%;
+            height: 250px;
+            background: var(--code-bg);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+        }
+
+        .collaborator-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+        }
+
+        .collaborator-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #10b981, #3b82f6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .collaborator-info {
+            flex: 1;
+        }
+
+        .collaborator-name {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .collaborator-status {
+            font-size: 11px;
+            color: var(--success);
+        }
+
+        /* Bottom Toolbar */
+        .toolbar {
+            height: var(--toolbar-height);
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+
+        .toolbar-section {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toolbar-btn {
+            padding: 8px 16px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .toolbar-btn:hover {
+            background: var(--background);
+        }
+
+        .toolbar-btn.primary {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .toolbar-btn.primary:hover {
+            background: var(--primary-hover);
+        }
+
+        .toolbar-btn.danger {
+            color: var(--danger);
+        }
+
+        .toolbar-btn.danger:hover {
+            background: var(--danger);
+            color: white;
+            border-color: var(--danger);
+        }
+
+        .toolbar-divider {
+            width: 1px;
+            height: 24px;
+            background: var(--border);
+            margin: 0 8px;
+        }
+
+        /* Icons using Unicode */
+        .icon-plus::before { content: '+'; }
+        .icon-play::before { content: '\u25B6'; }
+        .icon-stop::before { content: '\u25A0'; }
+        .icon-download::before { content: '\u2193'; }
+        .icon-share::before { content: '\u21AA'; }
+        .icon-history::before { content: '\u21BB'; }
+        .icon-settings::before { content: '\u2699'; }
+        .icon-chevron::before { content: '\u203A'; }
+        .icon-doc::before { content: '\u{1F4C4}'; }
+        .icon-molecule::before { content: '\u{1F9EC}'; }
+        .icon-users::before { content: '\u{1F465}'; }
+        .icon-trash::before { content: '\u{1F5D1}'; }
+        .icon-copy::before { content: '\u{1F4CB}'; }
+        .icon-edit::before { content: '\u270E'; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--background);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--secondary-color);
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .right-sidebar {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .left-sidebar {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <div class="logo">
+                <div class="logo-icon">BQ</div>
+                <span>BioQL Lab Notebook</span>
+            </div>
+            <input type="text" class="notebook-title" value="Untitled Notebook" placeholder="Notebook title...">
+        </div>
+        <div class="header-right">
+            <div class="user-info">
+                <div class="user-avatar">DR</div>
+                <span class="user-name">Dr. Researcher</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Left Sidebar -->
+        <aside class="left-sidebar">
+            <div class="sidebar-section">
+                <button class="btn-new-notebook">
+                    <span class="icon-plus"></span>
+                    New Notebook
+                </button>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-title">My Notebooks</div>
+                <div class="notebook-item active">
+                    <span class="item-icon icon-doc"></span>
+                    <div class="item-info">
+                        <div class="item-name">Protein Analysis</div>
+                        <div class="item-meta">Modified 2h ago</div>
+                    </div>
+                </div>
+                <div class="notebook-item">
+                    <span class="item-icon icon-doc"></span>
+                    <div class="item-info">
+                        <div class="item-name">Drug Discovery</div>
+                        <div class="item-meta">Modified 1d ago</div>
+                    </div>
+                </div>
+                <div class="notebook-item">
+                    <span class="item-icon icon-doc"></span>
+                    <div class="item-info">
+                        <div class="item-name">Genomic Sequencing</div>
+                        <div class="item-meta">Modified 3d ago</div>
+                    </div>
+                </div>
+                <div class="notebook-item">
+                    <span class="item-icon icon-doc"></span>
+                    <div class="item-info">
+                        <div class="item-name">CRISPR Experiment</div>
+                        <div class="item-meta">Modified 1w ago</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-title">Templates</div>
+                <div class="template-item">
+                    <span class="item-icon icon-doc"></span>
+                    <div class="item-info">
+                        <div class="item-name">Protein Structure</div>
+                    </div>
+                </div>
+                <div class="template-item">
+                    <span class="item-icon icon-doc"></span>
+                    <div class="item-info">
+                        <div class="item-name">Molecular Docking</div>
+                    </div>
+                </div>
+                <div class="template-item">
+                    <span class="item-icon icon-doc"></span>
+                    <div class="item-info">
+                        <div class="item-name">Gene Expression</div>
+                    </div>
+                </div>
+                <div class="template-item">
+                    <span class="item-icon icon-doc"></span>
+                    <div class="item-info">
+                        <div class="item-name">Drug Screening</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-title">Settings</div>
+                <div class="settings-item">
+                    <span class="item-icon icon-settings"></span>
+                    <div class="item-info">
+                        <div class="item-name">Preferences</div>
+                    </div>
+                </div>
+                <div class="settings-item">
+                    <span class="item-icon icon-users"></span>
+                    <div class="item-info">
+                        <div class="item-name">Manage Team</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Editor Area -->
+        <main class="editor-area">
+            <div class="notebook-container">
+                <!-- Markdown Cell -->
+                <div class="cell">
+                    <div class="cell-header">
+                        <span class="cell-type">Markdown</span>
+                        <div class="cell-actions">
+                            <button class="cell-btn icon-edit" title="Edit"></button>
+                            <button class="cell-btn icon-copy" title="Copy"></button>
+                            <button class="cell-btn icon-trash" title="Delete"></button>
+                        </div>
+                    </div>
+                    <div class="cell-content">
+                        <div class="markdown-preview">
+                            <h1>Protein Structure Analysis</h1>
+                            <p>This notebook demonstrates protein structure analysis using BioQL and molecular visualization tools.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Code Cell -->
+                <div class="cell focused">
+                    <div class="cell-header">
+                        <span class="cell-type">Code</span>
+                        <div class="cell-actions">
+                            <button class="cell-btn icon-play" title="Run">Run</button>
+                            <button class="cell-btn icon-copy" title="Copy"></button>
+                            <button class="cell-btn icon-trash" title="Delete"></button>
+                        </div>
+                    </div>
+                    <div class="cell-content">
+                        <div id="code-editor-1" class="code-editor" style="height: 150px;"></div>
+                    </div>
+                    <div class="cell-output">
+                        <div class="output-empty">Run cell to see output...</div>
+                    </div>
+                </div>
+
+                <!-- BioQL Cell -->
+                <div class="cell">
+                    <div class="cell-header">
+                        <span class="cell-type">@BioQL</span>
+                        <div class="cell-actions">
+                            <button class="cell-btn icon-play" title="Run">Run</button>
+                            <button class="cell-btn icon-copy" title="Copy"></button>
+                            <button class="cell-btn icon-trash" title="Delete"></button>
+                        </div>
+                    </div>
+                    <div class="cell-content">
+                        <div id="code-editor-2" class="code-editor" style="height: 120px;"></div>
+                    </div>
+                    <div class="cell-output">
+                        <div class="output-empty">Execute BioQL query...</div>
+                    </div>
+                </div>
+
+                <!-- Add Cell Buttons -->
+                <div class="add-cell-container">
+                    <button class="add-cell-btn">
+                        <span class="icon-plus"></span>
+                        Code
+                    </button>
+                    <button class="add-cell-btn">
+                        <span class="icon-plus"></span>
+                        Markdown
+                    </button>
+                    <button class="add-cell-btn">
+                        <span class="icon-plus"></span>
+                        @BioQL
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right Sidebar -->
+        <aside class="right-sidebar">
+            <!-- AI Assistant Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span>AI Assistant</span>
+                    <span class="icon-chevron"></span>
+                </div>
+                <div class="panel-content">
+                    <div class="ai-chat">
+                        <div class="ai-message assistant">
+                            Hello! I'm your AI lab assistant. I can help you with:
+                            <br><br>
+                            - Writing BioQL queries
+                            <br>
+                            - Analyzing experimental data
+                            <br>
+                            - Suggesting next steps
+                            <br>
+                            - Finding relevant papers
+                        </div>
+                        <div class="ai-message user">
+                            How do I query protein structures?
+                        </div>
+                        <div class="ai-message assistant">
+                            You can query protein structures using BioQL syntax. Here's an example:
+                            <br><br>
+                            <code>SELECT * FROM proteins WHERE organism = "human"</code>
+                        </div>
+                    </div>
+                </div>
+                <div class="ai-input-container">
+                    <textarea class="ai-input" rows="2" placeholder="Ask AI assistant..."></textarea>
+                </div>
+            </div>
+
+            <!-- Molecular Viewer Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span>Molecular Viewer</span>
+                    <span class="icon-chevron"></span>
+                </div>
+                <div class="panel-content">
+                    <div id="molecular-viewer" class="molecular-viewer">
+                        <div style="text-align: center;">
+                            <span class="icon-molecule" style="font-size: 48px; display: block; margin-bottom: 12px;"></span>
+                            <div style="font-size: 13px;">3D molecular viewer</div>
+                            <div style="font-size: 12px; margin-top: 4px;">Load a structure to visualize</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Collaborators Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span>Collaborators</span>
+                    <span class="icon-chevron"></span>
+                </div>
+                <div class="panel-content">
+                    <div class="collaborator-item">
+                        <div class="collaborator-avatar">JD</div>
+                        <div class="collaborator-info">
+                            <div class="collaborator-name">Dr. Jane Doe</div>
+                            <div class="collaborator-status">Active now</div>
+                        </div>
+                    </div>
+                    <div class="collaborator-item">
+                        <div class="collaborator-avatar">MS</div>
+                        <div class="collaborator-info">
+                            <div class="collaborator-name">Dr. Mike Smith</div>
+                            <div class="collaborator-status">Active now</div>
+                        </div>
+                    </div>
+                    <div class="collaborator-item">
+                        <div class="collaborator-avatar">AB</div>
+                        <div class="collaborator-info">
+                            <div class="collaborator-name">Alice Brown</div>
+                            <div class="collaborator-status" style="color: var(--text-secondary);">Offline</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Bottom Toolbar -->
+    <footer class="toolbar">
+        <div class="toolbar-section">
+            <button class="toolbar-btn primary">
+                <span class="icon-play"></span>
+                Run Cell
+            </button>
+            <button class="toolbar-btn primary">
+                <span class="icon-play"></span>
+                Run All
+            </button>
+            <button class="toolbar-btn danger">
+                <span class="icon-stop"></span>
+                Stop
+            </button>
+        </div>
+
+        <div class="toolbar-section">
+            <button class="toolbar-btn">
+                <span class="icon-download"></span>
+                Export to PDF
+            </button>
+            <button class="toolbar-btn">
+                <span class="icon-download"></span>
+                Export to Paper
+            </button>
+            <button class="toolbar-btn">
+                <span class="icon-download"></span>
+                Export to PowerPoint
+            </button>
+            <div class="toolbar-divider"></div>
+            <button class="toolbar-btn">
+                <span class="icon-share"></span>
+                Share
+            </button>
+            <button class="toolbar-btn">
+                <span class="icon-history"></span>
+                Version History
+            </button>
+        </div>
+    </footer>
+
+    <!-- Monaco Editor -->
+    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js"></script>
+    <script>
+        // Configure Monaco Editor
+        require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs' }});
+
+        require(['vs/editor/editor.main'], function() {
+            // Initialize Code Editor 1
+            const editor1 = monaco.editor.create(document.getElementById('code-editor-1'), {
+                value: '# Import required libraries\nimport bioql\nfrom bioql import ProteinDB\n\n# Connect to protein database\ndb = ProteinDB.connect()\n\n# Query proteins\nproteins = db.query("SELECT * FROM proteins WHERE organism = \'human\'")\nprint(f"Found {len(proteins)} human proteins")',
+                language: 'python',
+                theme: 'vs-dark',
+                minimap: { enabled: false },
+                lineNumbers: 'on',
+                scrollBeyondLastLine: false,
+                automaticLayout: true,
+                fontSize: 13,
+                tabSize: 4,
+                wordWrap: 'on'
+            });
+
+            // Initialize Code Editor 2 (BioQL)
+            const editor2 = monaco.editor.create(document.getElementById('code-editor-2'), {
+                value: '@bioql\nSELECT protein_name, sequence, structure\nFROM proteins\nWHERE organism = "human"\n  AND molecular_weight > 50000\nLIMIT 10;',
+                language: 'sql',
+                theme: 'vs-dark',
+                minimap: { enabled: false },
+                lineNumbers: 'on',
+                scrollBeyondLastLine: false,
+                automaticLayout: true,
+                fontSize: 13,
+                tabSize: 2,
+                wordWrap: 'on'
+            });
+
+            // Cell interaction handlers
+            document.querySelectorAll('.cell').forEach(cell => {
+                cell.addEventListener('click', function() {
+                    document.querySelectorAll('.cell').forEach(c => c.classList.remove('focused'));
+                    this.classList.add('focused');
+                });
+            });
+
+            // Panel collapse/expand
+            document.querySelectorAll('.panel-header').forEach(header => {
+                header.addEventListener('click', function() {
+                    const content = this.nextElementSibling;
+                    content.classList.toggle('collapsed');
+                    const chevron = this.querySelector('.icon-chevron');
+                    chevron.style.transform = content.classList.contains('collapsed') ? 'rotate(0deg)' : 'rotate(90deg)';
+                });
+            });
+
+            // Add cell buttons
+            document.querySelectorAll('.add-cell-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const cellType = this.textContent.trim();
+                    console.log(`Adding new ${cellType} cell`);
+                    // Cell creation logic would go here
+                });
+            });
+
+            // Toolbar buttons
+            document.querySelectorAll('.toolbar-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const action = this.textContent.trim();
+                    console.log(`Toolbar action: ${action}`);
+                    // Toolbar action logic would go here
+                });
+            });
+
+            // Notebook title editing
+            const notebookTitle = document.querySelector('.notebook-title');
+            notebookTitle.addEventListener('focus', function() {
+                this.select();
+            });
+
+            // AI Assistant input
+            const aiInput = document.querySelector('.ai-input');
+            aiInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    const message = this.value.trim();
+                    if (message) {
+                        console.log('AI message:', message);
+                        this.value = '';
+                        // AI message handling logic would go here
+                    }
+                }
+            });
+
+            // Initialize 3Dmol viewer (placeholder)
+            const viewerContainer = document.getElementById('molecular-viewer');
+            // Actual 3Dmol.js initialization would go here when loading a molecule
+            // Example: let viewer = $3Dmol.createViewer(viewerContainer, {backgroundColor: 'white'});
+        });
+    </script>
+</body>
+</html>

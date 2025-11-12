@@ -5,14 +5,14 @@ This module provides the ModularCircuitBuilder for constructing quantum circuits
 from reusable modules with flexible wiring and architecture visualization.
 """
 
-from typing import Dict, List, Optional, Tuple, Set, Any
+import logging
 from dataclasses import dataclass, field
 from enum import Enum
-import logging
+from typing import Any, Dict, List, Optional, Set, Tuple
 
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.circuit import Instruction
 import numpy as np
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit.circuit import Instruction
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +27,7 @@ class WiringMode(Enum):
         GATHER: Gather multiple module outputs to one input
         CUSTOM: Custom wiring pattern
     """
+
     DIRECT = "direct"
     BROADCAST = "broadcast"
     GATHER = "gather"
@@ -45,6 +46,7 @@ class ModuleSpec:
         outputs: Output qubit indices
         metadata: Additional module metadata
     """
+
     name: str
     circuit: QuantumCircuit
     inputs: List[int]
@@ -63,6 +65,7 @@ class WiringSpec:
         connections: Mapping from source qubits to target qubits
         mode: Wiring mode
     """
+
     source_module: str
     target_module: str
     connections: Dict[int, int]
@@ -80,6 +83,7 @@ class ArchitectureDiagram:
         ascii_diagram: ASCII art representation
         metadata: Additional diagram metadata
     """
+
     modules: List[ModuleSpec]
     connections: List[WiringSpec]
     ascii_diagram: str
@@ -136,8 +140,8 @@ class ModularCircuitBuilder:
         circuit: QuantumCircuit,
         inputs: Optional[List[int]] = None,
         outputs: Optional[List[int]] = None,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> 'ModularCircuitBuilder':
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> "ModularCircuitBuilder":
         """
         Add a module to the builder.
 
@@ -176,11 +180,7 @@ class ModularCircuitBuilder:
             raise ValueError("Invalid output qubit indices")
 
         module = ModuleSpec(
-            name=name,
-            circuit=circuit,
-            inputs=inputs,
-            outputs=outputs,
-            metadata=metadata or {}
+            name=name, circuit=circuit, inputs=inputs, outputs=outputs, metadata=metadata or {}
         )
 
         self.modules[name] = module
@@ -193,8 +193,8 @@ class ModularCircuitBuilder:
         module1: str,
         module2: str,
         wiring: Optional[Dict[int, int]] = None,
-        mode: WiringMode = WiringMode.DIRECT
-    ) -> 'ModularCircuitBuilder':
+        mode: WiringMode = WiringMode.DIRECT,
+    ) -> "ModularCircuitBuilder":
         """
         Connect two modules with wiring specification.
 
@@ -236,10 +236,7 @@ class ModularCircuitBuilder:
                 raise ValueError(f"Target qubit {tgt_q} not in inputs of '{module2}'")
 
         wiring_spec = WiringSpec(
-            source_module=module1,
-            target_module=module2,
-            connections=wiring,
-            mode=mode
+            source_module=module1, target_module=module2, connections=wiring, mode=mode
         )
 
         self.wirings.append(wiring_spec)
@@ -278,15 +275,12 @@ class ModularCircuitBuilder:
         qubit_assignments = self._assign_qubits(total_qubits)
 
         # Determine classical bits
-        total_clbits = max(
-            (mod.circuit.num_clbits for mod in self.modules.values()),
-            default=0
-        )
+        total_clbits = max((mod.circuit.num_clbits for mod in self.modules.values()), default=0)
 
         # Create final circuit
-        qreg = QuantumRegister(total_qubits, 'q')
+        qreg = QuantumRegister(total_qubits, "q")
         if total_clbits > 0:
-            creg = ClassicalRegister(total_clbits, 'c')
+            creg = ClassicalRegister(total_clbits, "c")
             final_circuit = QuantumCircuit(qreg, creg)
         else:
             final_circuit = QuantumCircuit(qreg)
@@ -297,10 +291,7 @@ class ModularCircuitBuilder:
             qubits_for_module = qubit_assignments[module_name]
 
             # Compose module circuit
-            final_circuit = final_circuit.compose(
-                module.circuit,
-                qubits=qubits_for_module
-            )
+            final_circuit = final_circuit.compose(module.circuit, qubits=qubits_for_module)
 
         final_circuit.name = self.name
 
@@ -312,9 +303,7 @@ class ModularCircuitBuilder:
         return final_circuit
 
     def visualize_architecture(
-        self,
-        include_qubits: bool = True,
-        include_metadata: bool = False
+        self, include_qubits: bool = True, include_metadata: bool = False
     ) -> ArchitectureDiagram:
         """
         Visualize the modular circuit architecture.
@@ -360,8 +349,7 @@ class ModularCircuitBuilder:
             lines.append("-" * 60)
             for wiring in self.wirings:
                 lines.append(
-                    f"  {wiring.source_module} --> {wiring.target_module} "
-                    f"[{wiring.mode.value}]"
+                    f"  {wiring.source_module} --> {wiring.target_module} " f"[{wiring.mode.value}]"
                 )
                 if include_qubits:
                     for src_q, tgt_q in wiring.connections.items():
@@ -387,16 +375,16 @@ class ModularCircuitBuilder:
         ascii_diagram = "\n".join(lines)
 
         metadata = {
-            'num_modules': len(self.modules),
-            'num_connections': len(self.wirings),
-            'execution_order': self.execution_order
+            "num_modules": len(self.modules),
+            "num_connections": len(self.wirings),
+            "execution_order": self.execution_order,
         }
 
         return ArchitectureDiagram(
             modules=list(self.modules.values()),
             connections=self.wirings,
             ascii_diagram=ascii_diagram,
-            metadata=metadata
+            metadata=metadata,
         )
 
     def get_module(self, name: str) -> Optional[ModuleSpec]:
@@ -420,7 +408,7 @@ class ModularCircuitBuilder:
         """
         return list(self.modules.keys())
 
-    def remove_module(self, name: str) -> 'ModularCircuitBuilder':
+    def remove_module(self, name: str) -> "ModularCircuitBuilder":
         """
         Remove a module and its connections.
 
@@ -441,15 +429,14 @@ class ModularCircuitBuilder:
 
         # Remove associated wirings
         self.wirings = [
-            w for w in self.wirings
-            if w.source_module != name and w.target_module != name
+            w for w in self.wirings if w.source_module != name and w.target_module != name
         ]
 
         logger.info(f"Removed module '{name}'")
 
         return self
 
-    def clear(self) -> 'ModularCircuitBuilder':
+    def clear(self) -> "ModularCircuitBuilder":
         """
         Clear all modules and connections.
 
@@ -465,10 +452,7 @@ class ModularCircuitBuilder:
         return self
 
     def _auto_generate_wiring(
-        self,
-        source: ModuleSpec,
-        target: ModuleSpec,
-        mode: WiringMode
+        self, source: ModuleSpec, target: ModuleSpec, mode: WiringMode
     ) -> Dict[int, int]:
         """Auto-generate wiring between modules."""
         wiring = {}
@@ -588,10 +572,4 @@ class ModularCircuitBuilder:
         return assignments
 
 
-__all__ = [
-    'WiringMode',
-    'ModuleSpec',
-    'WiringSpec',
-    'ArchitectureDiagram',
-    'ModularCircuitBuilder'
-]
+__all__ = ["WiringMode", "ModuleSpec", "WiringSpec", "ArchitectureDiagram", "ModularCircuitBuilder"]

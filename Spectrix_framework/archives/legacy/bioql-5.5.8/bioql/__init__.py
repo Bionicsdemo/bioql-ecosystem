@@ -103,13 +103,13 @@ __license__ = "MIT"
 
 # Core imports
 from .quantum_connector import (
-    quantum,
+    BioQLError,
+    ProgramParsingError,
+    QuantumBackendError,
     QuantumResult,
     QuantumSimulator,
-    BioQLError,
-    QuantumBackendError,
-    ProgramParsingError,
-    list_available_backends
+    list_available_backends,
+    quantum,
 )
 
 # DevKit enhanced features
@@ -132,11 +132,11 @@ except ImportError:
 try:
     from .quantum_chemistry import (
         QuantumMolecule,
-        smiles_to_geometry,
+        auto_select_active_space,
         build_molecular_hamiltonian,
-        validate_hamiltonian,
         hamiltonian_to_qiskit,
-        auto_select_active_space
+        smiles_to_geometry,
+        validate_hamiltonian,
     )
 except ImportError:
     QuantumMolecule = None
@@ -148,10 +148,10 @@ except ImportError:
 
 try:
     from .molecular_benchmarks import (
-        run_benchmark,
-        run_all_benchmarks,
         BENCHMARK_MOLECULES,
-        BenchmarkResult
+        BenchmarkResult,
+        run_all_benchmarks,
+        run_benchmark,
     )
 except ImportError:
     run_benchmark = None
@@ -162,12 +162,12 @@ except ImportError:
 # NEW in v5.3.0 - Auditable logging system
 try:
     from .auditable_logs import (
-        HardwareExecution,
+        AuditableSession,
         DockingExecution,
+        HardwareExecution,
         PostprocessExecution,
         QualtranVisualization,
-        AuditableSession,
-        configure_audit_logging
+        configure_audit_logging,
     )
 except ImportError:
     HardwareExecution = None
@@ -180,12 +180,12 @@ except ImportError:
 # NEW in v5.3.0 - Real molecular docking with Vina
 try:
     from .docking.real_vina import (
-        dock_smiles_to_receptor,
-        VinaResult,
-        VinaPose,
-        HAVE_RDKIT,
         HAVE_MEEKO,
-        VINA_BIN
+        HAVE_RDKIT,
+        VINA_BIN,
+        VinaPose,
+        VinaResult,
+        dock_smiles_to_receptor,
     )
 except ImportError:
     dock_smiles_to_receptor = None
@@ -198,10 +198,10 @@ except ImportError:
 # NEW in v5.3.0 - Quantum-classical fusion (NO modifica energías)
 try:
     from .quantum_fusion import (
-        extract_quantum_features,
-        correlate_quantum_classical,
+        QuantumFeatures,
         analyze_quantum_noise,
-        QuantumFeatures
+        correlate_quantum_classical,
+        extract_quantum_features,
     )
 except ImportError:
     extract_quantum_features = None
@@ -210,7 +210,7 @@ except ImportError:
     QuantumFeatures = None
 
 try:
-    from .logger import get_logger, configure_logging
+    from .logger import configure_logging, get_logger
 except ImportError:
     get_logger = None
     configure_logging = None
@@ -224,11 +224,7 @@ except ImportError:
 
 # NEW in v3.1.2+ Enterprise features (optional)
 try:
-    from .error_mitigation import (
-        ErrorMitigator,
-        ReadoutErrorMitigation,
-        mitigate_counts
-    )
+    from .error_mitigation import ErrorMitigator, ReadoutErrorMitigation, mitigate_counts
 except ImportError:
     ErrorMitigator = None
     ReadoutErrorMitigation = None
@@ -236,11 +232,11 @@ except ImportError:
 
 try:
     from .provenance import (
-        ProvenanceRecord,
-        ProvenanceChain,
         ComplianceLogger,
+        ProvenanceChain,
+        ProvenanceRecord,
         enable_compliance_logging,
-        get_compliance_logger
+        get_compliance_logger,
     )
 except ImportError:
     ProvenanceRecord = None
@@ -251,11 +247,11 @@ except ImportError:
 
 try:
     from .benchmarks import (
-        ChemistryBenchmark,
+        LITERATURE_DATA,
         BenchmarkResult,
         BenchmarkSuite,
+        ChemistryBenchmark,
         quick_benchmark,
-        LITERATURE_DATA
     )
 except ImportError:
     ChemistryBenchmark = None
@@ -266,11 +262,7 @@ except ImportError:
 
 # NEW in v4.0.0 - Quantum Error Correction (QEC) Module
 try:
-    from .chemistry_qec import (
-        QuantumChemistry,
-        MoleculeResult,
-        quick_chemistry_test
-    )
+    from .chemistry_qec import MoleculeResult, QuantumChemistry, quick_chemistry_test
 except ImportError:
     QuantumChemistry = None
     MoleculeResult = None
@@ -278,10 +270,10 @@ except ImportError:
 
 try:
     from .qualtran_qec import (
-        QuantumErrorCorrection,
         QECAnalysisResult,
+        QuantumErrorCorrection,
         RSAModExpResult,
-        quick_qec_demo
+        quick_qec_demo,
     )
 except ImportError:
     QuantumErrorCorrection = None
@@ -290,11 +282,7 @@ except ImportError:
     quick_qec_demo = None
 
 try:
-    from .advanced_qec import (
-        AdvancedErrorMitigation,
-        ErrorMitigationResult,
-        demo_error_mitigation
-    )
+    from .advanced_qec import AdvancedErrorMitigation, ErrorMitigationResult, demo_error_mitigation
 except ImportError:
     AdvancedErrorMitigation = None
     ErrorMitigationResult = None
@@ -302,13 +290,7 @@ except ImportError:
 
 # NEW in v5.0.0 - Full QEC Control & Visualization
 try:
-    from .qec import (
-        SurfaceCodeQEC,
-        SteaneCodeQEC,
-        ShorCodeQEC,
-        ErrorMitigation,
-        QECMetrics
-    )
+    from .qec import ErrorMitigation, QECMetrics, ShorCodeQEC, SteaneCodeQEC, SurfaceCodeQEC
 except ImportError:
     SurfaceCodeQEC = None
     SteaneCodeQEC = None
@@ -317,11 +299,7 @@ except ImportError:
     QECMetrics = None
 
 try:
-    from .visualization import (
-        QECVisualizer,
-        ResourceEstimator,
-        ResourceEstimation
-    )
+    from .visualization import QECVisualizer, ResourceEstimation, ResourceEstimator
 except ImportError:
     QECVisualizer = None
     ResourceEstimator = None
@@ -329,27 +307,21 @@ except ImportError:
 
 # NEW in v5.4.3 - CRISPR-QAI Module
 try:
-    from .crispr_qai import (
-        # Featurization
+    from .crispr_qai import (  # Featurization; Energy estimation; Optimization; Phenotype inference; I/O; Safety; Adapters
+        LocalSimulatorEngine,
+        QuantumEngine,
+        check_simulation_only,
         encode_guide_sequence,
-        guide_to_angles,
-        # Energy estimation
-        estimate_energy_collapse_simulator,
         estimate_energy_collapse_braket,
         estimate_energy_collapse_qiskit,
-        # Optimization
-        rank_guides_batch,
-        # Phenotype inference
+        estimate_energy_collapse_simulator,
+        guide_to_angles,
         infer_offtarget_phenotype,
-        # I/O
         load_guides_csv,
+        rank_guides_batch,
         save_results_csv,
-        # Safety
-        check_simulation_only,
-        # Adapters
-        QuantumEngine,
-        LocalSimulatorEngine,
     )
+
     HAVE_CRISPR_QAI = True
 except ImportError:
     # CRISPR-QAI not available
@@ -373,12 +345,10 @@ __all__ = [
     "quantum",
     "QuantumResult",
     "QuantumSimulator",
-
     # Exceptions
     "BioQLError",
     "QuantumBackendError",
     "ProgramParsingError",
-
     # Version and metadata
     "__version__",
     "__author__",
@@ -407,57 +377,64 @@ if ErrorMitigator is not None:
     __all__.extend(["ErrorMitigator", "ReadoutErrorMitigation", "mitigate_counts"])
 
 if ComplianceLogger is not None:
-    __all__.extend([
-        "ProvenanceRecord", "ProvenanceChain", "ComplianceLogger",
-        "enable_compliance_logging", "get_compliance_logger"
-    ])
+    __all__.extend(
+        [
+            "ProvenanceRecord",
+            "ProvenanceChain",
+            "ComplianceLogger",
+            "enable_compliance_logging",
+            "get_compliance_logger",
+        ]
+    )
 
 if ChemistryBenchmark is not None:
-    __all__.extend([
-        "ChemistryBenchmark", "BenchmarkResult", "BenchmarkSuite",
-        "quick_benchmark", "LITERATURE_DATA"
-    ])
+    __all__.extend(
+        [
+            "ChemistryBenchmark",
+            "BenchmarkResult",
+            "BenchmarkSuite",
+            "quick_benchmark",
+            "LITERATURE_DATA",
+        ]
+    )
 
 # Add QEC modules if available
 if QuantumChemistry is not None:
-    __all__.extend([
-        "QuantumChemistry", "MoleculeResult", "quick_chemistry_test"
-    ])
+    __all__.extend(["QuantumChemistry", "MoleculeResult", "quick_chemistry_test"])
 
 if QuantumErrorCorrection is not None:
-    __all__.extend([
-        "QuantumErrorCorrection", "QECAnalysisResult", "RSAModExpResult",
-        "quick_qec_demo"
-    ])
+    __all__.extend(
+        ["QuantumErrorCorrection", "QECAnalysisResult", "RSAModExpResult", "quick_qec_demo"]
+    )
 
 if AdvancedErrorMitigation is not None:
-    __all__.extend([
-        "AdvancedErrorMitigation", "ErrorMitigationResult", "demo_error_mitigation"
-    ])
+    __all__.extend(["AdvancedErrorMitigation", "ErrorMitigationResult", "demo_error_mitigation"])
 
 # Add CRISPR-QAI modules if available
 if HAVE_CRISPR_QAI:
-    __all__.extend([
-        # Featurization
-        "encode_guide_sequence",
-        "guide_to_angles",
-        # Energy estimation
-        "estimate_energy_collapse_simulator",
-        "estimate_energy_collapse_braket",
-        "estimate_energy_collapse_qiskit",
-        # Optimization
-        "rank_guides_batch",
-        # Phenotype inference
-        "infer_offtarget_phenotype",
-        # I/O
-        "load_guides_csv",
-        "save_results_csv",
-        # Safety
-        "check_simulation_only",
-        # Adapters
-        "QuantumEngine",
-        "LocalSimulatorEngine",
-    ])
+    __all__.extend(
+        [
+            # Featurization
+            "encode_guide_sequence",
+            "guide_to_angles",
+            # Energy estimation
+            "estimate_energy_collapse_simulator",
+            "estimate_energy_collapse_braket",
+            "estimate_energy_collapse_qiskit",
+            # Optimization
+            "rank_guides_batch",
+            # Phenotype inference
+            "infer_offtarget_phenotype",
+            # I/O
+            "load_guides_csv",
+            "save_results_csv",
+            # Safety
+            "check_simulation_only",
+            # Adapters
+            "QuantumEngine",
+            "LocalSimulatorEngine",
+        ]
+    )
 
 
 def get_version() -> str:
@@ -473,16 +450,20 @@ def get_info() -> dict:
         "license": __license__,
         "python_version": None,
         "qiskit_available": False,
-        "optional_modules": {}
+        "optional_modules": {},
     }
 
     # Check Python version
     import sys
-    info["python_version"] = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+
+    info["python_version"] = (
+        f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    )
 
     # Check Qiskit availability
     try:
         import qiskit
+
         info["qiskit_available"] = True
         info["qiskit_version"] = qiskit.__version__
     except ImportError:
@@ -540,10 +521,12 @@ def _show_startup_info():
         warnings.warn(
             "Qiskit not found. Install with: pip install qiskit qiskit-aer",
             ImportWarning,
-            stacklevel=2
+            stacklevel=2,
         )
+
 
 # Show startup info when imported (can be disabled by setting environment variable)
 import os
+
 if not os.environ.get("BIOQL_QUIET_IMPORT"):
     _show_startup_info()

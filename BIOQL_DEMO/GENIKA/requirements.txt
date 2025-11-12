@@ -1,0 +1,104 @@
+# BioQL Platform Requirements
+# For Genika Multiomics Demo
+# Version: 1.0
+# Date: October 2025
+
+# ============================================
+# Core BioQL Platform
+# ============================================
+bioql==6.0.0
+
+# ============================================
+# Quantum Computing Frameworks
+# ============================================
+qiskit>=0.45.0
+qiskit-aer>=0.13.0
+qiskit-ibm-runtime>=0.15.0
+qiskit-nature>=0.7.0
+qiskit-optimization>=0.6.0
+qiskit-machine-learning>=0.7.0
+
+# ============================================
+# Chemistry & Molecular Modeling
+# ============================================
+rdkit>=2023.9.1
+openbabel-wheel>=3.1.1
+pybel>=0.15.0
+
+# ============================================
+# Bioinformatics
+# ============================================
+biopython>=1.81
+pyteomics>=4.6
+pymzml>=2.5.2
+pyopenms>=2.9.1
+
+# ============================================
+# Scientific Computing
+# ============================================
+numpy>=1.24.0,<2.0.0
+scipy>=1.11.0
+pandas>=2.0.0
+scikit-learn>=1.3.0
+
+# ============================================
+# Optimization & Machine Learning
+# ============================================
+torch>=2.0.0
+tensorflow>=2.13.0
+keras>=2.13.0
+
+# ============================================
+# Data Visualization
+# ============================================
+matplotlib>=3.7.0
+seaborn>=0.12.0
+plotly>=5.17.0
+py3Dmol>=2.0.3
+
+# ============================================
+# Utilities
+# ============================================
+requests>=2.31.0
+pyyaml>=6.0
+jsonschema>=4.19.0
+tqdm>=4.66.0
+python-dotenv>=1.0.0
+
+# ============================================
+# Optional: Jupyter Notebook Support
+# ============================================
+jupyter>=1.0.0
+jupyterlab>=4.0.0
+ipywidgets>=8.1.0
+notebook>=7.0.0
+
+# ============================================
+# Optional: Advanced Visualization
+# ============================================
+nglview>=3.0.8
+pymol-open-source>=2.5.0
+
+# ============================================
+# Optional: Database Connectivity
+# ============================================
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.0
+pymongo>=4.5.0
+
+# ============================================
+# Development Tools (Optional)
+# ============================================
+pytest>=7.4.0
+pytest-cov>=4.1.0
+black>=23.9.0
+flake8>=6.1.0
+mypy>=1.5.0
+pylint>=2.17.0
+
+# ============================================
+# Documentation (Optional)
+# ============================================
+sphinx>=7.2.0
+sphinx-rtd-theme>=1.3.0
+myst-parser>=2.0.0

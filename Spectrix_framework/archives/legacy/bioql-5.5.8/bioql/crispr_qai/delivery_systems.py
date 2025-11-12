@@ -14,7 +14,7 @@ Clinical delivery systems used in:
 - COVID-19 mRNA vaccines (LNP) - FDA approved
 """
 
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
 
 class DeliverySystemDesigner:
@@ -40,7 +40,7 @@ class DeliverySystemDesigner:
                 "transduction_efficiency": "High",
                 "immunogenicity": "Medium",
                 "clinical_use": ["Muscular dystrophy"],
-                "packaging_capacity": "4.7 kb"
+                "packaging_capacity": "4.7 kb",
             },
             "AAV2": {
                 "tropism": ["Retina", "CNS", "Liver"],
@@ -48,21 +48,21 @@ class DeliverySystemDesigner:
                 "immunogenicity": "Low",
                 "clinical_use": ["Luxturna (retinal dystrophy)", "Hemophilia B"],
                 "packaging_capacity": "4.7 kb",
-                "fda_approved": True
+                "fda_approved": True,
             },
             "AAV5": {
                 "tropism": ["Lung", "CNS", "Retina"],
                 "transduction_efficiency": "High",
                 "immunogenicity": "Low",
                 "clinical_use": ["Cystic fibrosis trials"],
-                "packaging_capacity": "4.7 kb"
+                "packaging_capacity": "4.7 kb",
             },
             "AAV8": {
                 "tropism": ["Liver", "Muscle", "CNS"],
                 "transduction_efficiency": "Very High",
                 "immunogenicity": "Medium",
                 "clinical_use": ["Hemophilia A/B"],
-                "packaging_capacity": "4.7 kb"
+                "packaging_capacity": "4.7 kb",
             },
             "AAV9": {
                 "tropism": ["CNS", "Heart", "Liver", "Muscle"],
@@ -71,15 +71,15 @@ class DeliverySystemDesigner:
                 "clinical_use": ["Zolgensma (SMA)", "CNS disorders"],
                 "packaging_capacity": "4.7 kb",
                 "fda_approved": True,
-                "crosses_bbb": True
+                "crosses_bbb": True,
             },
             "AAVrh10": {
                 "tropism": ["CNS", "Muscle", "Liver"],
                 "transduction_efficiency": "High",
                 "immunogenicity": "Low",
                 "clinical_use": ["CNS gene therapy trials"],
-                "packaging_capacity": "4.7 kb"
-            }
+                "packaging_capacity": "4.7 kb",
+            },
         }
 
     def _load_lnp_formulations(self) -> Dict[str, Dict[str, Any]]:
@@ -94,40 +94,40 @@ class DeliverySystemDesigner:
                     "ionizable_lipid": "MC3 (DLin-MC3-DMA)",
                     "helper_lipid": "DSPC",
                     "cholesterol": "Cholesterol",
-                    "peg_lipid": "DMG-PEG2000"
+                    "peg_lipid": "DMG-PEG2000",
                 },
                 "ratio": "50:10:38.5:1.5",
                 "particle_size": "80-100 nm",
                 "clinical_use": ["Patisiran (hATTR)"],
                 "fda_approved": True,
-                "target_tissue": "Liver"
+                "target_tissue": "Liver",
             },
             "SM-102-LNP": {
                 "components": {
                     "ionizable_lipid": "SM-102",
                     "helper_lipid": "DSPC",
                     "cholesterol": "Cholesterol",
-                    "peg_lipid": "DMG-PEG2000"
+                    "peg_lipid": "DMG-PEG2000",
                 },
                 "ratio": "50:10:38.5:1.5",
                 "particle_size": "80-100 nm",
                 "clinical_use": ["Moderna COVID-19 vaccine"],
                 "fda_approved": True,
-                "target_tissue": "Muscle (IM injection)"
+                "target_tissue": "Muscle (IM injection)",
             },
             "ALC-0315-LNP": {
                 "components": {
                     "ionizable_lipid": "ALC-0315",
                     "helper_lipid": "DSPC",
                     "cholesterol": "Cholesterol",
-                    "peg_lipid": "ALC-0159"
+                    "peg_lipid": "ALC-0159",
                 },
                 "ratio": "46.3:9.4:42.7:1.6",
                 "particle_size": "80-100 nm",
                 "clinical_use": ["Pfizer-BioNTech COVID-19 vaccine"],
                 "fda_approved": True,
-                "target_tissue": "Muscle (IM injection)"
-            }
+                "target_tissue": "Muscle (IM injection)",
+            },
         }
 
     def _load_tissue_targeting(self) -> Dict[str, Dict[str, Any]]:
@@ -139,36 +139,37 @@ class DeliverySystemDesigner:
                 "preferred_delivery": ["AAV8", "LNP"],
                 "route": "Intravenous",
                 "challenges": ["Pre-existing immunity", "Dose-dependent toxicity"],
-                "clinical_examples": ["Hemophilia gene therapy", "Patisiran"]
+                "clinical_examples": ["Hemophilia gene therapy", "Patisiran"],
             },
             "CNS": {
                 "preferred_delivery": ["AAV9", "AAVrh10"],
                 "route": "Intrathecal or Intravenous",
                 "challenges": ["BBB crossing", "Immune response"],
-                "clinical_examples": ["Zolgensma (SMA)"]
+                "clinical_examples": ["Zolgensma (SMA)"],
             },
             "Retina": {
                 "preferred_delivery": ["AAV2", "AAV5"],
                 "route": "Subretinal injection",
                 "challenges": ["Limited injection volume", "Surgical precision"],
-                "clinical_examples": ["Luxturna"]
+                "clinical_examples": ["Luxturna"],
             },
             "Muscle": {
                 "preferred_delivery": ["AAV1", "AAV9", "LNP"],
                 "route": "Intramuscular",
                 "challenges": ["Distribution", "Immune response"],
-                "clinical_examples": ["Muscular dystrophy trials", "mRNA vaccines"]
+                "clinical_examples": ["Muscular dystrophy trials", "mRNA vaccines"],
             },
             "Lung": {
                 "preferred_delivery": ["AAV5", "LNP"],
                 "route": "Inhalation or IV",
                 "challenges": ["Mucociliary clearance", "Immune cells"],
-                "clinical_examples": ["Cystic fibrosis trials"]
-            }
+                "clinical_examples": ["Cystic fibrosis trials"],
+            },
         }
 
-    def design_aav_vector(self, target_gene: str, target_tissue: str,
-                         cas9_variant: str = "SpCas9") -> Dict[str, Any]:
+    def design_aav_vector(
+        self, target_gene: str, target_tissue: str, cas9_variant: str = "SpCas9"
+    ) -> Dict[str, Any]:
         """
         Design AAV vector for CRISPR delivery
 
@@ -182,47 +183,48 @@ class DeliverySystemDesigner:
         """
         # Select AAV serotype based on tissue
         tissue_info = self.tissue_targeting.get(target_tissue, {})
-        preferred_aavs = tissue_info.get('preferred_delivery', ['AAV9'])
+        preferred_aavs = tissue_info.get("preferred_delivery", ["AAV9"])
 
         # Filter for AAV vectors only
-        aav_options = [aav for aav in preferred_aavs if aav.startswith('AAV')]
-        selected_aav = aav_options[0] if aav_options else 'AAV9'
+        aav_options = [aav for aav in preferred_aavs if aav.startswith("AAV")]
+        selected_aav = aav_options[0] if aav_options else "AAV9"
 
         aav_info = self.aav_serotypes[selected_aav]
 
         # Design vector components
         vector_design = {
-            'serotype': selected_aav,
-            'tropism': aav_info['tropism'],
-            'target_tissue': target_tissue,
-            'target_gene': target_gene,
-            'packaging_capacity': aav_info['packaging_capacity'],
-            'components': {
-                'promoter': self._select_promoter(target_tissue, cas9_variant),
-                'cas9': cas9_variant,
-                'grna_scaffold': 'tracrRNA',
-                'polya': 'SV40 polyA',
-                'itr': '5\' and 3\' ITR (AAV2)'
+            "serotype": selected_aav,
+            "tropism": aav_info["tropism"],
+            "target_tissue": target_tissue,
+            "target_gene": target_gene,
+            "packaging_capacity": aav_info["packaging_capacity"],
+            "components": {
+                "promoter": self._select_promoter(target_tissue, cas9_variant),
+                "cas9": cas9_variant,
+                "grna_scaffold": "tracrRNA",
+                "polya": "SV40 polyA",
+                "itr": "5' and 3' ITR (AAV2)",
             },
-            'estimated_size': self._calculate_vector_size(cas9_variant),
-            'clinical_considerations': {
-                'immunogenicity': aav_info['immunogenicity'],
-                'pre_existing_immunity': '30-60% of population',
-                'dosing': '1e13 - 1e14 vg/kg',
-                'route': tissue_info.get('route', 'Intravenous'),
-                'manufacturing': 'Suspension cell culture (HEK293 or SF9)'
+            "estimated_size": self._calculate_vector_size(cas9_variant),
+            "clinical_considerations": {
+                "immunogenicity": aav_info["immunogenicity"],
+                "pre_existing_immunity": "30-60% of population",
+                "dosing": "1e13 - 1e14 vg/kg",
+                "route": tissue_info.get("route", "Intravenous"),
+                "manufacturing": "Suspension cell culture (HEK293 or SF9)",
             },
-            'regulatory_path': {
-                'preclinical': ['Biodistribution', 'Toxicology', 'Immunogenicity'],
-                'clinical': ['Phase I (safety)', 'Phase II (efficacy)', 'Phase III (pivotal)'],
-                'approval': 'BLA (Biologics License Application)'
-            }
+            "regulatory_path": {
+                "preclinical": ["Biodistribution", "Toxicology", "Immunogenicity"],
+                "clinical": ["Phase I (safety)", "Phase II (efficacy)", "Phase III (pivotal)"],
+                "approval": "BLA (Biologics License Application)",
+            },
         }
 
         return vector_design
 
-    def design_lnp_formulation(self, target_tissue: str,
-                               payload_type: str = "Cas9_mRNA") -> Dict[str, Any]:
+    def design_lnp_formulation(
+        self, target_tissue: str, payload_type: str = "Cas9_mRNA"
+    ) -> Dict[str, Any]:
         """
         Design LNP formulation for CRISPR delivery
 
@@ -245,45 +247,45 @@ class DeliverySystemDesigner:
         tissue_info = self.tissue_targeting.get(target_tissue, {})
 
         formulation_design = {
-            'lnp_type': lnp_type,
-            'target_tissue': target_tissue,
-            'payload': payload_type,
-            'components': lnp_info['components'],
-            'molar_ratio': lnp_info['ratio'],
-            'particle_size': lnp_info['particle_size'],
-            'encapsulation': {
-                'method': 'Microfluidic mixing',
-                'efficiency': '> 90%',
-                'n_p_ratio': '3-6 (nitrogen/phosphate)'
+            "lnp_type": lnp_type,
+            "target_tissue": target_tissue,
+            "payload": payload_type,
+            "components": lnp_info["components"],
+            "molar_ratio": lnp_info["ratio"],
+            "particle_size": lnp_info["particle_size"],
+            "encapsulation": {
+                "method": "Microfluidic mixing",
+                "efficiency": "> 90%",
+                "n_p_ratio": "3-6 (nitrogen/phosphate)",
             },
-            'formulation_buffer': {
-                'buffer': 'Citrate or Acetate',
-                'ph': '4.0 - 5.0 (for mixing)',
-                'final_ph': '7.4 (physiological)',
-                'excipients': ['Sucrose (cryoprotectant)', 'Tris-HCl']
+            "formulation_buffer": {
+                "buffer": "Citrate or Acetate",
+                "ph": "4.0 - 5.0 (for mixing)",
+                "final_ph": "7.4 (physiological)",
+                "excipients": ["Sucrose (cryoprotectant)", "Tris-HCl"],
             },
-            'dosing': {
-                'payload_amount': '0.1 - 2 mg mRNA',
-                'administration': tissue_info.get('route', 'Intravenous'),
-                'frequency': 'Single dose or repeat dosing'
+            "dosing": {
+                "payload_amount": "0.1 - 2 mg mRNA",
+                "administration": tissue_info.get("route", "Intravenous"),
+                "frequency": "Single dose or repeat dosing",
             },
-            'storage': {
-                'temperature': '-80°C to -20°C',
-                'stability': '6-12 months frozen',
-                'thawing': 'Room temperature or 2-8°C'
+            "storage": {
+                "temperature": "-80°C to -20°C",
+                "stability": "6-12 months frozen",
+                "thawing": "Room temperature or 2-8°C",
             },
-            'clinical_considerations': {
-                'immunogenicity': 'Low (minimal innate immune activation)',
-                'biodistribution': f'Primary accumulation in {target_tissue}',
-                'clearance': 'Hepatic metabolism',
-                'safety': 'Generally well-tolerated'
+            "clinical_considerations": {
+                "immunogenicity": "Low (minimal innate immune activation)",
+                "biodistribution": f"Primary accumulation in {target_tissue}",
+                "clearance": "Hepatic metabolism",
+                "safety": "Generally well-tolerated",
             },
-            'manufacturing': {
-                'lipid_synthesis': 'Chemical synthesis (GMP)',
-                'lnp_formation': 'Microfluidic mixing (Precision NanoSystems)',
-                'purification': 'Tangential flow filtration (TFF)',
-                'qa_qc': ['Particle size (DLS)', 'Encapsulation (Quant-iT)', 'Endotoxin']
-            }
+            "manufacturing": {
+                "lipid_synthesis": "Chemical synthesis (GMP)",
+                "lnp_formation": "Microfluidic mixing (Precision NanoSystems)",
+                "purification": "Tangential flow filtration (TFF)",
+                "qa_qc": ["Particle size (DLS)", "Encapsulation (Quant-iT)", "Endotoxin"],
+            },
         }
 
         return formulation_design
@@ -295,7 +297,7 @@ class DeliverySystemDesigner:
             "CNS": "hSyn (human synapsin)",
             "Muscle": "CK8 (muscle creatine kinase)",
             "Retina": "VMD2 (vitelliform macular dystrophy 2)",
-            "Lung": "SP-C (surfactant protein C)"
+            "Lung": "SP-C (surfactant protein C)",
         }
 
         return tissue_promoters.get(tissue, "CMV (ubiquitous)")
@@ -305,7 +307,7 @@ class DeliverySystemDesigner:
         cas9_sizes = {
             "SpCas9": "4.1 kb",
             "SaCas9": "3.2 kb",  # Smaller, fits better in AAV
-            "CjCas9": "2.9 kb"   # Even smaller
+            "CjCas9": "2.9 kb",  # Even smaller
         }
 
         # Total size = Cas9 + gRNA + promoter + polyA + ITRs
@@ -314,8 +316,9 @@ class DeliverySystemDesigner:
         return f"~{base_size} (Cas9) + 0.3 kb (gRNA) + 0.5 kb (promoter) = Total ~{float(base_size.split()[0]) + 0.8:.1f} kb"
 
 
-def generate_delivery_template(target_gene: str, target_tissue: str,
-                               disease: str, delivery_type: str = "AAV") -> str:
+def generate_delivery_template(
+    target_gene: str, target_tissue: str, disease: str, delivery_type: str = "AAV"
+) -> str:
     """
     Generate delivery system design template
 
@@ -491,14 +494,14 @@ if __name__ == "__main__":
     # Test delivery system design
     designer = DeliverySystemDesigner()
 
-    print("="*80)
+    print("=" * 80)
     print("CRISPR Delivery Systems - Tests")
-    print("="*80)
+    print("=" * 80)
     print()
 
     # Test 1: AAV design
     print("Test 1: AAV Vector for PCSK9 (Liver)")
-    print("-"*80)
+    print("-" * 80)
     aav_design = designer.design_aav_vector("PCSK9", "Liver", "SpCas9")
     print(f"Serotype: {aav_design['serotype']}")
     print(f"Promoter: {aav_design['components']['promoter']}")
@@ -508,7 +511,7 @@ if __name__ == "__main__":
 
     # Test 2: LNP design
     print("Test 2: LNP Formulation for Muscle")
-    print("-"*80)
+    print("-" * 80)
     lnp_design = designer.design_lnp_formulation("Muscle", "Cas9_mRNA")
     print(f"LNP Type: {lnp_design['lnp_type']}")
     print(f"Components: {lnp_design['components']['ionizable_lipid']}")

@@ -1,0 +1,195 @@
+================================================================================
+          🚀 PASOS FINALES - OBTENER NGROK URL (3 MINUTOS)
+================================================================================
+
+✅ El servidor Flask YA ESTÁ CORRIENDO en http://localhost:5001
+
+⏳ Solo falta iniciar ngrok para obtener URL pública
+
+================================================================================
+📋 OPCIÓN 1: Iniciar ngrok Manualmente (RECOMENDADO)
+================================================================================
+
+1. Abre una NUEVA TERMINAL (⌘+T en Mac)
+
+2. Ejecuta:
+   $ /opt/homebrew/bin/ngrok http 5001
+
+3. Verás algo como esto:
+   ┌────────────────────────────────────────────────────────────┐
+   │ Session Status    online                                   │
+   │ Forwarding        https://abc123-def456.ngrok-free.app     │ ← ESTA URL
+   └────────────────────────────────────────────────────────────┘
+
+4. COPIA la URL completa (ej: https://abc123-def456.ngrok-free.app)
+
+5. Deja esa terminal abierta (ngrok debe seguir corriendo)
+
+================================================================================
+📋 OPCIÓN 2: Usar el Script (ALTERNATIVA)
+================================================================================
+
+1. Abre una NUEVA TERMINAL
+
+2. Ejecuta:
+   $ /Users/heinzjungbluth/Desktop/INICIAR_NGROK.sh
+
+3. Abre el dashboard de ngrok en tu navegador:
+   $ open http://localhost:4040
+
+4. En la página web, copia la URL que dice "Forwarding" (ej: https://xxxxx.ngrok-free.app)
+
+================================================================================
+📝 ACTUALIZAR signup.html CON LA URL
+================================================================================
+
+1. Abre: /Users/heinzjungbluth/Desktop/bioql_website/signup.html
+
+2. Ve a la línea 325
+
+3. Reemplaza:
+   ANTES:
+   BIOQL_SERVER_URL: 'https://YOUR_NGROK_URL_HERE.ngrok-free.app',
+
+   DESPUÉS:
+   BIOQL_SERVER_URL: 'https://abc123-def456.ngrok-free.app', // ← TU URL AQUÍ
+
+4. Guarda el archivo (⌘+S)
+
+================================================================================
+📤 SUBIR A GITHUB Y VERCEL
+================================================================================
+
+Ejecuta estos comandos:
+
+$ cd /Users/heinzjungbluth/Desktop/bioql_website
+
+$ git add signup.html
+
+$ git commit -m "Configure ngrok URL - System 100% ready for production
+
+- Added ngrok public URL to signup.html
+- All EmailJS credentials configured
+- Stripe in LIVE mode
+- Backend server running on port 5001
+- System fully functional and ready to receive users
+
+Ready to deploy on www.spectrixrd.com! 🚀"
+
+$ git push origin main
+
+Vercel automáticamente desplegará en ~1 minuto
+
+================================================================================
+🧪 PROBAR EL SISTEMA
+================================================================================
+
+1. Espera 1 minuto para que Vercel despliegue
+
+2. Ve a: https://www.spectrixrd.com/signup.html
+
+3. Llena el formulario:
+   Nombre: Tu Nombre
+   Email: tu-email-real@gmail.com
+   Tarjeta: 4242 4242 4242 4242
+   Fecha: 12/34
+   CVC: 123
+   ZIP: 12345
+
+4. ✓ Acepta términos
+
+5. Click "Create Account & Get API Key"
+
+6. Verifica:
+   ✅ Mensaje de éxito en pantalla
+   ✅ API key mostrado (ej: bioql_abc123...)
+   ✅ Email recibido con diseño quantum hermoso 🎨
+   ✅ Email contiene tu API key y ejemplos de código
+
+================================================================================
+📧 VERIFICAR EMAIL
+================================================================================
+
+En tu bandeja de entrada verás:
+
+Subject: Your BioQL API Key - Welcome!
+
+El email tiene:
+  🎨 Diseño profesional con gradientes quantum (azul/morado)
+  🔑 Tu API key destacado en un código box
+  👤 User ID y Stripe Customer ID
+  🚀 Instrucciones de instalación paso a paso
+  💻 Ejemplo de código con syntax highlighting
+  💳 Información de billing
+  📚 Links a www.spectrixrd.com/docs
+
+================================================================================
+🔍 VERIFICAR EN LOGS DEL SERVIDOR
+================================================================================
+
+En la terminal donde corre el servidor Flask, verás:
+
+INFO: ✅ User registered: email=tu-email@gmail.com
+INFO: ✅ Stripe customer created: cus_abc123
+INFO: ✅ Payment method pm_abc123 attached to customer cus_abc123
+INFO: ✅ Stripe subscription created: sub_abc123
+
+================================================================================
+💳 VERIFICAR EN STRIPE DASHBOARD
+================================================================================
+
+1. Ve a: https://dashboard.stripe.com/customers
+
+2. Deberías ver el nuevo cliente creado
+
+3. Click en el cliente para ver:
+   ✅ Tarjeta de crédito adjunta
+   ✅ Suscripción activa
+   ✅ Invoice threshold configurado en $3,000
+
+================================================================================
+⚠️ IMPORTANTE: NGROK URL EXPIRA
+================================================================================
+
+En el plan gratuito de ngrok, la URL expira cada 2 horas.
+
+Cada vez que reinicies ngrok o el servidor:
+  1. Obtendrás una NUEVA URL (ej: https://xyz789.ngrok-free.app)
+  2. Debes actualizar signup.html línea 325
+  3. Hacer commit y push
+  4. Esperar ~1 minuto para que Vercel despliegue
+
+Solución permanente:
+  • Upgrade a ngrok paid ($8/mes) para URL fija
+  • O desplegar backend en servidor real (Heroku, Railway, etc.)
+
+================================================================================
+📊 ESTADO ACTUAL
+================================================================================
+
+✅ Servidor Flask corriendo:      http://localhost:5001
+✅ EmailJS configurado:            100%
+✅ Stripe LIVE mode:               100%
+✅ Base de datos SQLite:           100%
+✅ Frontend (signup.html):         100%
+⏳ ngrok URL:                      Pendiente tu acción
+
+SIGUIENTE: Ejecutar /opt/homebrew/bin/ngrok http 5001
+
+================================================================================
+🎉 CUANDO COMPLETES ESTE PASO
+================================================================================
+
+Tendrás un sistema 100% funcional que:
+
+✅ Recibe usuarios en www.spectrixrd.com/signup.html
+✅ Procesa tarjetas de crédito con Stripe (LIVE mode)
+✅ Genera API keys automáticamente
+✅ Envía emails profesionales con EmailJS
+✅ Factura automáticamente cada $3,000 USD
+✅ Almacena usuarios en SQLite
+✅ Gestiona suscripciones en Stripe
+
+¡Solo falta ejecutar ngrok! 🚀
+
+================================================================================

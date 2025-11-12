@@ -1,0 +1,97 @@
+================================================================================
+🗑️ CLIENTES DE STRIPE PARA ELIMINAR
+================================================================================
+
+✅ USUARIOS YA ELIMINADOS DE LA BASE DE DATOS (2 usuarios)
+
+Ahora debes eliminar estos clientes de Stripe manualmente:
+
+================================================================================
+CLIENTES A ELIMINAR EN STRIPE DASHBOARD
+================================================================================
+
+1. cus_TGI7pda4FoojSg
+   Email: heinz@bionics-ai.biz
+   Nombre: Heinz Jungbluth
+   Creado: Oct 18, 8:35 PM
+
+2. cus_TGHrSUNwh8rfcd
+   Email: jgheinz@gmail.com
+   Nombre: Heinz Jungbluth
+   Creado: Oct 18, 8:20 PM
+
+================================================================================
+CLIENTES ADICIONALES SEGÚN TU LISTA (sin stripe_customer_id en DB)
+================================================================================
+
+Basado en tu lista, también había estos clientes de prueba con los mismos emails
+pero que no estaban en la base de datos (probablemente creados en pruebas fallidas):
+
+Email: heinz@bionics-ai.biz - Oct 18, 8:31 PM
+Email: heinzjg@hotmail.com - Oct 18, 8:29 PM
+Email: jgheinz@gmail.com - Oct 18, 8:28 PM
+Email: jgheinz@gmail.com - Oct 18, 8:17 PM
+Email: jgheinz@gmail.com - Oct 18, 7:53 PM
+Email: jgheinz@gmail.com - Oct 18, 7:27 PM
+
+Todos estos también deben ser eliminados de Stripe.
+
+================================================================================
+CÓMO ELIMINAR EN STRIPE DASHBOARD
+================================================================================
+
+Opción 1: Eliminar por Customer ID
+----------------------------------
+1. Ve a: https://dashboard.stripe.com/customers
+2. Para cada Customer ID de arriba:
+   - Pega el ID en el buscador (ej: cus_TGI7pda4FoojSg)
+   - Click en el cliente
+   - Click en "Actions" → "Delete customer"
+   - Confirmar
+
+Opción 2: Eliminar por Email (más fácil para múltiples)
+-------------------------------------------------------
+1. Ve a: https://dashboard.stripe.com/customers
+2. Busca: heinz@bionics-ai.biz
+   - Elimina TODOS los clientes con ese email
+3. Busca: heinzjg@hotmail.com
+   - Elimina TODOS los clientes con ese email
+4. Busca: jgheinz@gmail.com
+   - Elimina TODOS los clientes con ese email
+
+Opción 3: Filtro por Fecha
+--------------------------
+1. Ve a: https://dashboard.stripe.com/customers
+2. Filtra por: Created on Oct 18, 2025
+3. Revisa la lista y elimina todos los que sean de prueba
+
+================================================================================
+VERIFICACIÓN
+================================================================================
+
+Después de eliminar, verifica:
+
+1. Stripe Dashboard:
+   https://dashboard.stripe.com/customers
+   - Busca cada email
+   - No debería aparecer ningún cliente
+
+2. Base de datos (ya verificado):
+   ✅ 8 usuarios restantes (productivos)
+   ✅ 0 usuarios de prueba
+
+================================================================================
+RESUMEN
+================================================================================
+
+✅ Base de datos:    2 usuarios eliminados
+⏳ Stripe:           ~8 clientes para eliminar manualmente
+
+Emails a buscar y eliminar en Stripe:
+  • heinz@bionics-ai.biz
+  • heinzjg@hotmail.com
+  • jgheinz@gmail.com
+
+TIEMPO ESTIMADO: 5 minutos
+
+================================================================================

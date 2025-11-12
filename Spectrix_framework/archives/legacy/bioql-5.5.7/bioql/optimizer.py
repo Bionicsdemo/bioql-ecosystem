@@ -29,6 +29,7 @@ try:
     from loguru import logger
 except ImportError:
     import logging
+
     logger = logging.getLogger(__name__)
 
 # Qiskit imports for circuit optimization
@@ -36,35 +37,38 @@ try:
     from qiskit import QuantumCircuit
     from qiskit.transpiler import PassManager
     from qiskit.transpiler.passes import (
-        Optimize1qGates,
-        Optimize1qGatesDecomposition,
-        InverseCancellation,
+        Collect2qBlocks,
         CommutativeCancellation,
         CommutativeInverseCancellation,
-        RemoveBarriers,
-        OptimizeSwapBeforeMeasure,
-        RemoveDiagonalGatesBeforeMeasure,
-        Collect2qBlocks,
         ConsolidateBlocks,
+        InverseCancellation,
+        Optimize1qGates,
+        Optimize1qGatesDecomposition,
+        OptimizeSwapBeforeMeasure,
+        RemoveBarriers,
+        RemoveDiagonalGatesBeforeMeasure,
     )
+
     QISKIT_AVAILABLE = True
 except ImportError as e:
     QISKIT_AVAILABLE = False
     logger.warning(f"Qiskit not available - using mock optimizer: {e}")
 
 from bioql.ir import (
-    BioQLProgram,
-    BioQLOperation,
-    DockingOperation,
     AlignmentOperation,
-    QuantumOptimizationOperation,
-    QuantumCircuit as IRQuantumCircuit,
+    BioQLOperation,
+    BioQLProgram,
+    DockingOperation,
 )
-
+from bioql.ir import QuantumCircuit as IRQuantumCircuit
+from bioql.ir import (
+    QuantumOptimizationOperation,
+)
 
 # ============================================================================
 # OPTIMIZATION LEVELS
 # ============================================================================
+
 
 class OptimizationLevel(Enum):
     """
@@ -77,6 +81,7 @@ class OptimizationLevel(Enum):
     - Os: Size optimization (minimize gate count)
     - Ot: Time optimization (minimize circuit depth)
     """
+
     O0 = 0  # No optimization
     O1 = 1  # Basic
     O2 = 2  # Standard
@@ -88,6 +93,7 @@ class OptimizationLevel(Enum):
 # ============================================================================
 # OPTIMIZATION METRICS
 # ============================================================================
+
 
 @dataclass
 class ImprovementMetrics:
@@ -138,6 +144,7 @@ class ImprovementMetrics:
 # CIRCUIT OPTIMIZER
 # ============================================================================
 
+
 class CircuitOptimizer:
     """
     Optimizes quantum circuits using various optimization techniques.
@@ -163,7 +170,7 @@ class CircuitOptimizer:
     def optimize(
         self,
         circuit: Union[QuantumCircuit, IRQuantumCircuit],
-        level: Optional[OptimizationLevel] = None
+        level: Optional[OptimizationLevel] = None,
     ) -> Tuple[Union[QuantumCircuit, IRQuantumCircuit], ImprovementMetrics]:
         """
         Optimize a quantum circuit.
@@ -193,10 +200,7 @@ class CircuitOptimizer:
             raise TypeError(f"Unsupported circuit type: {type(circuit)}")
 
     def _optimize_qiskit_circuit(
-        self,
-        circuit: QuantumCircuit,
-        level: OptimizationLevel,
-        start_time: float
+        self, circuit: QuantumCircuit, level: OptimizationLevel, start_time: float
     ) -> Tuple[QuantumCircuit, ImprovementMetrics]:
         """Optimize a Qiskit QuantumCircuit."""
         original_circuit = circuit.copy()
@@ -231,8 +235,12 @@ class CircuitOptimizer:
             pm.append(Collect2qBlocks())
             pm.append(ConsolidateBlocks())
             passes_applied = [
-                "RemoveBarriers", "CommutativeCancellation", "Optimize1qGates",
-                "CommutativeInverseCancellation", "Collect2qBlocks", "ConsolidateBlocks"
+                "RemoveBarriers",
+                "CommutativeCancellation",
+                "Optimize1qGates",
+                "CommutativeInverseCancellation",
+                "Collect2qBlocks",
+                "ConsolidateBlocks",
             ]
             optimized_circuit = pm.run(circuit)
 
@@ -248,10 +256,15 @@ class CircuitOptimizer:
             pm.append(RemoveDiagonalGatesBeforeMeasure())
             pm.append(Optimize1qGatesDecomposition())
             passes_applied = [
-                "RemoveBarriers", "CommutativeCancellation", "Optimize1qGates",
-                "CommutativeInverseCancellation", "Collect2qBlocks",
-                "ConsolidateBlocks", "OptimizeSwapBeforeMeasure", "RemoveDiagonalGatesBeforeMeasure",
-                "Optimize1qGatesDecomposition"
+                "RemoveBarriers",
+                "CommutativeCancellation",
+                "Optimize1qGates",
+                "CommutativeInverseCancellation",
+                "Collect2qBlocks",
+                "ConsolidateBlocks",
+                "OptimizeSwapBeforeMeasure",
+                "RemoveDiagonalGatesBeforeMeasure",
+                "Optimize1qGatesDecomposition",
             ]
             optimized_circuit = pm.run(circuit)
 
@@ -265,9 +278,13 @@ class CircuitOptimizer:
             pm.append(ConsolidateBlocks())
             pm.append(RemoveDiagonalGatesBeforeMeasure())
             passes_applied = [
-                "RemoveBarriers", "CommutativeCancellation", "CommutativeInverseCancellation",
-                "Optimize1qGates", "Collect2qBlocks", "ConsolidateBlocks",
-                "RemoveDiagonalGatesBeforeMeasure"
+                "RemoveBarriers",
+                "CommutativeCancellation",
+                "CommutativeInverseCancellation",
+                "Optimize1qGates",
+                "Collect2qBlocks",
+                "ConsolidateBlocks",
+                "RemoveDiagonalGatesBeforeMeasure",
             ]
             optimized_circuit = pm.run(circuit)
 
@@ -279,8 +296,11 @@ class CircuitOptimizer:
             pm.append(Collect2qBlocks())
             pm.append(ConsolidateBlocks())
             passes_applied = [
-                "RemoveBarriers", "CommutativeCancellation", "Optimize1qGates",
-                "Collect2qBlocks", "ConsolidateBlocks"
+                "RemoveBarriers",
+                "CommutativeCancellation",
+                "Optimize1qGates",
+                "Collect2qBlocks",
+                "ConsolidateBlocks",
             ]
             optimized_circuit = pm.run(circuit)
 
@@ -320,17 +340,14 @@ class CircuitOptimizer:
             improvement_percentage=improvement,
             optimization_level=level,
             passes_applied=passes_applied,
-            warnings=warnings
+            warnings=warnings,
         )
 
         self.logger.success(f"Circuit optimized: {improvement:.1f}% improvement")
         return optimized_circuit, metrics
 
     def _optimize_ir_circuit(
-        self,
-        circuit: IRQuantumCircuit,
-        level: OptimizationLevel,
-        start_time: float
+        self, circuit: IRQuantumCircuit, level: OptimizationLevel, start_time: float
     ) -> Tuple[IRQuantumCircuit, ImprovementMetrics]:
         """Optimize a BioQL IR circuit."""
         original_circuit = copy.deepcopy(circuit)
@@ -393,7 +410,7 @@ class CircuitOptimizer:
             improvement_percentage=improvement,
             optimization_level=level,
             passes_applied=passes_applied,
-            warnings=warnings
+            warnings=warnings,
         )
 
         return optimized_circuit, metrics
@@ -434,7 +451,9 @@ class CircuitOptimizer:
             if self._gates_cancel(current, next_gate):
                 to_remove.add(i)
                 to_remove.add(i + 1)
-                self.logger.debug(f"Cancelling gates {i} and {i+1}: {current['gate']} and {next_gate['gate']}")
+                self.logger.debug(
+                    f"Cancelling gates {i} and {i+1}: {current['gate']} and {next_gate['gate']}"
+                )
                 i += 2
             else:
                 i += 1
@@ -447,20 +466,20 @@ class CircuitOptimizer:
     def _gates_cancel(self, gate1: Dict[str, Any], gate2: Dict[str, Any]) -> bool:
         """Check if two consecutive gates cancel each other."""
         # Same gate type and qubits
-        if gate1['gate'] != gate2['gate']:
+        if gate1["gate"] != gate2["gate"]:
             return False
 
-        if gate1['qubits'] != gate2['qubits']:
+        if gate1["qubits"] != gate2["qubits"]:
             return False
 
         # Self-inverse gates: H, X, Y, Z, CNOT
-        self_inverse = ['h', 'x', 'y', 'z', 'cnot', 'cz']
+        self_inverse = ["h", "x", "y", "z", "cnot", "cz"]
 
-        if gate1['gate'] in self_inverse:
+        if gate1["gate"] in self_inverse:
             # For rotation gates, check if they're inverses
-            if gate1['gate'] in ['rx', 'ry', 'rz']:
-                params1 = gate1.get('params', [])
-                params2 = gate2.get('params', [])
+            if gate1["gate"] in ["rx", "ry", "rz"]:
+                params1 = gate1.get("params", [])
+                params2 = gate2.get("params", [])
                 if len(params1) == 1 and len(params2) == 1:
                     # Check if angles are opposite
                     return abs(params1[0] + params2[0]) < 1e-10
@@ -499,7 +518,7 @@ class CircuitOptimizer:
         # Find which qubits are actually used
         used_qubits = set()
         for gate in circuit.gates:
-            used_qubits.update(gate['qubits'])
+            used_qubits.update(gate["qubits"])
 
         # If all qubits are used, no optimization possible
         if len(used_qubits) >= circuit.num_qubits:
@@ -515,7 +534,7 @@ class CircuitOptimizer:
 
         # Remap qubit indices
         for gate in optimized.gates:
-            gate['qubits'] = [qubit_map[q] for q in gate['qubits']]
+            gate["qubits"] = [qubit_map[q] for q in gate["qubits"]]
 
         return optimized
 
@@ -545,23 +564,23 @@ class CircuitOptimizer:
     def _can_commute(self, gate1: Dict[str, Any], gate2: Dict[str, Any]) -> bool:
         """Check if two gates can be commuted (swapped)."""
         # Gates on completely different qubits always commute
-        qubits1 = set(gate1['qubits'])
-        qubits2 = set(gate2['qubits'])
+        qubits1 = set(gate1["qubits"])
+        qubits2 = set(gate2["qubits"])
 
         if qubits1.isdisjoint(qubits2):
             return True
 
         # Additional commutation rules for specific gate pairs
         # (simplified - real analysis is more complex)
-        gate_type1 = gate1['gate']
-        gate_type2 = gate2['gate']
+        gate_type1 = gate1["gate"]
+        gate_type2 = gate2["gate"]
 
         # Z gates commute with each other
-        if gate_type1 == 'z' and gate_type2 == 'z':
+        if gate_type1 == "z" and gate_type2 == "z":
             return True
 
         # X gates commute with each other
-        if gate_type1 == 'x' and gate_type2 == 'x':
+        if gate_type1 == "x" and gate_type2 == "x":
             return True
 
         return False
@@ -577,9 +596,9 @@ class CircuitOptimizer:
         gate_next = gates[index + 1]
 
         # Check if swapping brings similar operations together
-        qubits_before = set(gate_before['qubits'])
-        qubits_current = set(gate_current['qubits'])
-        qubits_next = set(gate_next['qubits'])
+        qubits_before = set(gate_before["qubits"])
+        qubits_current = set(gate_current["qubits"])
+        qubits_next = set(gate_next["qubits"])
 
         # Prefer grouping gates on same qubits
         overlap_before_next = len(qubits_before & qubits_next)
@@ -597,10 +616,10 @@ class CircuitOptimizer:
 
         for gate in circuit.gates:
             # Find the latest time among qubits this gate uses
-            max_time = max(qubit_times[q] for q in gate['qubits'])
+            max_time = max(qubit_times[q] for q in gate["qubits"])
 
             # Update times for all qubits used by this gate
-            for q in gate['qubits']:
+            for q in gate["qubits"]:
                 qubit_times[q] = max_time + 1
 
         return max(qubit_times)
@@ -608,7 +627,7 @@ class CircuitOptimizer:
     def analyze_improvement(
         self,
         original: Union[QuantumCircuit, IRQuantumCircuit],
-        optimized: Union[QuantumCircuit, IRQuantumCircuit]
+        optimized: Union[QuantumCircuit, IRQuantumCircuit],
     ) -> ImprovementMetrics:
         """
         Analyze the improvement between original and optimized circuits.
@@ -658,13 +677,14 @@ class CircuitOptimizer:
             improvement_percentage=improvement,
             optimization_level=self.optimization_level,
             passes_applied=[],
-            warnings=[]
+            warnings=[],
         )
 
 
 # ============================================================================
 # IR OPTIMIZER
 # ============================================================================
+
 
 class IROptimizer:
     """
@@ -703,8 +723,8 @@ class IROptimizer:
             {
                 "original_operations": len(program.operations),
                 "optimized_operations": len(optimized.operations),
-                "timestamp": datetime.datetime.utcnow().isoformat()
-            }
+                "timestamp": datetime.datetime.utcnow().isoformat(),
+            },
         )
 
         return optimized
@@ -772,11 +792,7 @@ class IROptimizer:
 
         return False
 
-    def _fuse_two_operations(
-        self,
-        op1: BioQLOperation,
-        op2: BioQLOperation
-    ) -> BioQLOperation:
+    def _fuse_two_operations(self, op1: BioQLOperation, op2: BioQLOperation) -> BioQLOperation:
         """Fuse two compatible operations."""
         # For docking operations, combine ligands
         if isinstance(op1, DockingOperation) and isinstance(op2, DockingOperation):
@@ -822,9 +838,11 @@ class IROptimizer:
 # OPTIMIZATION PIPELINE
 # ============================================================================
 
+
 @dataclass
 class PipelineMetrics:
     """Metrics for the complete optimization pipeline."""
+
     ir_optimization_time: float
     circuit_optimization_time: float
     total_optimization_time: float
@@ -856,7 +874,7 @@ class OptimizationPipeline:
     def optimize(
         self,
         program: BioQLProgram,
-        circuit: Optional[Union[QuantumCircuit, IRQuantumCircuit]] = None
+        circuit: Optional[Union[QuantumCircuit, IRQuantumCircuit]] = None,
     ) -> Tuple[BioQLProgram, Optional[Union[QuantumCircuit, IRQuantumCircuit]], PipelineMetrics]:
         """
         Run the complete optimization pipeline.
@@ -901,7 +919,7 @@ class OptimizationPipeline:
             total_optimization_time=total_time,
             estimated_speedup=estimated_speedup,
             estimated_cost_reduction=estimated_cost_reduction,
-            circuit_metrics=circuit_metrics
+            circuit_metrics=circuit_metrics,
         )
 
         self.logger.success(
@@ -914,7 +932,7 @@ class OptimizationPipeline:
     def estimate_improvement(
         self,
         program: BioQLProgram,
-        circuit: Optional[Union[QuantumCircuit, IRQuantumCircuit]] = None
+        circuit: Optional[Union[QuantumCircuit, IRQuantumCircuit]] = None,
     ) -> Dict[str, Any]:
         """
         Estimate the improvement from optimization without actually optimizing.
@@ -931,7 +949,7 @@ class OptimizationPipeline:
             "estimated_depth_reduction": 0.0,
             "estimated_speedup": 1.0,
             "estimated_cost_reduction": 0.0,
-            "optimization_level": self.optimization_level.name
+            "optimization_level": self.optimization_level.name,
         }
 
         # Estimate based on optimization level
@@ -990,6 +1008,7 @@ class OptimizationPipeline:
 # ============================================================================
 # BACKEND-SPECIFIC OPTIMIZATION (NEW in v3.1.2+)
 # ============================================================================
+
 
 @dataclass
 class BackendOptimizationHint:
@@ -1064,8 +1083,7 @@ class BackendSpecificOptimizer:
             self.backend = "simulator"
 
     def analyze_circuit(
-        self,
-        circuit: Union[QuantumCircuit, IRQuantumCircuit]
+        self, circuit: Union[QuantumCircuit, IRQuantumCircuit]
     ) -> List[BackendOptimizationHint]:
         """
         Analyze circuit and provide backend-specific optimization hints.
@@ -1103,16 +1121,13 @@ class BackendSpecificOptimizer:
 
         return hints
 
-    def _count_gates(
-        self,
-        circuit: Union[QuantumCircuit, IRQuantumCircuit]
-    ) -> Dict[str, int]:
+    def _count_gates(self, circuit: Union[QuantumCircuit, IRQuantumCircuit]) -> Dict[str, int]:
         """Count gate usage in circuit."""
         counts = defaultdict(int)
 
         if isinstance(circuit, IRQuantumCircuit):
             for gate in circuit.gates:
-                counts[gate['gate']] += 1
+                counts[gate["gate"]] += 1
         elif QISKIT_AVAILABLE and isinstance(circuit, QuantumCircuit):
             for instruction in circuit.data:
                 counts[instruction.operation.name] += 1
@@ -1132,7 +1147,7 @@ class BackendSpecificOptimizer:
         # Check for non-native gates
         non_native = []
         for gate, count in gate_counts.items():
-            if gate not in native_gates and gate not in ['measure', 'barrier']:
+            if gate not in native_gates and gate not in ["measure", "barrier"]:
                 non_native.append((gate, count))
 
         if non_native:
@@ -1142,21 +1157,22 @@ class BackendSpecificOptimizer:
 
             gate_list = ", ".join(f"{gate}({count})" for gate, count in non_native[:5])
 
-            hints.append(BackendOptimizationHint(
-                backend=self.backend,
-                hint_type="gate_set",
-                message=f"Circuit uses {total_non_native} non-native gates: {gate_list}. "
-                       f"Consider decomposing to native gate set: {native_gates}",
-                estimated_improvement=improvement,
-                priority="high",
-                auto_fixable=True
-            ))
+            hints.append(
+                BackendOptimizationHint(
+                    backend=self.backend,
+                    hint_type="gate_set",
+                    message=f"Circuit uses {total_non_native} non-native gates: {gate_list}. "
+                    f"Consider decomposing to native gate set: {native_gates}",
+                    estimated_improvement=improvement,
+                    priority="high",
+                    auto_fixable=True,
+                )
+            )
 
         return hints
 
     def _check_topology(
-        self,
-        circuit: Union[QuantumCircuit, IRQuantumCircuit]
+        self, circuit: Union[QuantumCircuit, IRQuantumCircuit]
     ) -> List[BackendOptimizationHint]:
         """Check if circuit respects backend topology."""
         hints = []
@@ -1172,7 +1188,7 @@ class BackendSpecificOptimizer:
 
         if isinstance(circuit, IRQuantumCircuit):
             for gate in circuit.gates:
-                if len(gate['qubits']) == 2:
+                if len(gate["qubits"]) == 2:
                     two_qubit_gates += 1
         elif QISKIT_AVAILABLE and isinstance(circuit, QuantumCircuit):
             for instruction in circuit.data:
@@ -1181,31 +1197,34 @@ class BackendSpecificOptimizer:
 
         if two_qubit_gates > 0:
             if topology == "linear":
-                hints.append(BackendOptimizationHint(
-                    backend=self.backend,
-                    hint_type="topology",
-                    message=f"Backend uses linear topology. {two_qubit_gates} two-qubit gates detected. "
-                           "Consider reordering qubits to minimize SWAP gates.",
-                    estimated_improvement=15.0,
-                    priority="medium",
-                    auto_fixable=True
-                ))
+                hints.append(
+                    BackendOptimizationHint(
+                        backend=self.backend,
+                        hint_type="topology",
+                        message=f"Backend uses linear topology. {two_qubit_gates} two-qubit gates detected. "
+                        "Consider reordering qubits to minimize SWAP gates.",
+                        estimated_improvement=15.0,
+                        priority="medium",
+                        auto_fixable=True,
+                    )
+                )
             elif topology == "heavy_hex":
-                hints.append(BackendOptimizationHint(
-                    backend=self.backend,
-                    hint_type="topology",
-                    message=f"IBM heavy-hex topology detected. {two_qubit_gates} two-qubit gates. "
-                           "Use Qiskit transpiler with coupling_map for optimal placement.",
-                    estimated_improvement=20.0,
-                    priority="medium",
-                    auto_fixable=True
-                ))
+                hints.append(
+                    BackendOptimizationHint(
+                        backend=self.backend,
+                        hint_type="topology",
+                        message=f"IBM heavy-hex topology detected. {two_qubit_gates} two-qubit gates. "
+                        "Use Qiskit transpiler with coupling_map for optimal placement.",
+                        estimated_improvement=20.0,
+                        priority="medium",
+                        auto_fixable=True,
+                    )
+                )
 
         return hints
 
     def _check_depth(
-        self,
-        circuit: Union[QuantumCircuit, IRQuantumCircuit]
+        self, circuit: Union[QuantumCircuit, IRQuantumCircuit]
     ) -> List[BackendOptimizationHint]:
         """Check circuit depth and provide recommendations."""
         hints = []
@@ -1229,22 +1248,22 @@ class BackendSpecificOptimizer:
         threshold = thresholds.get(self.backend, 200)
 
         if depth > threshold:
-            hints.append(BackendOptimizationHint(
-                backend=self.backend,
-                hint_type="parameter",
-                message=f"Circuit depth ({depth}) exceeds recommended threshold ({threshold}) for {self.backend}. "
-                       "Consider using depth optimization (OptimizationLevel.Ot) or breaking into smaller circuits.",
-                estimated_improvement=25.0,
-                priority="high",
-                auto_fixable=True
-            ))
+            hints.append(
+                BackendOptimizationHint(
+                    backend=self.backend,
+                    hint_type="parameter",
+                    message=f"Circuit depth ({depth}) exceeds recommended threshold ({threshold}) for {self.backend}. "
+                    "Consider using depth optimization (OptimizationLevel.Ot) or breaking into smaller circuits.",
+                    estimated_improvement=25.0,
+                    priority="high",
+                    auto_fixable=True,
+                )
+            )
 
         return hints
 
     def _backend_specific_hints(
-        self,
-        circuit: Union[QuantumCircuit, IRQuantumCircuit],
-        gate_counts: Dict[str, int]
+        self, circuit: Union[QuantumCircuit, IRQuantumCircuit], gate_counts: Dict[str, int]
     ) -> List[BackendOptimizationHint]:
         """Generate backend-specific optimization hints."""
         hints = []
@@ -1261,44 +1280,44 @@ class BackendSpecificOptimizer:
         return hints
 
     def _ibm_specific_hints(
-        self,
-        circuit: Union[QuantumCircuit, IRQuantumCircuit],
-        gate_counts: Dict[str, int]
+        self, circuit: Union[QuantumCircuit, IRQuantumCircuit], gate_counts: Dict[str, int]
     ) -> List[BackendOptimizationHint]:
         """IBM Quantum specific hints."""
         hints = []
 
         # IBM uses basis gates: {id, rz, sx, x, cx}
         # Check for Hadamard gates (should decompose to rz + sx)
-        if gate_counts.get('h', 0) > 0:
-            hints.append(BackendOptimizationHint(
-                backend="ibm",
-                hint_type="gate_set",
-                message=f"{gate_counts['h']} Hadamard gates detected. "
-                       "IBM decomposes H to RZ+SX. Pre-decomposing saves overhead.",
-                estimated_improvement=5.0,
-                priority="low",
-                auto_fixable=True
-            ))
+        if gate_counts.get("h", 0) > 0:
+            hints.append(
+                BackendOptimizationHint(
+                    backend="ibm",
+                    hint_type="gate_set",
+                    message=f"{gate_counts['h']} Hadamard gates detected. "
+                    "IBM decomposes H to RZ+SX. Pre-decomposing saves overhead.",
+                    estimated_improvement=5.0,
+                    priority="low",
+                    auto_fixable=True,
+                )
+            )
 
         # Check for CZ gates (should use CX)
-        if gate_counts.get('cz', 0) > 0:
-            hints.append(BackendOptimizationHint(
-                backend="ibm",
-                hint_type="gate_set",
-                message=f"{gate_counts['cz']} CZ gates detected. "
-                       "IBM uses CX natively. Convert CZ to H-CX-H pattern.",
-                estimated_improvement=10.0,
-                priority="medium",
-                auto_fixable=True
-            ))
+        if gate_counts.get("cz", 0) > 0:
+            hints.append(
+                BackendOptimizationHint(
+                    backend="ibm",
+                    hint_type="gate_set",
+                    message=f"{gate_counts['cz']} CZ gates detected. "
+                    "IBM uses CX natively. Convert CZ to H-CX-H pattern.",
+                    estimated_improvement=10.0,
+                    priority="medium",
+                    auto_fixable=True,
+                )
+            )
 
         return hints
 
     def _ionq_specific_hints(
-        self,
-        circuit: Union[QuantumCircuit, IRQuantumCircuit],
-        gate_counts: Dict[str, int]
+        self, circuit: Union[QuantumCircuit, IRQuantumCircuit], gate_counts: Dict[str, int]
     ) -> List[BackendOptimizationHint]:
         """IonQ specific hints."""
         hints = []
@@ -1307,68 +1326,72 @@ class BackendSpecificOptimizer:
         total_gates = sum(gate_counts.values())
 
         if total_gates > 0:
-            hints.append(BackendOptimizationHint(
-                backend="ionq",
-                hint_type="gate_set",
-                message=f"IonQ uses native GPi/GPi2/MS gates. Standard gates will be decomposed. "
-                       f"For optimal performance, use IonQ-native circuit construction.",
-                estimated_improvement=15.0,
-                priority="medium",
-                auto_fixable=False
-            ))
+            hints.append(
+                BackendOptimizationHint(
+                    backend="ionq",
+                    hint_type="gate_set",
+                    message=f"IonQ uses native GPi/GPi2/MS gates. Standard gates will be decomposed. "
+                    f"For optimal performance, use IonQ-native circuit construction.",
+                    estimated_improvement=15.0,
+                    priority="medium",
+                    auto_fixable=False,
+                )
+            )
 
         # IonQ has all-to-all connectivity
-        hints.append(BackendOptimizationHint(
-            backend="ionq",
-            hint_type="topology",
-            message="IonQ has all-to-all qubit connectivity. No SWAP gates needed.",
-            estimated_improvement=0.0,
-            priority="low",
-            auto_fixable=False
-        ))
+        hints.append(
+            BackendOptimizationHint(
+                backend="ionq",
+                hint_type="topology",
+                message="IonQ has all-to-all qubit connectivity. No SWAP gates needed.",
+                estimated_improvement=0.0,
+                priority="low",
+                auto_fixable=False,
+            )
+        )
 
         return hints
 
     def _quantinuum_specific_hints(
-        self,
-        circuit: Union[QuantumCircuit, IRQuantumCircuit],
-        gate_counts: Dict[str, int]
+        self, circuit: Union[QuantumCircuit, IRQuantumCircuit], gate_counts: Dict[str, int]
     ) -> List[BackendOptimizationHint]:
         """Quantinuum/Honeywell specific hints."""
         hints = []
 
         # Quantinuum uses RZ, RY, ZZ gates
-        hints.append(BackendOptimizationHint(
-            backend="quantinuum",
-            hint_type="gate_set",
-            message="Quantinuum uses RZ, RY, ZZ native gates with high fidelity. "
-                   "Decompose to these gates for best performance.",
-            estimated_improvement=12.0,
-            priority="medium",
-            auto_fixable=True
-        ))
+        hints.append(
+            BackendOptimizationHint(
+                backend="quantinuum",
+                hint_type="gate_set",
+                message="Quantinuum uses RZ, RY, ZZ native gates with high fidelity. "
+                "Decompose to these gates for best performance.",
+                estimated_improvement=12.0,
+                priority="medium",
+                auto_fixable=True,
+            )
+        )
 
         return hints
 
     def _rigetti_specific_hints(
-        self,
-        circuit: Union[QuantumCircuit, IRQuantumCircuit],
-        gate_counts: Dict[str, int]
+        self, circuit: Union[QuantumCircuit, IRQuantumCircuit], gate_counts: Dict[str, int]
     ) -> List[BackendOptimizationHint]:
         """Rigetti specific hints."""
         hints = []
 
         # Rigetti uses RX, RZ, CZ gates
-        if gate_counts.get('cx', 0) > 0:
-            hints.append(BackendOptimizationHint(
-                backend="rigetti",
-                hint_type="gate_set",
-                message=f"{gate_counts['cx']} CNOT gates detected. "
-                       "Rigetti uses CZ natively. Convert CNOT to H-CZ-H pattern.",
-                estimated_improvement=8.0,
-                priority="medium",
-                auto_fixable=True
-            ))
+        if gate_counts.get("cx", 0) > 0:
+            hints.append(
+                BackendOptimizationHint(
+                    backend="rigetti",
+                    hint_type="gate_set",
+                    message=f"{gate_counts['cx']} CNOT gates detected. "
+                    "Rigetti uses CZ natively. Convert CNOT to H-CZ-H pattern.",
+                    estimated_improvement=8.0,
+                    priority="medium",
+                    auto_fixable=True,
+                )
+            )
 
         return hints
 

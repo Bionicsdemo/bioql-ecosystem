@@ -8,19 +8,20 @@ estimation, and execution.
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Union
 from enum import Enum
+from typing import Any, Dict, List, Optional, Union
 
 try:
     from loguru import logger
 except ImportError:
     import logging
+
     logger = logging.getLogger(__name__)
 
 # Qiskit imports
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit_aer import AerSimulator
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+from qiskit_aer import AerSimulator
 
 
 @dataclass
@@ -39,19 +40,20 @@ class ResourceEstimate:
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return {
-            'num_qubits': self.num_qubits,
-            'circuit_depth': self.circuit_depth,
-            'gate_count': self.gate_count,
-            'cx_count': self.cx_count,
-            'single_qubit_gates': self.single_qubit_gates,
-            'measurement_count': self.measurement_count,
-            'estimated_runtime_ms': self.estimated_runtime_ms,
-            'memory_required_mb': self.memory_required_mb
+            "num_qubits": self.num_qubits,
+            "circuit_depth": self.circuit_depth,
+            "gate_count": self.gate_count,
+            "cx_count": self.cx_count,
+            "single_qubit_gates": self.single_qubit_gates,
+            "measurement_count": self.measurement_count,
+            "estimated_runtime_ms": self.estimated_runtime_ms,
+            "memory_required_mb": self.memory_required_mb,
         }
 
 
 class CircuitBackend(str, Enum):
     """Supported quantum backends."""
+
     SIMULATOR = "simulator"
     QISKIT_AER = "qiskit_aer"
     IBM_QUANTUM = "ibm_quantum"
@@ -76,15 +78,15 @@ class CircuitExecutionResult:
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return {
-            'success': self.success,
-            'counts': self.counts,
-            'circuit_depth': self.circuit_depth,
-            'gate_count': self.gate_count,
-            'shots_executed': self.shots_executed,
-            'execution_time_ms': self.execution_time_ms,
-            'backend_used': self.backend_used,
-            'metadata': self.metadata,
-            'error_message': self.error_message
+            "success": self.success,
+            "counts": self.counts,
+            "circuit_depth": self.circuit_depth,
+            "gate_count": self.gate_count,
+            "shots_executed": self.shots_executed,
+            "execution_time_ms": self.execution_time_ms,
+            "backend_used": self.backend_used,
+            "metadata": self.metadata,
+            "error_message": self.error_message,
         }
 
 
@@ -123,7 +125,7 @@ class CircuitTemplate(ABC):
         name: str,
         description: str,
         num_qubits: int,
-        backend: CircuitBackend = CircuitBackend.SIMULATOR
+        backend: CircuitBackend = CircuitBackend.SIMULATOR,
     ):
         """
         Initialize circuit template.
@@ -196,20 +198,20 @@ class CircuitTemplate(ABC):
         single_qubit_gates = 0
 
         for instruction in circuit.data:
-            if instruction.operation.name in ['cx', 'cnot', 'CX']:
+            if instruction.operation.name in ["cx", "cnot", "CX"]:
                 cx_count += 1
             elif len(instruction.qubits) == 1:
                 single_qubit_gates += 1
 
         gate_count = len(circuit.data)
         circuit_depth = circuit.depth()
-        num_measurements = sum(1 for inst in circuit.data if inst.operation.name == 'measure')
+        num_measurements = sum(1 for inst in circuit.data if inst.operation.name == "measure")
 
         # Estimate runtime (heuristic: 1ms per depth level on simulator)
         estimated_runtime_ms = circuit_depth * 1.0
 
         # Estimate memory (heuristic: exponential in qubits)
-        memory_required_mb = (2 ** self.num_qubits) * 16 / (1024 * 1024)  # 16 bytes per amplitude
+        memory_required_mb = (2**self.num_qubits) * 16 / (1024 * 1024)  # 16 bytes per amplitude
 
         return ResourceEstimate(
             num_qubits=self.num_qubits,
@@ -219,14 +221,11 @@ class CircuitTemplate(ABC):
             single_qubit_gates=single_qubit_gates,
             measurement_count=num_measurements,
             estimated_runtime_ms=estimated_runtime_ms,
-            memory_required_mb=memory_required_mb
+            memory_required_mb=memory_required_mb,
         )
 
     def execute(
-        self,
-        shots: int = 1024,
-        backend: Optional[str] = None,
-        optimization_level: int = 1
+        self, shots: int = 1024, backend: Optional[str] = None, optimization_level: int = 1
     ) -> CircuitExecutionResult:
         """
         Execute the quantum circuit.
@@ -246,6 +245,7 @@ class CircuitTemplate(ABC):
             {'000': 512, '111': 512, ...}
         """
         import time
+
         start_time = time.time()
 
         try:
@@ -277,10 +277,10 @@ class CircuitTemplate(ABC):
                 execution_time_ms=execution_time_ms,
                 backend_used=backend_name,
                 metadata={
-                    'optimization_level': optimization_level,
-                    'original_depth': circuit.depth(),
-                    'original_gates': len(circuit.data)
-                }
+                    "optimization_level": optimization_level,
+                    "original_depth": circuit.depth(),
+                    "original_gates": len(circuit.data),
+                },
             )
 
         except Exception as e:
@@ -295,10 +295,10 @@ class CircuitTemplate(ABC):
                 shots_executed=0,
                 execution_time_ms=execution_time_ms,
                 backend_used=backend or self.backend.value,
-                error_message=str(e)
+                error_message=str(e),
             )
 
-    def visualize(self, output_format: str = 'text') -> str:
+    def visualize(self, output_format: str = "text") -> str:
         """
         Visualize the quantum circuit.
 
@@ -314,12 +314,12 @@ class CircuitTemplate(ABC):
         """
         circuit = self.get_circuit()
 
-        if output_format == 'text':
-            return str(circuit.draw(output='text'))
-        elif output_format == 'mpl':
-            return str(circuit.draw(output='mpl'))
-        elif output_format == 'latex':
-            return circuit.draw(output='latex_source')
+        if output_format == "text":
+            return str(circuit.draw(output="text"))
+        elif output_format == "mpl":
+            return str(circuit.draw(output="mpl"))
+        elif output_format == "latex":
+            return circuit.draw(output="latex_source")
         else:
             return str(circuit)
 
@@ -348,12 +348,12 @@ class CircuitTemplate(ABC):
         resources = self.estimate_resources()
 
         return {
-            'name': self.name,
-            'description': self.description,
-            'num_qubits': self.num_qubits,
-            'backend': self.backend.value,
-            'resources': resources.to_dict(),
-            'built': self._built
+            "name": self.name,
+            "description": self.description,
+            "num_qubits": self.num_qubits,
+            "backend": self.backend.value,
+            "resources": resources.to_dict(),
+            "built": self._built,
         }
 
     def __repr__(self) -> str:
@@ -365,9 +365,4 @@ class CircuitTemplate(ABC):
         return f"{self.name} ({self.num_qubits} qubits)"
 
 
-__all__ = [
-    'CircuitTemplate',
-    'CircuitBackend',
-    'CircuitExecutionResult',
-    'ResourceEstimate'
-]
+__all__ = ["CircuitTemplate", "CircuitBackend", "CircuitExecutionResult", "ResourceEstimate"]

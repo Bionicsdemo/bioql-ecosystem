@@ -17,17 +17,18 @@ Data sources:
 4. Common errors and fixes
 """
 
-import random
 import json
-from pathlib import Path
+import random
 from dataclasses import dataclass
-from typing import List, Dict, Any, Optional, Iterator, Tuple
 from enum import Enum
+from pathlib import Path
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 # Optional dependencies
 try:
     import torch
-    from torch.utils.data import Dataset, DataLoader
+    from torch.utils.data import DataLoader, Dataset
+
     _torch_available = True
 except ImportError:
     _torch_available = False
@@ -37,11 +38,13 @@ try:
     from loguru import logger
 except ImportError:
     import logging
+
     logger = logging.getLogger(__name__)
 
 
 class TaskType(Enum):
     """Types of tasks for multi-task learning."""
+
     CODE_GENERATION = "code_generation"
     OPTIMIZATION = "optimization"
     ERROR_CORRECTION = "error_correction"
@@ -52,6 +55,7 @@ class TaskType(Enum):
 @dataclass
 class TrainingExample:
     """Single training example."""
+
     input_text: str
     output_code: str
     task_type: TaskType
@@ -93,9 +97,9 @@ class BioQLDatasetGenerator:
                         "Make an EPR pair",
                         "Generate entangled qubits",
                         "Create maximally entangled state",
-                        "Make Bell pair"
+                        "Make Bell pair",
                     ],
-                    "code": '''from bioql import quantum
+                    "code": """from bioql import quantum
 
 # Create a Bell state
 result = quantum(
@@ -106,13 +110,12 @@ result = quantum(
 )
 
 print(f"Results: {{result.counts}}")
-''',
+""",
                     "domain": "general",
                     "qubits": 2,
-                    "depth": 2
+                    "depth": 2,
                 }
             ],
-
             # QFT variations
             "qft": [
                 {
@@ -120,9 +123,9 @@ print(f"Results: {{result.counts}}")
                         "Run QFT on {n} qubits",
                         "Apply quantum Fourier transform to {n} qubits",
                         "Perform QFT with {n} qubits",
-                        "Execute quantum Fourier transform on {n} qubits"
+                        "Execute quantum Fourier transform on {n} qubits",
                     ],
-                    "code": '''from bioql import quantum
+                    "code": """from bioql import quantum
 
 # Quantum Fourier Transform
 result = quantum(
@@ -133,12 +136,11 @@ result = quantum(
 )
 
 print(f"QFT results: {{result.counts}}")
-''',
+""",
                     "domain": "general",
-                    "qubits_range": [2, 8]
+                    "qubits_range": [2, 8],
                 }
             ],
-
             # Grover search
             "grover": [
                 {
@@ -146,9 +148,9 @@ print(f"QFT results: {{result.counts}}")
                         "Search database with Grover's algorithm",
                         "Use Grover to find item in database",
                         "Quantum search with Grover",
-                        "Find item using quantum search"
+                        "Find item using quantum search",
                     ],
-                    "code": '''from bioql import quantum
+                    "code": """from bioql import quantum
 
 # Grover's search algorithm
 result = quantum(
@@ -159,12 +161,11 @@ result = quantum(
 )
 
 print(f"Search results: {{result.counts}}")
-''',
+""",
                     "domain": "general",
-                    "qubits": 4
+                    "qubits": 4,
                 }
             ],
-
             # Protein folding
             "protein_folding": [
                 {
@@ -172,9 +173,9 @@ print(f"Search results: {{result.counts}}")
                         "Simulate protein folding for {protein}",
                         "Fold {protein} using quantum simulation",
                         "Model {protein} folding",
-                        "Predict {protein} structure"
+                        "Predict {protein} structure",
                     ],
-                    "code": '''from bioql import quantum
+                    "code": """from bioql import quantum
 
 # Protein folding simulation
 result = quantum(
@@ -185,12 +186,11 @@ result = quantum(
 )
 
 print(f"Folding results: {{result.bio_interpretation}}")
-''',
+""",
                     "domain": "bioinformatics",
-                    "proteins": ["insulin", "hemoglobin", "albumin", "collagen"]
+                    "proteins": ["insulin", "hemoglobin", "albumin", "collagen"],
                 }
             ],
-
             # Drug docking
             "drug_docking": [
                 {
@@ -198,9 +198,9 @@ print(f"Folding results: {{result.bio_interpretation}}")
                         "Simulate drug binding to {receptor}",
                         "Model drug-{receptor} interaction",
                         "Calculate binding affinity to {receptor}",
-                        "Dock drug to {receptor} receptor"
+                        "Dock drug to {receptor} receptor",
                     ],
-                    "code": '''from bioql import quantum
+                    "code": """from bioql import quantum
 
 # Drug-receptor binding
 result = quantum(
@@ -211,12 +211,11 @@ result = quantum(
 )
 
 print(f"Binding affinity: {{result.bio_interpretation}}")
-''',
+""",
                     "domain": "bioinformatics",
-                    "receptors": ["GLP1R", "EGFR", "ACE2", "dopamine"]
+                    "receptors": ["GLP1R", "EGFR", "ACE2", "dopamine"],
                 }
             ],
-
             # VQE optimization
             "vqe": [
                 {
@@ -224,9 +223,9 @@ print(f"Binding affinity: {{result.bio_interpretation}}")
                         "Optimize molecular structure with VQE",
                         "Find ground state energy using VQE",
                         "Run variational quantum eigensolver",
-                        "Minimize energy with VQE"
+                        "Minimize energy with VQE",
                     ],
-                    "code": '''from bioql import quantum
+                    "code": """from bioql import quantum
 
 # VQE optimization
 result = quantum(
@@ -237,17 +236,14 @@ result = quantum(
 )
 
 print(f"Ground state energy: {{result.bio_interpretation}}")
-''',
+""",
                     "domain": "chemistry",
-                    "qubits": 4
+                    "qubits": 4,
                 }
-            ]
+            ],
         }
 
-    def generate_example(
-        self,
-        task_type: TaskType = TaskType.CODE_GENERATION
-    ) -> TrainingExample:
+    def generate_example(self, task_type: TaskType = TaskType.CODE_GENERATION) -> TrainingExample:
         """
         Generate a single training example.
 
@@ -287,16 +283,11 @@ print(f"Ground state energy: {{result.bio_interpretation}}")
             output_code=output_code,
             task_type=task_type,
             domain=template["domain"],
-            metadata={
-                "template": template_name,
-                "qubits": template.get("qubits", 2)
-            }
+            metadata={"template": template_name, "qubits": template.get("qubits", 2)},
         )
 
     def generate(
-        self,
-        num_examples: int = 100000,
-        task_distribution: Optional[Dict[TaskType, float]] = None
+        self, num_examples: int = 100000, task_distribution: Optional[Dict[TaskType, float]] = None
     ) -> List[TrainingExample]:
         """
         Generate training dataset.
@@ -317,17 +308,16 @@ print(f"Ground state energy: {{result.bio_interpretation}}")
         if task_distribution is None:
             task_distribution = {
                 TaskType.CODE_GENERATION: 0.70,  # 70% code generation
-                TaskType.OPTIMIZATION: 0.15,      # 15% optimization
+                TaskType.OPTIMIZATION: 0.15,  # 15% optimization
                 TaskType.ERROR_CORRECTION: 0.10,  # 10% error correction
-                TaskType.EXPLANATION: 0.05        # 5% explanation
+                TaskType.EXPLANATION: 0.05,  # 5% explanation
             }
 
         dataset = []
         for i in range(num_examples):
             # Sample task type
             task_type = random.choices(
-                list(task_distribution.keys()),
-                weights=list(task_distribution.values())
+                list(task_distribution.keys()), weights=list(task_distribution.values())
             )[0]
 
             # Generate example
@@ -357,7 +347,7 @@ print(f"Ground state energy: {{result.bio_interpretation}}")
                 "output": ex.output_code,
                 "task_type": ex.task_type.value,
                 "domain": ex.domain,
-                "metadata": ex.metadata
+                "metadata": ex.metadata,
             }
             for ex in dataset
         ]
@@ -366,7 +356,7 @@ print(f"Ground state energy: {{result.bio_interpretation}}")
         output = Path(output_path)
         output.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(output, 'w') as f:
+        with open(output, "w") as f:
             json.dump(data, f, indent=2)
 
         logger.info(f"✅ Saved {len(data):,} examples to {output_path}")
@@ -384,7 +374,7 @@ print(f"Ground state energy: {{result.bio_interpretation}}")
         """
         logger.info(f"Loading dataset from {input_path}")
 
-        with open(input_path, 'r') as f:
+        with open(input_path, "r") as f:
             data = json.load(f)
 
         dataset = [
@@ -393,7 +383,7 @@ print(f"Ground state energy: {{result.bio_interpretation}}")
                 output_code=item["output"],
                 task_type=TaskType(item["task_type"]),
                 domain=item["domain"],
-                metadata=item["metadata"]
+                metadata=item["metadata"],
             )
             for item in data
         ]
@@ -403,6 +393,7 @@ print(f"Ground state energy: {{result.bio_interpretation}}")
 
 
 if _torch_available:
+
     class BioQLDataset(Dataset):
         """
         PyTorch Dataset for BioQL training.
@@ -419,12 +410,7 @@ if _torch_available:
             ...     # Train model
         """
 
-        def __init__(
-            self,
-            examples: List[TrainingExample],
-            tokenizer,
-            max_length: int = 512
-        ):
+        def __init__(self, examples: List[TrainingExample], tokenizer, max_length: int = 512):
             """
             Initialize dataset.
 
@@ -455,7 +441,7 @@ if _torch_available:
                 max_length=self.max_length,
                 padding="max_length",
                 truncation=True,
-                return_tensors="pt"
+                return_tensors="pt",
             )
 
             return {
@@ -463,7 +449,7 @@ if _torch_available:
                 "attention_mask": encoding["attention_mask"].squeeze(),
                 "labels": encoding["input_ids"].squeeze(),  # Same as input for CLM
                 "task_type": example.task_type.value,
-                "domain": example.domain
+                "domain": example.domain,
             }
 
         @staticmethod
@@ -472,7 +458,7 @@ if _torch_available:
             tokenizer,
             batch_size: int = 8,
             shuffle: bool = True,
-            num_workers: int = 4
+            num_workers: int = 4,
         ) -> DataLoader:
             """
             Create DataLoader for training.
@@ -494,7 +480,7 @@ if _torch_available:
                 batch_size=batch_size,
                 shuffle=shuffle,
                 num_workers=num_workers,
-                pin_memory=True
+                pin_memory=True,
             )
 
 else:
@@ -507,7 +493,7 @@ else:
 def create_training_dataset(
     num_examples: int = 100000,
     output_path: Optional[str] = None,
-    split_ratio: Tuple[float, float, float] = (0.8, 0.1, 0.1)
+    split_ratio: Tuple[float, float, float] = (0.8, 0.1, 0.1),
 ) -> Dict[str, List[TrainingExample]]:
     """
     Create and optionally save training/validation/test datasets.
@@ -540,12 +526,14 @@ def create_training_dataset(
 
     splits = {
         "train": dataset[:train_size],
-        "val": dataset[train_size:train_size + val_size],
-        "test": dataset[train_size + val_size:]
+        "val": dataset[train_size : train_size + val_size],
+        "test": dataset[train_size + val_size :],
     }
 
-    logger.info(f"Dataset splits: train={len(splits['train']):,}, "
-                f"val={len(splits['val']):,}, test={len(splits['test']):,}")
+    logger.info(
+        f"Dataset splits: train={len(splits['train']):,}, "
+        f"val={len(splits['val']):,}, test={len(splits['test']):,}"
+    )
 
     # Save if requested
     if output_path:

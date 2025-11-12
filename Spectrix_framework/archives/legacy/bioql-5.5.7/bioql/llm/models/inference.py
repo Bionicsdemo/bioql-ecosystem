@@ -12,26 +12,23 @@ Features:
 - Multiple backend support (local, API)
 """
 
-from dataclasses import dataclass
-from typing import Optional, List, Dict, Any, Iterator
-from pathlib import Path
 import json
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, Iterator, List, Optional
 
 # Optional dependencies
 try:
     import torch
-    from transformers import (
-        AutoModelForCausalLM,
-        AutoTokenizer,
-        BitsAndBytesConfig,
-        TextStreamer
-    )
+    from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, TextStreamer
+
     _transformers_available = True
 except ImportError:
     _transformers_available = False
 
 try:
     from peft import PeftModel
+
     _peft_available = True
 except ImportError:
     _peft_available = False
@@ -40,6 +37,7 @@ try:
     from loguru import logger
 except ImportError:
     import logging
+
     logger = logging.getLogger(__name__)
 
 
@@ -55,6 +53,7 @@ class GenerationConfig:
         ...     top_p=0.9
         ... )
     """
+
     max_length: int = 512
     max_new_tokens: Optional[int] = None
     temperature: float = 0.7
@@ -69,12 +68,14 @@ class GenerationConfig:
 @dataclass
 class InferenceResult:
     """Result from inference."""
+
     generated_code: str
     prompt: str
     metadata: Dict[str, Any]
 
 
 if _transformers_available:
+
     class BioQLInference:
         """
         Inference engine for BioQL foundational model.
@@ -103,7 +104,7 @@ if _transformers_available:
             model_name: Optional[str] = None,
             quantization: Optional[str] = None,  # "4bit", "8bit", None
             device: str = "auto",
-            use_vllm: bool = False
+            use_vllm: bool = False,
         ):
             """
             Initialize inference engine.
@@ -147,7 +148,7 @@ if _transformers_available:
                     load_in_4bit=True,
                     bnb_4bit_quant_type="nf4",
                     bnb_4bit_compute_dtype=torch.float16,
-                    bnb_4bit_use_double_quant=True
+                    bnb_4bit_use_double_quant=True,
                 )
             elif self.quantization == "8bit":
                 logger.info("Using 8-bit quantization")
@@ -166,7 +167,7 @@ if _transformers_available:
                     self.model_name,
                     quantization_config=quantization_config,
                     device_map=self.device if self.device != "auto" else "auto",
-                    trust_remote_code=True
+                    trust_remote_code=True,
                 )
 
                 logger.info(f"Loading LoRA adapters: {self.model_path}")
@@ -179,7 +180,7 @@ if _transformers_available:
                     model_path,
                     quantization_config=quantization_config,
                     device_map=self.device if self.device != "auto" else "auto",
-                    trust_remote_code=True
+                    trust_remote_code=True,
                 )
 
             self.model.eval()
@@ -188,6 +189,7 @@ if _transformers_available:
             """Load model with vLLM for fast inference."""
             try:
                 from vllm import LLM, SamplingParams
+
                 self.vllm = LLM
                 self.sampling_params_cls = SamplingParams
 
@@ -195,9 +197,7 @@ if _transformers_available:
                 logger.info(f"Loading model with vLLM: {model_path}")
 
                 self.model = self.vllm(
-                    model=model_path,
-                    quantization=self.quantization,
-                    dtype="float16"
+                    model=model_path, quantization=self.quantization, dtype="float16"
                 )
 
                 logger.info("✅ vLLM model loaded")
@@ -207,10 +207,7 @@ if _transformers_available:
                 self._load_transformers()
 
         def generate(
-            self,
-            prompt: str,
-            config: Optional[GenerationConfig] = None,
-            stream: bool = False
+            self, prompt: str, config: Optional[GenerationConfig] = None, stream: bool = False
         ) -> InferenceResult:
             """
             Generate BioQL code from prompt.
@@ -247,17 +244,14 @@ if _transformers_available:
                 metadata={
                     "quantization": self.quantization,
                     "model": self.model_path or self.model_name,
-                    "config": config.__dict__
-                }
+                    "config": config.__dict__,
+                },
             )
 
             return result
 
         def _generate_transformers(
-            self,
-            prompt: str,
-            config: GenerationConfig,
-            stream: bool = False
+            self, prompt: str, config: GenerationConfig, stream: bool = False
         ) -> str:
             """Generate with HuggingFace Transformers."""
             # Format prompt
@@ -269,20 +263,16 @@ Code:
 """
 
             # Tokenize
-            inputs = self.tokenizer(
-                formatted_prompt,
-                return_tensors="pt",
-                padding=True
-            ).to(self.model.device)
+            inputs = self.tokenizer(formatted_prompt, return_tensors="pt", padding=True).to(
+                self.model.device
+            )
 
             # Generate
             with torch.no_grad():
                 if stream:
                     # Streaming generation
                     streamer = TextStreamer(
-                        self.tokenizer,
-                        skip_prompt=True,
-                        skip_special_tokens=True
+                        self.tokenizer, skip_prompt=True, skip_special_tokens=True
                     )
 
                     outputs = self.model.generate(
@@ -297,7 +287,7 @@ Code:
                         num_return_sequences=config.num_return_sequences,
                         early_stopping=config.early_stopping,
                         streamer=streamer,
-                        pad_token_id=self.tokenizer.eos_token_id
+                        pad_token_id=self.tokenizer.eos_token_id,
                     )
                 else:
                     # Regular generation
@@ -312,14 +302,11 @@ Code:
                         do_sample=config.do_sample,
                         num_return_sequences=config.num_return_sequences,
                         early_stopping=config.early_stopping,
-                        pad_token_id=self.tokenizer.eos_token_id
+                        pad_token_id=self.tokenizer.eos_token_id,
                     )
 
             # Decode
-            generated = self.tokenizer.decode(
-                outputs[0],
-                skip_special_tokens=True
-            )
+            generated = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
 
             # Extract code (remove prompt)
             if "Code:" in generated:
@@ -343,7 +330,7 @@ Code:
                 top_p=config.top_p,
                 top_k=config.top_k,
                 max_tokens=config.max_new_tokens or 512,
-                repetition_penalty=config.repetition_penalty
+                repetition_penalty=config.repetition_penalty,
             )
 
             # Generate
@@ -355,9 +342,7 @@ Code:
             return generated.strip()
 
         def batch_generate(
-            self,
-            prompts: List[str],
-            config: Optional[GenerationConfig] = None
+            self, prompts: List[str], config: Optional[GenerationConfig] = None
         ) -> List[InferenceResult]:
             """
             Generate code for multiple prompts.
@@ -387,9 +372,7 @@ Code:
             return results
 
         def generate_stream(
-            self,
-            prompt: str,
-            config: Optional[GenerationConfig] = None
+            self, prompt: str, config: Optional[GenerationConfig] = None
         ) -> Iterator[str]:
             """
             Stream generated code.
@@ -421,7 +404,7 @@ def quick_inference(
     model_path: str,
     model_name: Optional[str] = None,
     quantization: Optional[str] = None,
-    **kwargs
+    **kwargs,
 ) -> str:
     """
     Quick inference helper.
@@ -450,9 +433,7 @@ def quick_inference(
 
     # Create inference engine
     inference = BioQLInference(
-        model_path=model_path,
-        model_name=model_name,
-        quantization=quantization
+        model_path=model_path, model_name=model_name, quantization=quantization
     )
 
     # Generate

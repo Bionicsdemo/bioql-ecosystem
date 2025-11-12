@@ -1,0 +1,218 @@
+{
+  "metadata": {
+    "title": "Protein-Protein Docking Workflow",
+    "description": "Computational prediction of protein-protein interaction complexes, binding interfaces, and interaction energetics",
+    "category": "Structural Biology",
+    "difficulty": "Advanced",
+    "estimated_runtime": "3-6 hours",
+    "estimated_cost": "$20-40 per complex",
+    "tags": ["protein-protein-interaction", "docking", "structural-biology", "interface-analysis", "AlphaFold"],
+    "version": "1.0",
+    "created": "2025-10-25"
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "source": "# Protein-Protein Docking Workflow\n\n## Objective\nPredict the three-dimensional structure of protein-protein complexes and characterize binding interfaces to understand molecular recognition and guide protein engineering.\n\n## Scientific Background\n\n### Protein-Protein Interactions (PPIs)\nPPIs are fundamental to virtually all biological processes:\n- Signal transduction cascades\n- Immune recognition\n- Enzymatic regulation\n- Multi-protein complex assembly\n- Therapeutic antibody design\n\n### Computational Approach\nWhen experimental structures (X-ray, cryo-EM) are unavailable, computational docking predicts:\n1. **Binding mode**: How proteins orient relative to each other\n2. **Interface residues**: Which amino acids mediate interaction\n3. **Binding affinity**: Strength of interaction (ΔG, Kd)\n4. **Hot spots**: Critical residues for binding\n\n### Methods Used\n- **Rigid-body docking**: Fast search of orientation space (ClusPro, ZDOCK)\n- **Flexible docking**: Allows conformational changes (HADDOCK, RosettaDock)\n- **Template-based**: Uses known complex structures (SWISS-MODEL)\n- **AI/ML methods**: AlphaFold-Multimer, RoseTTAFold\n\n## Applications\n- Understanding disease mechanisms (mutation effects)\n- Designing protein inhibitors or stabilizers\n- Antibody-antigen structure prediction\n- Engineering improved binders\n- Identifying druggable interfaces"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Input: Define Protein Partners\n\nSpecify the two proteins that interact.\n\n**Options:**\n1. PDB IDs (if structures known)\n2. UniProt IDs (will predict structure via AlphaFold)\n3. FASTA sequences (ab initio structure prediction)\n4. Upload custom PDB files\n\n**Customize**: Replace with your protein pair of interest."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql load_proteins --partner1 pdb:1A2K_chainA --partner2 uniprot:P12345 --name \"Antibody-Antigen Complex\"",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected:\n- Partner 1: Antibody Fv fragment loaded from PDB\n- Partner 2: Antigen structure predicted from AlphaFold DB or generated\n- Both structures prepared and validated"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Step 1: Structure Preparation\n\nPrepare protein structures for docking (clean, optimize, validate).\n\n**Tasks:**\n- Remove crystallographic artifacts (ions, ligands, water)\n- Add missing residues/loops\n- Optimize hydrogen positions\n- Energy minimize\n- Validate stereochemistry\n\n**Customize**: Keep specific ligands or cofactors if important for interaction."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql prepare_structures --remove_hetero --add_missing_residues --optimize_hydrogens --energy_minimize --validate_geometry",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected:\n- Cleaned structures ready for docking\n- Quality metrics (Ramachandran favored >95%, clashes resolved)\n- Structural alignment if comparing to templates"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Step 2: Interface Prediction (Optional)\n\nIf you have experimental data (mutagenesis, cross-linking), constrain docking.\n\n**Data types:**\n- Known interface residues\n- Cross-linking mass spec (XL-MS)\n- HDX (hydrogen-deuterium exchange)\n- Mutagenesis data\n- Sequence coevolution\n\n**Customize**: Add your experimental constraints or skip if doing blind docking."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql predict_interface --method sequence_coevolution --add_constraints mutagenesis_data.csv --visualize",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected:\n- Predicted interface residues mapped on structures\n- Coevolution scores (if available)\n- Confidence scores for interface predictions\n- Constraints for guided docking"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Step 3A: Rigid-Body Docking (Fast Initial Search)\n\nPerform exhaustive search of binding orientations.\n\n**Best for:**\n- Initial screening\n- Well-structured proteins\n- Fast results needed\n\n**Methods:**\n- ZDOCK: FFT-based exhaustive search\n- ClusPro: Clustering-based approach\n- GRAMM: FFT docking with surface matching\n\n**Customize**: Choose method and sampling density."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql dock_proteins --method zdock --sampling dense --top_models 2000 --cluster_rmsd 10.0",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected:\n- ~2000 initial docking poses generated\n- Clustered into ~100-200 unique orientations\n- Ranked by scoring function\n- Top 10 clusters identified\n\nRuntime: ~30-60 minutes"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Step 3B: AlphaFold-Multimer Prediction (AI Method)\n\nAlternatively, use AlphaFold-Multimer for AI-based complex prediction.\n\n**Best for:**\n- Heteromeric complexes\n- When high accuracy needed\n- Flexible proteins\n\n**Advantages:**\n- Often higher accuracy than traditional docking\n- Handles flexibility\n- Confidence scores (pLDDT, PAE)\n\n**Customize**: Use if you need maximum accuracy."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql alphafold_multimer --sequences partner1.fasta,partner2.fasta --num_models 5 --num_recycles 20 --use_templates",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected:\n- 5 ranked complex models\n- Confidence scores per residue (pLDDT)\n- Predicted aligned error (PAE) showing interface confidence\n- Best model selected based on ipTM score\n\nRuntime: ~1-2 hours (GPU-dependent)\n\nNote: High interface PAE (>10 Å) suggests uncertain interface"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Step 4: Refinement of Top Models\n\nRefine top docking poses with flexible side-chains and backbone.\n\n**Refinement methods:**\n- Side-chain repacking\n- Backbone minimization\n- Short MD simulations\n- Energy minimization\n\n**Customize**: Balance accuracy vs computational time."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql refine_complex --top_models 10 --method rosetta_flexdock --allow_backbone_movement --side_chain_flexibility interface --cycles 1000",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected:\n- Top 10 models refined with better interface packing\n- Improved energy scores\n- Reduced clashes\n- More realistic hydrogen bonding\n\nRuntime: ~30-90 minutes for 10 models"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Step 5: Scoring and Ranking\n\nScore refined complexes using multiple scoring functions.\n\n**Scoring components:**\n- van der Waals interactions\n- Electrostatics\n- Hydrogen bonding\n- Desolvation energy\n- Shape complementarity\n- Interface area\n\n**Customize**: Choose scoring functions or use consensus."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql score_complexes --functions zrank,irad,firedock,rosetta,prodigy --consensus_method rank_average --select_top 5",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Ranked complexes with consensus scores\n\n| Rank | Model | ZRANK | FireDock | Rosetta | PRODIGY ΔG | Consensus |\n|------|-------|-------|----------|---------|------------|-----------||\n| 1 | complex_01 | -125.3 | -45.2 | -512.8 | -12.5 kcal/mol | 1.2 |\n| 2 | complex_02 | -118.7 | -42.8 | -495.3 | -11.8 kcal/mol | 2.4 |\n| 3 | complex_03 | -115.2 | -41.5 | -487.9 | -10.9 kcal/mol | 3.0 |\n\nTop model selected for detailed analysis"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Step 6: Interface Analysis\n\nDetailed characterization of the binding interface.\n\n**Analysis includes:**\n- Interface surface area (BSA)\n- Gap volume\n- Shape complementarity (Sc)\n- Interface residues\n- Hydrogen bonds\n- Salt bridges\n- Hydrophobic contacts\n\n**Customize**: Focus on specific interaction types."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql analyze_interface --model best --calculate bsa,sc,gap_volume,contacts --interaction_cutoff 4.5 --visualize",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Comprehensive interface characterization\n\n**Interface Metrics:**\n- Buried Surface Area: 1,850 ų (typical: 1,200-2,000)\n- Shape Complementarity: 0.72 (good fit, scale 0-1)\n- Gap Volume: 1,250 ų (well-packed)\n- Interface SASA: 28% (well-buried)\n\n**Interactions:**\n- 12 hydrogen bonds\n- 3 salt bridges\n- 45 hydrophobic contacts\n- 2 π-π stacking interactions\n\n**Visualization:** 3D complex with interface highlighted"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Step 7: Hot Spot Identification\n\nIdentify critical residues that contribute most to binding energy.\n\n**Methods:**\n- Computational alanine scanning\n- Energy decomposition per residue\n- Conservation analysis\n- Structural analysis (buried surface area per residue)\n\n**Applications:**\n- Guide mutagenesis experiments\n- Identify druggable pockets\n- Design interface stabilizers/disruptors"
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql identify_hotspots --method alanine_scanning --energy_cutoff 2.0 --rank_by ddg --visualize_top 10",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Hot spot residues ranked by ΔΔG\n\n**Top Hot Spots (Partner 1):**\n1. Trp95: ΔΔG = +4.8 kcal/mol (critical π-stacking)\n2. Arg42: ΔΔG = +3.9 kcal/mol (salt bridge to Glu156)\n3. Tyr33: ΔΔG = +3.2 kcal/mol (hydrogen bond network)\n4. Leu71: ΔΔG = +2.5 kcal/mol (hydrophobic core)\n\n**Top Hot Spots (Partner 2):**\n1. Glu156: ΔΔG = +4.1 kcal/mol (salt bridge to Arg42)\n2. Phe180: ΔΔG = +3.6 kcal/mol (π-stacking with Trp95)\n3. Asp162: ΔΔG = +2.8 kcal/mol (hydrogen bonds)\n\n**Interpretation:**\n- Trp95-Phe180 π-stacking is primary interaction\n- Arg42-Glu156 salt bridge is critical electrostatic anchor\n- Hot spots concentrated in center of interface (typical)"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Step 8: Binding Affinity Prediction\n\nEstimate binding affinity (Kd or ΔG) for the complex.\n\n**Methods:**\n- PRODIGY: Structure-based prediction\n- MM-GBSA: Molecular mechanics with implicit solvent\n- FoldX: Energy function-based\n- Machine learning models\n\n**Customize**: Choose method based on accuracy needs."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql predict_affinity --methods prodigy,mmgbsa,foldx --temperature 298K --ph 7.4 --ionic_strength 0.15",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Binding affinity predictions\n\n**Predictions:**\n- PRODIGY: ΔG = -12.5 kcal/mol → Kd = 5.2 nM (tight binding)\n- MM-GBSA: ΔG = -45.3 kcal/mol → Kd = 8.1 nM\n- FoldX: ΔG = -11.8 kcal/mol → Kd = 12.4 nM\n- **Consensus: Kd ≈ 5-12 nM** (high affinity)\n\n**Energy Components (MM-GBSA):**\n- van der Waals: -68.5 kcal/mol\n- Electrostatics: -125.3 kcal/mol\n- Polar solvation: +155.8 kcal/mol\n- Non-polar solvation: -7.3 kcal/mol\n\n**Interpretation:** Strong favorable interactions partially offset by desolvation penalty (typical for PPIs)"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Step 9: Validation Against Experimental Data\n\nIf experimental data available, validate predictions.\n\n**Validation data:**\n- Known interface residues (mutagenesis)\n- Measured Kd values\n- Structural data (SAXS, cross-linking)\n- Functional assays\n\n**Customize**: Upload your experimental data for comparison."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql validate_model --experimental_data mutagenesis_results.csv --metrics interface_rmsd,contact_recovery,hotspot_correlation --statistical_tests",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Validation metrics\n\n**Structural Validation:**\n- 9/12 experimentally determined interface residues correctly predicted (75%)\n- Contact map similarity: 0.68 (good agreement)\n\n**Energetic Validation:**\n- Correlation of predicted vs experimental ΔΔG: R² = 0.82\n- Hot spot prediction accuracy: 80% (8/10 correct)\n\n**Binding Affinity:**\n- Predicted Kd: 5-12 nM\n- Experimental Kd: 8.5 nM (SPR)\n- Error: within 2-fold (excellent for prediction)\n\n**Conclusion:** Model shows good agreement with experimental data"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Step 10: Molecular Dynamics Validation (Optional)\n\nRun MD simulation to assess complex stability.\n\n**Purpose:**\n- Validate docking pose stability\n- Observe conformational changes\n- Refine interface structure\n- Calculate more accurate binding free energy\n\n**Customize**: MD length depends on system size and needed accuracy."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql run_md --complex best_model --forcefield amber99sb --water_model tip3p --duration 100ns --temperature 300K --analyze_trajectory",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: MD simulation results\n\n**Stability Metrics:**\n- RMSD plateau: 2.5 Å (stable complex)\n- Interface RMSD: 1.8 Å (interface well-maintained)\n- Hydrogen bond occupancy: 8/12 >50% (persistent bonds)\n- No dissociation events\n\n**Dynamics:**\n- Minor breathing motions observed (normal)\n- Core hot spots remain stable\n- Peripheral loops show flexibility\n\n**Refined Binding Energy:**\n- MM-PBSA (from MD): ΔG = -14.2 kcal/mol → Kd = 2.8 nM\n- Improved accuracy from sampling conformational space\n\nRuntime: 6-24 hours (GPU-dependent)"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Step 11: Generate Visualizations\n\nCreate publication-quality figures of the complex.\n\n**Customize**: Choose visualization style and highlights."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql visualize_complex --style cartoon --color_by chain --highlight_interface --show_interactions --render_quality high --export png,pse,pdb",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Multiple visualization outputs\n\n1. **Overview:** Full complex (cartoon, colored by chain)\n2. **Interface close-up:** Hot spots and key interactions highlighted\n3. **2D interaction diagram:** Schematic showing all contacts\n4. **Surface representation:** Shape complementarity visualization\n5. **Electrostatic surface:** Charge complementarity\n\nFiles exported:\n- High-resolution PNGs for publication\n- PyMOL session (.pse) for custom views\n- PDB coordinates of best model"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Step 12: In Silico Mutagenesis (Protein Engineering)\n\nDesign mutations to improve or disrupt binding.\n\n**Applications:**\n- Increase affinity (antibody engineering)\n- Improve specificity\n- Disrupt interaction (as therapeutic)\n- Stabilize interface\n\n**Customize**: Define mutagenesis goal and target residues."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql design_mutations --goal increase_affinity --target_positions 33,42,71,95 --allowed_mutations all --predict_ddg --rank_by_affinity",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Ranked mutation suggestions\n\n**Top Affinity-Enhancing Mutations:**\n1. Y33W: ΔΔG = -1.8 kcal/mol (adds π-π interaction)\n2. L71F: ΔΔG = -1.2 kcal/mol (better packing)\n3. T45R: ΔΔG = -0.9 kcal/mol (new salt bridge)\n\n**Combined Mutant (Y33W/L71F):**\n- Predicted ΔΔG: -2.7 kcal/mol\n- Expected Kd improvement: 8.5 nM → 1.2 nM (7-fold)\n- No predicted structural disruption\n\n**Recommendation:** Test Y33W and L71F individually, then combine if both successful"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Generate Comprehensive Report\n\nCreate detailed report of docking analysis.\n\n**Customize**: Include sections relevant to your project."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql generate_report --format pdf --sections all --include_structures --include_validation --export_coordinates",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Professional report containing:\n\n1. **Summary**\n   - Complex overview\n   - Key findings\n   - Binding affinity predictions\n   - Confidence assessment\n\n2. **Methods**\n   - Docking protocol\n   - Refinement procedures\n   - Scoring functions\n\n3. **Results**\n   - Top models\n   - Interface analysis\n   - Hot spots\n   - Interactions\n\n4. **Validation**\n   - Comparison to experimental data\n   - Quality metrics\n   - MD stability analysis\n\n5. **Engineering Recommendations**\n   - Suggested mutations\n   - Predicted effects\n   - Experimental follow-up\n\n6. **Appendices**\n   - PDB coordinates\n   - Full scoring tables\n   - Interaction lists"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Applications & Next Steps\n\n### Research Applications\n\n**1. Mechanism Studies**\n- Understand how proteins recognize each other\n- Map functional epitopes\n- Study disease-causing mutations\n\n**2. Antibody Engineering**\n- Predict antibody-antigen structures\n- Affinity maturation guidance\n- Humanization while maintaining binding\n\n**3. Drug Discovery**\n- Identify druggable interfaces\n- Design peptide inhibitors\n- Virtual screening for PPI inhibitors\n\n**4. Protein Design**\n- Design de novo binding proteins\n- Create new protein-protein interfaces\n- Engineer biosensors\n\n### Experimental Validation\n\n**Recommended experiments:**\n\n1. **Binding Assays**\n   - SPR/BLI (kinetics and affinity)\n   - ITC (thermodynamics)\n   - ELISA (binding confirmation)\n\n2. **Structural Validation**\n   - X-ray crystallography\n   - Cryo-EM\n   - NMR chemical shift perturbation\n   - Hydrogen-deuterium exchange\n\n3. **Mutagenesis**\n   - Test predicted hot spots\n   - Validate engineered mutants\n   - Site-directed mutagenesis panel\n\n4. **Functional Assays**\n   - Co-immunoprecipitation\n   - Cell-based assays\n   - Yeast two-hybrid\n\n## References\n\n- Jumper et al. (2021). Highly accurate protein structure prediction with AlphaFold. Nature.\n- Evans et al. (2022). Protein complex prediction with AlphaFold-Multimer. bioRxiv.\n- Vangone & Bonvin (2015). PRODIGY: a web server for predicting the binding affinity of protein-protein complexes. Bioinformatics.\n- Pierce et al. (2014). ZDOCK server: interactive docking prediction of protein-protein complexes. Bioinformatics.\n- Kastritis & Bonvin (2013). On the binding affinity of macromolecular interactions. Prot Sci."
+    }
+  ]
+}

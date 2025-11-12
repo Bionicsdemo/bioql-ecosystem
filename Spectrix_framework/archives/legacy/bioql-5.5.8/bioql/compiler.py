@@ -9,15 +9,16 @@ Author: BioQL Team
 Version: 1.0.0
 """
 
-import re
+import logging
 import math
-from typing import Dict, List, Tuple, Optional, Union, Any
+import re
 from dataclasses import dataclass
 from enum import Enum
-import logging
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 try:
-    from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+    from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+
     QISKIT_AVAILABLE = True
 except ImportError:
     QISKIT_AVAILABLE = False
@@ -26,6 +27,7 @@ except ImportError:
 
 class QuantumGateType(Enum):
     """Enumeration of supported quantum gate types."""
+
     HADAMARD = "h"
     PAULI_X = "x"
     PAULI_Y = "y"
@@ -43,6 +45,7 @@ class QuantumGateType(Enum):
 
 class BiotechContext(Enum):
     """Enumeration of biotechnology application contexts."""
+
     PROTEIN_FOLDING = "protein_folding"
     DRUG_DISCOVERY = "drug_discovery"
     DNA_ANALYSIS = "dna_analysis"
@@ -53,6 +56,7 @@ class BiotechContext(Enum):
 @dataclass
 class QuantumOperation:
     """Represents a single quantum operation with its parameters."""
+
     gate_type: QuantumGateType
     target_qubits: List[int]
     control_qubits: List[int] = None
@@ -71,6 +75,7 @@ class QuantumOperation:
 @dataclass
 class ParsedCircuit:
     """Represents a complete parsed quantum circuit."""
+
     num_qubits: int
     num_classical_bits: int
     operations: List[QuantumOperation]
@@ -80,6 +85,7 @@ class ParsedCircuit:
 
 class CompilerError(Exception):
     """Custom exception for compiler errors."""
+
     pass
 
 
@@ -111,7 +117,8 @@ class NaturalLanguageParser:
         # Initialize mega pattern matcher (v3.0)
         if self.use_mega_patterns:
             try:
-                from bioql.parser.mega_patterns import get_mega_matcher, IntentType
+                from bioql.parser.mega_patterns import IntentType, get_mega_matcher
+
                 self.mega_matcher = get_mega_matcher()
                 self.IntentType = IntentType
                 self.logger.info("BioQL v3.0 Mega Pattern Matcher loaded (1B+ patterns)")
@@ -134,12 +141,10 @@ class NaturalLanguageParser:
             r"(?:use|need|require)\s+(\d+)\s+(?:qubits?|quantum\s+bits?)",
             r"(?:set\s+up|setup)\s+(\d+)\s+(?:qubits?|quantum\s+bits?)",
             r"(\d+)\s+(?:qubits?|quantum\s+bits?)\s+(?:circuit|system)",
-
             # Algorithm-specific patterns
             r"(?:create|make)\s+a\s+(\d+)-qubit\s+(?:quantum\s+fourier|qft|fourier\s+transform)",
             r"(\d+)-qubit\s+(?:quantum\s+fourier\s+transform|qft|vqe|variational)",
             r"(?:create|make|implement)\s+(?:a\s+)?(\d+)\s+qubit\s+(?:quantum\s+fourier|qft|fourier)",
-
             # Biotech-specific patterns
             r"(?:model|simulate)\s+(\d+)\s+(?:amino\s+acids?|residues?)\s+with\s+qubits?",
             r"encode\s+(\d+)\s+(?:nucleotides?|base\s+pairs?)\s+(?:using|with|in)\s+qubits?",
@@ -162,7 +167,7 @@ class NaturalLanguageParser:
             r"make\s+bell\s+state",
             r"bell\s+state",
             r"entangle\s+qubits?\s+0\s+and\s+1",
-            r"entangled\s+state"
+            r"entangled\s+state",
         ]
 
         # Superposition patterns (special case)
@@ -170,7 +175,7 @@ class NaturalLanguageParser:
             r"create\s+superposition",
             r"make\s+superposition",
             r"generate\s+superposition",
-            r"superposition"
+            r"superposition",
         ]
 
         self.gate_patterns = {
@@ -182,7 +187,6 @@ class NaturalLanguageParser:
                 r"h\s+qubit\s+(\d+)",
                 r"superpose\s+qubit\s+(\d+)",
             ],
-
             QuantumGateType.PAULI_X: [
                 r"(?:apply|execute)\s+(?:a\s+)?(?:pauli\s+)?x\s+(?:gate\s+)?(?:to|on)\s+qubit\s+(\d+)",
                 r"flip\s+qubit\s+(\d+)",
@@ -190,18 +194,15 @@ class NaturalLanguageParser:
                 r"invert\s+qubit\s+(\d+)",
                 r"x\s+qubit\s+(\d+)",
             ],
-
             QuantumGateType.PAULI_Y: [
                 r"(?:apply|execute)\s+(?:a\s+)?(?:pauli\s+)?y\s+(?:gate\s+)?(?:to|on)\s+qubit\s+(\d+)",
                 r"y\s+qubit\s+(\d+)",
             ],
-
             QuantumGateType.PAULI_Z: [
                 r"(?:apply|execute)\s+(?:a\s+)?(?:pauli\s+)?z\s+(?:gate\s+)?(?:to|on)\s+qubit\s+(\d+)",
                 r"phase\s+flip\s+qubit\s+(\d+)",
                 r"z\s+qubit\s+(\d+)",
             ],
-
             QuantumGateType.CNOT: [
                 r"(?:apply|create)\s+(?:a\s+)?cnot\s+(?:gate\s+)?(?:from|with\s+control)\s+qubit\s+(\d+)\s+(?:to|and\s+target)\s+qubit\s+(\d+)",
                 r"entangle\s+qubits?\s+(\d+)\s+and\s+(\d+)",
@@ -210,18 +211,15 @@ class NaturalLanguageParser:
                 r"cnot\s+(\d+)\s+(\d+)",
                 r"cx\s+(\d+)\s+(\d+)",
             ],
-
             QuantumGateType.CZ: [
                 r"(?:apply|create)\s+(?:a\s+)?(?:controlled\s+)?z\s+(?:gate\s+)?(?:from|with\s+control)\s+qubit\s+(\d+)\s+(?:to|and\s+target)\s+qubit\s+(\d+)",
                 r"cz\s+(\d+)\s+(\d+)",
             ],
-
             QuantumGateType.TOFFOLI: [
                 r"(?:apply|create)\s+(?:a\s+)?toffoli\s+(?:gate\s+)?with\s+controls?\s+qubits?\s+(\d+)\s+and\s+(\d+)\s+(?:and\s+)?target\s+qubit\s+(\d+)",
                 r"ccx\s+(\d+)\s+(\d+)\s+(\d+)",
                 r"controlled\s+controlled\s+not\s+(\d+)\s+(\d+)\s+(\d+)",
             ],
-
             QuantumGateType.SWAP: [
                 r"swap\s+qubits?\s+(\d+)\s+and\s+(\d+)",
                 r"exchange\s+qubits?\s+(\d+)\s+and\s+(\d+)",
@@ -266,7 +264,6 @@ class NaturalLanguageParser:
                 r"folding\s+simulation",
                 r"simulate.*protein.*folding",
             ],
-
             BiotechContext.DRUG_DISCOVERY: [
                 r"drug\s+discovery",
                 r"drug.*binding",
@@ -282,7 +279,6 @@ class NaturalLanguageParser:
                 r"drug.*protein",
                 r"binding.*protein",
             ],
-
             BiotechContext.DNA_ANALYSIS: [
                 r"dna\s+sequence",
                 r"genome\s+analysis",
@@ -294,7 +290,6 @@ class NaturalLanguageParser:
                 r"grover\s+search",
                 r"genomic\s+data",
             ],
-
             BiotechContext.MOLECULAR_SIMULATION: [
                 r"molecular\s+simulation",
                 r"quantum\s+chemistry",
@@ -310,19 +305,31 @@ class NaturalLanguageParser:
         # Biotech-specific algorithmic suggestions
         self.biotech_algorithms = {
             BiotechContext.PROTEIN_FOLDING: {
-                "suggested_gates": [QuantumGateType.HADAMARD, QuantumGateType.CNOT, QuantumGateType.ROTATION_Y],
+                "suggested_gates": [
+                    QuantumGateType.HADAMARD,
+                    QuantumGateType.CNOT,
+                    QuantumGateType.ROTATION_Y,
+                ],
                 "optimization_note": "Consider VQE for energy minimization",
-                "typical_qubits": "8-20 qubits for small proteins"
+                "typical_qubits": "8-20 qubits for small proteins",
             },
             BiotechContext.DRUG_DISCOVERY: {
-                "suggested_gates": [QuantumGateType.HADAMARD, QuantumGateType.ROTATION_Z, QuantumGateType.CNOT],
+                "suggested_gates": [
+                    QuantumGateType.HADAMARD,
+                    QuantumGateType.ROTATION_Z,
+                    QuantumGateType.CNOT,
+                ],
                 "optimization_note": "VQE suitable for molecular property calculation",
-                "typical_qubits": "4-16 qubits for small molecules"
+                "typical_qubits": "4-16 qubits for small molecules",
             },
             BiotechContext.DNA_ANALYSIS: {
-                "suggested_gates": [QuantumGateType.HADAMARD, QuantumGateType.CNOT, QuantumGateType.PAULI_Z],
+                "suggested_gates": [
+                    QuantumGateType.HADAMARD,
+                    QuantumGateType.CNOT,
+                    QuantumGateType.PAULI_Z,
+                ],
                 "optimization_note": "Grover's algorithm for pattern search",
-                "typical_qubits": "log2(sequence_length) qubits for search"
+                "typical_qubits": "log2(sequence_length) qubits for search",
             },
         }
 
@@ -421,32 +428,39 @@ class NaturalLanguageParser:
                 matches = re.finditer(pattern, text_lower)
                 for match in matches:
                     try:
-                        if gate_type in [QuantumGateType.CNOT, QuantumGateType.CZ, QuantumGateType.SWAP]:
+                        if gate_type in [
+                            QuantumGateType.CNOT,
+                            QuantumGateType.CZ,
+                            QuantumGateType.SWAP,
+                        ]:
                             # Two-qubit gates
                             control = int(match.group(1))
                             target = int(match.group(2))
-                            operations.append(QuantumOperation(
-                                gate_type=gate_type,
-                                target_qubits=[target],
-                                control_qubits=[control]
-                            ))
+                            operations.append(
+                                QuantumOperation(
+                                    gate_type=gate_type,
+                                    target_qubits=[target],
+                                    control_qubits=[control],
+                                )
+                            )
                         elif gate_type == QuantumGateType.TOFFOLI:
                             # Three-qubit gate
                             control1 = int(match.group(1))
                             control2 = int(match.group(2))
                             target = int(match.group(3))
-                            operations.append(QuantumOperation(
-                                gate_type=gate_type,
-                                target_qubits=[target],
-                                control_qubits=[control1, control2]
-                            ))
+                            operations.append(
+                                QuantumOperation(
+                                    gate_type=gate_type,
+                                    target_qubits=[target],
+                                    control_qubits=[control1, control2],
+                                )
+                            )
                         else:
                             # Single-qubit gates
                             target = int(match.group(1))
-                            operations.append(QuantumOperation(
-                                gate_type=gate_type,
-                                target_qubits=[target]
-                            ))
+                            operations.append(
+                                QuantumOperation(gate_type=gate_type, target_qubits=[target])
+                            )
                     except (ValueError, IndexError):
                         continue
 
@@ -458,11 +472,11 @@ class NaturalLanguageParser:
                     try:
                         target = int(match.group(1))
                         angle = float(match.group(2))
-                        operations.append(QuantumOperation(
-                            gate_type=gate_type,
-                            target_qubits=[target],
-                            parameters=[angle]
-                        ))
+                        operations.append(
+                            QuantumOperation(
+                                gate_type=gate_type, target_qubits=[target], parameters=[angle]
+                            )
+                        )
                     except (ValueError, IndexError):
                         continue
 
@@ -487,21 +501,25 @@ class NaturalLanguageParser:
                 try:
                     if "all" in match.group(0):
                         # Measure all qubits - will be handled in circuit generation
-                        measurements.append(QuantumOperation(
-                            gate_type=QuantumGateType.MEASURE,
-                            target_qubits=[-1],  # Special marker for "all qubits"
-                        ))
+                        measurements.append(
+                            QuantumOperation(
+                                gate_type=QuantumGateType.MEASURE,
+                                target_qubits=[-1],  # Special marker for "all qubits"
+                            )
+                        )
                     else:
                         qubit = int(match.group(1))
                         classical_bit = qubit  # Default mapping
                         if match.lastindex >= 2 and match.group(2):
                             classical_bit = int(match.group(2))
 
-                        measurements.append(QuantumOperation(
-                            gate_type=QuantumGateType.MEASURE,
-                            target_qubits=[qubit],
-                            classical_bits=[classical_bit]
-                        ))
+                        measurements.append(
+                            QuantumOperation(
+                                gate_type=QuantumGateType.MEASURE,
+                                target_qubits=[qubit],
+                                classical_bits=[classical_bit],
+                            )
+                        )
                 except (ValueError, IndexError):
                     continue
 
@@ -516,54 +534,54 @@ class NaturalLanguageParser:
 
         # Initialize superposition of all conformations
         for i in range(num_qubits):
-            operations.append(QuantumOperation(
-                gate_type=QuantumGateType.HADAMARD,
-                target_qubits=[i]
-            ))
+            operations.append(
+                QuantumOperation(gate_type=QuantumGateType.HADAMARD, target_qubits=[i])
+            )
 
         # Model amino acid interactions with entangling gates
-        for i in range(0, num_qubits-1, 2):
-            operations.append(QuantumOperation(
-                gate_type=QuantumGateType.CNOT,
-                control_qubits=[i],
-                target_qubits=[i+1]
-            ))
+        for i in range(0, num_qubits - 1, 2):
+            operations.append(
+                QuantumOperation(
+                    gate_type=QuantumGateType.CNOT, control_qubits=[i], target_qubits=[i + 1]
+                )
+            )
 
         # Add variational parameters for energy optimization (VQE ansatz)
         import random
+
         for i in range(num_qubits):
             # RY rotation for each qubit (parameterized)
             angle = random.uniform(0, 2 * math.pi)  # In real VQE, this would be optimized
-            operations.append(QuantumOperation(
-                gate_type=QuantumGateType.ROTATION_Y,
-                target_qubits=[i],
-                parameters=[angle]
-            ))
+            operations.append(
+                QuantumOperation(
+                    gate_type=QuantumGateType.ROTATION_Y, target_qubits=[i], parameters=[angle]
+                )
+            )
 
         # Create more complex entanglement pattern for protein interactions
-        for i in range(num_qubits-2):
-            operations.append(QuantumOperation(
-                gate_type=QuantumGateType.CNOT,
-                control_qubits=[i],
-                target_qubits=[i+2]
-            ))
+        for i in range(num_qubits - 2):
+            operations.append(
+                QuantumOperation(
+                    gate_type=QuantumGateType.CNOT, control_qubits=[i], target_qubits=[i + 2]
+                )
+            )
 
         # Final layer of rotations
         for i in range(num_qubits):
             angle = random.uniform(0, math.pi)
-            operations.append(QuantumOperation(
-                gate_type=QuantumGateType.ROTATION_Z,
-                target_qubits=[i],
-                parameters=[angle]
-            ))
+            operations.append(
+                QuantumOperation(
+                    gate_type=QuantumGateType.ROTATION_Z, target_qubits=[i], parameters=[angle]
+                )
+            )
 
         # Always add measurements for complete circuits
         for i in range(num_qubits):
-            operations.append(QuantumOperation(
-                gate_type=QuantumGateType.MEASURE,
-                target_qubits=[i],
-                classical_bits=[i]
-            ))
+            operations.append(
+                QuantumOperation(
+                    gate_type=QuantumGateType.MEASURE, target_qubits=[i], classical_bits=[i]
+                )
+            )
 
         return operations
 
@@ -576,61 +594,65 @@ class NaturalLanguageParser:
 
         # Initialize molecular states
         for i in range(num_qubits):
-            operations.append(QuantumOperation(
-                gate_type=QuantumGateType.HADAMARD,
-                target_qubits=[i]
-            ))
+            operations.append(
+                QuantumOperation(gate_type=QuantumGateType.HADAMARD, target_qubits=[i])
+            )
 
         # Model hydrogen bonds and molecular orbitals
         for i in range(0, num_qubits, 2):
-            if i+1 < num_qubits:
-                operations.append(QuantumOperation(
-                    gate_type=QuantumGateType.CNOT,
-                    control_qubits=[i],
-                    target_qubits=[i+1]
-                ))
+            if i + 1 < num_qubits:
+                operations.append(
+                    QuantumOperation(
+                        gate_type=QuantumGateType.CNOT, control_qubits=[i], target_qubits=[i + 1]
+                    )
+                )
 
         # Add molecular interaction parameters
         import random
+
         for i in range(num_qubits):
             # Model electronic structure with parameterized gates
-            angle = random.uniform(0, math.pi/2)
-            operations.append(QuantumOperation(
-                gate_type=QuantumGateType.ROTATION_X,
-                target_qubits=[i],
-                parameters=[angle]
-            ))
+            angle = random.uniform(0, math.pi / 2)
+            operations.append(
+                QuantumOperation(
+                    gate_type=QuantumGateType.ROTATION_X, target_qubits=[i], parameters=[angle]
+                )
+            )
 
         # Create drug-protein binding interaction
         center_qubit = num_qubits // 2
         for i in range(num_qubits):
             if i != center_qubit:
-                operations.append(QuantumOperation(
-                    gate_type=QuantumGateType.CZ,
-                    control_qubits=[center_qubit],
-                    target_qubits=[i]
-                ))
+                operations.append(
+                    QuantumOperation(
+                        gate_type=QuantumGateType.CZ,
+                        control_qubits=[center_qubit],
+                        target_qubits=[i],
+                    )
+                )
 
         # Final optimization layer
         for i in range(num_qubits):
             angle = random.uniform(0, math.pi)
-            operations.append(QuantumOperation(
-                gate_type=QuantumGateType.ROTATION_Y,
-                target_qubits=[i],
-                parameters=[angle]
-            ))
+            operations.append(
+                QuantumOperation(
+                    gate_type=QuantumGateType.ROTATION_Y, target_qubits=[i], parameters=[angle]
+                )
+            )
 
         # Always add measurements for complete circuits
         for i in range(num_qubits):
-            operations.append(QuantumOperation(
-                gate_type=QuantumGateType.MEASURE,
-                target_qubits=[i],
-                classical_bits=[i]
-            ))
+            operations.append(
+                QuantumOperation(
+                    gate_type=QuantumGateType.MEASURE, target_qubits=[i], classical_bits=[i]
+                )
+            )
 
         return operations
 
-    def generate_dna_analysis_circuit(self, num_qubits: int = 4, pattern_length: int = 4) -> List[QuantumOperation]:
+    def generate_dna_analysis_circuit(
+        self, num_qubits: int = 4, pattern_length: int = 4
+    ) -> List[QuantumOperation]:
         """
         Generate a Grover's algorithm circuit for DNA sequence pattern matching.
         Searches for specific genetic patterns in DNA sequences.
@@ -639,76 +661,71 @@ class NaturalLanguageParser:
 
         # Initialize superposition for Grover's algorithm
         for i in range(num_qubits):
-            operations.append(QuantumOperation(
-                gate_type=QuantumGateType.HADAMARD,
-                target_qubits=[i]
-            ))
+            operations.append(
+                QuantumOperation(gate_type=QuantumGateType.HADAMARD, target_qubits=[i])
+            )
 
         # Grover oracle for DNA pattern matching
         # This oracle marks the target DNA sequence
         if num_qubits >= 2:
             # Example: mark sequence "11" (representing specific nucleotides)
-            operations.append(QuantumOperation(
-                gate_type=QuantumGateType.CZ,
-                control_qubits=[0],
-                target_qubits=[1]
-            ))
+            operations.append(
+                QuantumOperation(
+                    gate_type=QuantumGateType.CZ, control_qubits=[0], target_qubits=[1]
+                )
+            )
 
         if num_qubits >= 4:
             # Multi-qubit oracle for longer patterns
-            operations.append(QuantumOperation(
-                gate_type=QuantumGateType.TOFFOLI,
-                control_qubits=[0, 1],
-                target_qubits=[2]
-            ))
+            operations.append(
+                QuantumOperation(
+                    gate_type=QuantumGateType.TOFFOLI, control_qubits=[0, 1], target_qubits=[2]
+                )
+            )
 
         # Grover diffusion operator (amplitude amplification)
         for i in range(num_qubits):
-            operations.append(QuantumOperation(
-                gate_type=QuantumGateType.HADAMARD,
-                target_qubits=[i]
-            ))
+            operations.append(
+                QuantumOperation(gate_type=QuantumGateType.HADAMARD, target_qubits=[i])
+            )
 
         # Invert about average
         for i in range(num_qubits):
-            operations.append(QuantumOperation(
-                gate_type=QuantumGateType.PAULI_X,
-                target_qubits=[i]
-            ))
+            operations.append(
+                QuantumOperation(gate_type=QuantumGateType.PAULI_X, target_qubits=[i])
+            )
 
         # Multi-controlled Z gate (conditional on all qubits)
         if num_qubits == 2:
-            operations.append(QuantumOperation(
-                gate_type=QuantumGateType.CZ,
-                control_qubits=[0],
-                target_qubits=[1]
-            ))
+            operations.append(
+                QuantumOperation(
+                    gate_type=QuantumGateType.CZ, control_qubits=[0], target_qubits=[1]
+                )
+            )
         elif num_qubits >= 3:
-            operations.append(QuantumOperation(
-                gate_type=QuantumGateType.TOFFOLI,
-                control_qubits=[0, 1],
-                target_qubits=[2]
-            ))
+            operations.append(
+                QuantumOperation(
+                    gate_type=QuantumGateType.TOFFOLI, control_qubits=[0, 1], target_qubits=[2]
+                )
+            )
 
         for i in range(num_qubits):
-            operations.append(QuantumOperation(
-                gate_type=QuantumGateType.PAULI_X,
-                target_qubits=[i]
-            ))
+            operations.append(
+                QuantumOperation(gate_type=QuantumGateType.PAULI_X, target_qubits=[i])
+            )
 
         for i in range(num_qubits):
-            operations.append(QuantumOperation(
-                gate_type=QuantumGateType.HADAMARD,
-                target_qubits=[i]
-            ))
+            operations.append(
+                QuantumOperation(gate_type=QuantumGateType.HADAMARD, target_qubits=[i])
+            )
 
         # Always add measurements for complete circuits
         for i in range(num_qubits):
-            operations.append(QuantumOperation(
-                gate_type=QuantumGateType.MEASURE,
-                target_qubits=[i],
-                classical_bits=[i]
-            ))
+            operations.append(
+                QuantumOperation(
+                    gate_type=QuantumGateType.MEASURE, target_qubits=[i], classical_bits=[i]
+                )
+            )
 
         return operations
 
@@ -721,37 +738,40 @@ class NaturalLanguageParser:
         # QFT implementation
         for i in range(num_qubits):
             # Hadamard gate
-            operations.append(QuantumOperation(
-                gate_type=QuantumGateType.HADAMARD,
-                target_qubits=[i]
-            ))
+            operations.append(
+                QuantumOperation(gate_type=QuantumGateType.HADAMARD, target_qubits=[i])
+            )
 
             # Controlled rotation gates
             for j in range(i + 1, num_qubits):
                 # Controlled phase rotation
                 angle = math.pi / (2 ** (j - i))
-                operations.append(QuantumOperation(
-                    gate_type=QuantumGateType.PHASE,
-                    control_qubits=[j],
-                    target_qubits=[i],
-                    parameters=[angle]
-                ))
+                operations.append(
+                    QuantumOperation(
+                        gate_type=QuantumGateType.PHASE,
+                        control_qubits=[j],
+                        target_qubits=[i],
+                        parameters=[angle],
+                    )
+                )
 
         # Swap qubits to reverse the order (standard QFT)
         for i in range(num_qubits // 2):
-            operations.append(QuantumOperation(
-                gate_type=QuantumGateType.SWAP,
-                target_qubits=[i],
-                control_qubits=[num_qubits - 1 - i]
-            ))
+            operations.append(
+                QuantumOperation(
+                    gate_type=QuantumGateType.SWAP,
+                    target_qubits=[i],
+                    control_qubits=[num_qubits - 1 - i],
+                )
+            )
 
         # Add measurements
         for i in range(num_qubits):
-            operations.append(QuantumOperation(
-                gate_type=QuantumGateType.MEASURE,
-                target_qubits=[i],
-                classical_bits=[i]
-            ))
+            operations.append(
+                QuantumOperation(
+                    gate_type=QuantumGateType.MEASURE, target_qubits=[i], classical_bits=[i]
+                )
+            )
 
         return operations
 
@@ -762,24 +782,19 @@ class NaturalLanguageParser:
         operations = []
 
         # Create Bell state: H on qubit 0, CNOT from 0 to 1
-        operations.append(QuantumOperation(
-            gate_type=QuantumGateType.HADAMARD,
-            target_qubits=[0]
-        ))
+        operations.append(QuantumOperation(gate_type=QuantumGateType.HADAMARD, target_qubits=[0]))
 
-        operations.append(QuantumOperation(
-            gate_type=QuantumGateType.CNOT,
-            control_qubits=[0],
-            target_qubits=[1]
-        ))
+        operations.append(
+            QuantumOperation(gate_type=QuantumGateType.CNOT, control_qubits=[0], target_qubits=[1])
+        )
 
         # Add measurements
         for i in range(num_qubits):
-            operations.append(QuantumOperation(
-                gate_type=QuantumGateType.MEASURE,
-                target_qubits=[i],
-                classical_bits=[i]
-            ))
+            operations.append(
+                QuantumOperation(
+                    gate_type=QuantumGateType.MEASURE, target_qubits=[i], classical_bits=[i]
+                )
+            )
 
         return operations
 
@@ -791,18 +806,17 @@ class NaturalLanguageParser:
 
         # Apply Hadamard to all qubits for superposition
         for i in range(num_qubits):
-            operations.append(QuantumOperation(
-                gate_type=QuantumGateType.HADAMARD,
-                target_qubits=[i]
-            ))
+            operations.append(
+                QuantumOperation(gate_type=QuantumGateType.HADAMARD, target_qubits=[i])
+            )
 
         # Add measurements
         for i in range(num_qubits):
-            operations.append(QuantumOperation(
-                gate_type=QuantumGateType.MEASURE,
-                target_qubits=[i],
-                classical_bits=[i]
-            ))
+            operations.append(
+                QuantumOperation(
+                    gate_type=QuantumGateType.MEASURE, target_qubits=[i], classical_bits=[i]
+                )
+            )
 
         return operations
 
@@ -811,7 +825,7 @@ class NaturalLanguageParser:
         text_lower = text.lower()
         for pattern in self.bell_state_patterns:
             if re.search(pattern, text_lower):
-                        return True
+                return True
         return False
 
     def detect_superposition(self, text: str) -> bool:
@@ -826,13 +840,17 @@ class NaturalLanguageParser:
         """Detect if text describes a Quantum Fourier Transform circuit."""
         text_lower = text.lower()
         qft_keywords = [
-            "quantum fourier transform", "qft", "fourier transform",
-            "quantum fourier", "fourier"
+            "quantum fourier transform",
+            "qft",
+            "fourier transform",
+            "quantum fourier",
+            "fourier",
         ]
         return any(keyword in text_lower for keyword in qft_keywords)
 
-    def apply_biotech_optimizations(self, operations: List[QuantumOperation],
-                                  context: BiotechContext, text: str) -> List[QuantumOperation]:
+    def apply_biotech_optimizations(
+        self, operations: List[QuantumOperation], context: BiotechContext, text: str
+    ) -> List[QuantumOperation]:
         """
         Apply biotechnology-specific optimizations to the quantum operations.
         Generates real biological quantum circuits instead of placeholder patterns.
@@ -859,7 +877,9 @@ class NaturalLanguageParser:
 
         elif context == BiotechContext.DRUG_DISCOVERY:
             # Generate real molecular simulation circuit
-            self.logger.info(f"Generating drug discovery molecular circuit with {num_qubits} qubits")
+            self.logger.info(
+                f"Generating drug discovery molecular circuit with {num_qubits} qubits"
+            )
             bio_ops = self.generate_drug_discovery_circuit(min(num_qubits, 8))
             return bio_ops + operations
 
@@ -890,7 +910,7 @@ class NaturalLanguageParser:
         Returns:
             ParsedCircuit object
         """
-        num_qubits = match.extracted_params.get('num_qubits', 2)
+        num_qubits = match.extracted_params.get("num_qubits", 2)
 
         # Map intent to circuit generation
         if match.intent == self.IntentType.CREATE_BELL_STATE:
@@ -940,7 +960,7 @@ class NaturalLanguageParser:
             num_classical_bits=num_qubits,
             operations=operations,
             biotech_context=context,
-            description=match.original_text
+            description=match.original_text,
         )
 
     def parse(self, text: str) -> ParsedCircuit:
@@ -964,7 +984,9 @@ class NaturalLanguageParser:
             if self.use_mega_patterns and self.mega_matcher:
                 match = self.mega_matcher.match(text)
                 if match:
-                    self.logger.info(f"Mega pattern matched: {match.intent.value} (confidence: {match.confidence})")
+                    self.logger.info(
+                        f"Mega pattern matched: {match.intent.value} (confidence: {match.confidence})"
+                    )
                     return self._convert_mega_match_to_circuit(match)
 
             # LEGACY: Detect Bell state first (special case)
@@ -977,7 +999,7 @@ class NaturalLanguageParser:
                     num_classical_bits=num_qubits,
                     operations=bell_operations,
                     biotech_context=BiotechContext.GENERAL,
-                    description=text.strip()
+                    description=text.strip(),
                 )
 
             # Detect superposition (special case)
@@ -990,7 +1012,7 @@ class NaturalLanguageParser:
                     num_classical_bits=num_qubits,
                     operations=superposition_operations,
                     biotech_context=BiotechContext.GENERAL,
-                    description=text.strip()
+                    description=text.strip(),
                 )
 
             # Detect QFT (special case)
@@ -1003,7 +1025,7 @@ class NaturalLanguageParser:
                     num_classical_bits=num_qubits,
                     operations=qft_operations,
                     biotech_context=BiotechContext.GENERAL,
-                    description=text.strip()
+                    description=text.strip(),
                 )
 
             # Detect biotechnology context
@@ -1027,7 +1049,9 @@ class NaturalLanguageParser:
 
             # Apply biotech optimizations with real biological circuits
             if self.enable_biotech_optimizations:
-                all_operations = self.apply_biotech_optimizations(all_operations, biotech_context, text)
+                all_operations = self.apply_biotech_optimizations(
+                    all_operations, biotech_context, text
+                )
 
             # Ensure qubit count is sufficient for all operations
             max_qubit_used = 0
@@ -1056,7 +1080,7 @@ class NaturalLanguageParser:
                 num_classical_bits=num_classical_bits,
                 operations=all_operations,
                 biotech_context=biotech_context,
-                description=text.strip()
+                description=text.strip(),
             )
 
         except Exception as e:
@@ -1140,7 +1164,7 @@ class QASMGenerator:
 
         # Header
         qasm_lines.append("OPENQASM 3.0;")
-        qasm_lines.append("include \"stdgates.inc\";")
+        qasm_lines.append('include "stdgates.inc";')
         qasm_lines.append("")
 
         # Add biotech context comment
@@ -1175,8 +1199,7 @@ class BioQLCompiler:
     natural language parsing with QASM code generation.
     """
 
-    def __init__(self, enable_biotech_optimizations: bool = True,
-                 log_level: int = logging.INFO):
+    def __init__(self, enable_biotech_optimizations: bool = True, log_level: int = logging.INFO):
         """
         Initialize the BioQL compiler.
 
@@ -1224,7 +1247,7 @@ class BioQLCompiler:
             self.logger.error(error_msg)
             raise CompilerError(error_msg)
 
-    def parse_to_circuit(self, english_description: str) -> Optional['QuantumCircuit']:
+    def parse_to_circuit(self, english_description: str) -> Optional["QuantumCircuit"]:
         """
         Parse English description to a Qiskit QuantumCircuit object.
 
@@ -1263,8 +1286,11 @@ class BioQLCompiler:
                 elif operation.gate_type == QuantumGateType.CZ:
                     qc.cz(operation.control_qubits[0], operation.target_qubits[0])
                 elif operation.gate_type == QuantumGateType.TOFFOLI:
-                    qc.ccx(operation.control_qubits[0], operation.control_qubits[1],
-                          operation.target_qubits[0])
+                    qc.ccx(
+                        operation.control_qubits[0],
+                        operation.control_qubits[1],
+                        operation.target_qubits[0],
+                    )
                 elif operation.gate_type == QuantumGateType.ROTATION_X:
                     qc.rx(operation.parameters[0], operation.target_qubits[0])
                 elif operation.gate_type == QuantumGateType.ROTATION_Y:
@@ -1278,9 +1304,11 @@ class BioQLCompiler:
                         # Measure all qubits
                         qc.measure_all()
                     else:
-                        classical_bit = (operation.classical_bits[0]
-                                       if operation.classical_bits
-                                       else operation.target_qubits[0])
+                        classical_bit = (
+                            operation.classical_bits[0]
+                            if operation.classical_bits
+                            else operation.target_qubits[0]
+                        )
                         qc.measure(operation.target_qubits[0], classical_bit)
 
             return qc
@@ -1306,7 +1334,7 @@ class BioQLCompiler:
             return {
                 "context": context.value,
                 "suggestions": self.parser.biotech_algorithms[context],
-                "description": english_description
+                "description": english_description,
             }
         else:
             return {
@@ -1314,9 +1342,9 @@ class BioQLCompiler:
                 "suggestions": {
                     "suggested_gates": "No specific suggestions for general context",
                     "optimization_note": "Consider specifying biotechnology domain for optimizations",
-                    "typical_qubits": "Depends on problem size"
+                    "typical_qubits": "Depends on problem size",
                 },
-                "description": english_description
+                "description": english_description,
             }
 
 
@@ -1336,7 +1364,9 @@ def compile_english_to_qasm(description: str, enable_biotech_optimizations: bool
     return compiler.compile_to_qasm(description)
 
 
-def parse_english_to_circuit(description: str, enable_biotech_optimizations: bool = True) -> Optional['QuantumCircuit']:
+def parse_english_to_circuit(
+    description: str, enable_biotech_optimizations: bool = True
+) -> Optional["QuantumCircuit"]:
     """
     Convenience function to parse English description to Qiskit QuantumCircuit.
 

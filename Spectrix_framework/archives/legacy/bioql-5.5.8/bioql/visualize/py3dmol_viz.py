@@ -4,9 +4,9 @@ py3Dmol-based Visualization Module (Fallback)
 Provides web-based molecular visualization using py3Dmol.
 """
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Union
-from dataclasses import dataclass
 
 from ..logger import get_logger
 
@@ -64,35 +64,35 @@ def show(
             )
 
         # Read structure file
-        with open(structure_path, 'r') as f:
+        with open(structure_path, "r") as f:
             structure_data = f.read()
 
         # Create viewer
         view = py3Dmol.view(width=width, height=height)
 
         # Add structure
-        if structure_path.suffix.lower() == '.pdb':
-            view.addModel(structure_data, 'pdb')
-        elif structure_path.suffix.lower() in ['.mol2', '.mol']:
-            view.addModel(structure_data, 'mol2')
-        elif structure_path.suffix.lower() == '.sdf':
-            view.addModel(structure_data, 'sdf')
+        if structure_path.suffix.lower() == ".pdb":
+            view.addModel(structure_data, "pdb")
+        elif structure_path.suffix.lower() in [".mol2", ".mol"]:
+            view.addModel(structure_data, "mol2")
+        elif structure_path.suffix.lower() == ".sdf":
+            view.addModel(structure_data, "sdf")
         else:
-            view.addModel(structure_data, 'pdb')  # Default to PDB
+            view.addModel(structure_data, "pdb")  # Default to PDB
 
         # Apply style
         if style == "cartoon":
-            view.setStyle({'cartoon': {'color': color if color != 'spectrum' else 'spectrum'}})
+            view.setStyle({"cartoon": {"color": color if color != "spectrum" else "spectrum"}})
         elif style == "stick":
-            view.setStyle({'stick': {}})
+            view.setStyle({"stick": {}})
         elif style == "sphere":
-            view.setStyle({'sphere': {}})
+            view.setStyle({"sphere": {}})
         elif style == "surface":
-            view.addSurface(py3Dmol.VDW, {'opacity': 0.7})
+            view.addSurface(py3Dmol.VDW, {"opacity": 0.7})
 
         # Highlight ligands
         if show_ligand:
-            view.setStyle({'hetflag': True}, {'stick': {'colorscheme': 'greenCarbon'}})
+            view.setStyle({"hetflag": True}, {"stick": {"colorscheme": "greenCarbon"}})
 
         view.zoomTo()
 
@@ -184,22 +184,22 @@ def visualize_complex(
         ligand_path = Path(ligand_path)
 
         # Read files
-        with open(receptor_path, 'r') as f:
+        with open(receptor_path, "r") as f:
             receptor_data = f.read()
 
-        with open(ligand_path, 'r') as f:
+        with open(ligand_path, "r") as f:
             ligand_data = f.read()
 
         # Create viewer
         view = py3Dmol.view(width=800, height=600)
 
         # Add receptor
-        view.addModel(receptor_data, 'pdb')
-        view.setStyle({'model': 0}, {'cartoon': {'color': 'cyan'}})
+        view.addModel(receptor_data, "pdb")
+        view.setStyle({"model": 0}, {"cartoon": {"color": "cyan"}})
 
         # Add ligand
-        view.addModel(ligand_data, 'pdb')
-        view.setStyle({'model': 1}, {'stick': {'colorscheme': 'greenCarbon'}})
+        view.addModel(ligand_data, "pdb")
+        view.setStyle({"model": 1}, {"stick": {"colorscheme": "greenCarbon"}})
 
         view.zoomTo()
 

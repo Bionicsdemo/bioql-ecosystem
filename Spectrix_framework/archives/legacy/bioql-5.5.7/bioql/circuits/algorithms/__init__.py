@@ -6,12 +6,13 @@ including VQE, QAOA, Grover's algorithm, and more.
 """
 
 from typing import Any, List, Optional
+
 from ..base import (
-    CircuitTemplate,
     CircuitCategory,
+    CircuitTemplate,
     ComplexityRating,
     ParameterSpec,
-    ResourceEstimate
+    ResourceEstimate,
 )
 
 
@@ -34,29 +35,29 @@ class VQECircuit(CircuitTemplate):
                 type="int",
                 description="Number of qubits in the circuit",
                 required=True,
-                range=(1, 100)
+                range=(1, 100),
             ),
             ParameterSpec(
                 name="num_layers",
                 type="int",
                 description="Number of ansatz layers",
                 default=1,
-                range=(1, 20)
+                range=(1, 20),
             ),
             ParameterSpec(
                 name="ansatz",
                 type="str",
                 description="Ansatz type",
                 default="hardware_efficient",
-                constraints={"one_of": ["hardware_efficient", "uccsd", "custom"]}
+                constraints={"one_of": ["hardware_efficient", "uccsd", "custom"]},
             ),
             ParameterSpec(
                 name="entanglement",
                 type="str",
                 description="Entanglement pattern",
                 default="linear",
-                constraints={"one_of": ["linear", "full", "circular"]}
-            )
+                constraints={"one_of": ["linear", "full", "circular"]},
+            ),
         ]
 
         super().__init__(
@@ -69,12 +70,12 @@ class VQECircuit(CircuitTemplate):
             use_cases=[
                 "Molecular ground state energy calculation",
                 "Quantum chemistry simulations",
-                "Material property prediction"
+                "Material property prediction",
             ],
             references=[
                 "Peruzzo et al., Nat. Commun. 5, 4213 (2014)",
-                "McClean et al., New J. Phys. 18, 023023 (2016)"
-            ]
+                "McClean et al., New J. Phys. 18, 023023 (2016)",
+            ],
         )
 
     def build(self, **kwargs) -> Any:
@@ -104,7 +105,7 @@ class VQECircuit(CircuitTemplate):
             gate_count=total_gates,
             two_qubit_gates=two_qubit_gates,
             measurement_count=1,
-            execution_time_estimate=0.1 * num_qubits * num_layers
+            execution_time_estimate=0.1 * num_qubits * num_layers,
         )
 
 
@@ -126,22 +127,22 @@ class QAOACircuit(CircuitTemplate):
                 type="int",
                 description="Number of qubits",
                 required=True,
-                range=(2, 100)
+                range=(2, 100),
             ),
             ParameterSpec(
                 name="num_layers",
                 type="int",
                 description="Number of QAOA layers (p parameter)",
                 default=1,
-                range=(1, 10)
+                range=(1, 10),
             ),
             ParameterSpec(
                 name="problem_type",
                 type="str",
                 description="Optimization problem type",
                 default="max_cut",
-                constraints={"one_of": ["max_cut", "tsp", "portfolio", "custom"]}
-            )
+                constraints={"one_of": ["max_cut", "tsp", "portfolio", "custom"]},
+            ),
         ]
 
         super().__init__(
@@ -154,11 +155,9 @@ class QAOACircuit(CircuitTemplate):
             use_cases=[
                 "Graph optimization problems",
                 "Portfolio optimization",
-                "Drug combination optimization"
+                "Drug combination optimization",
             ],
-            references=[
-                "Farhi et al., arXiv:1411.4028 (2014)"
-            ]
+            references=["Farhi et al., arXiv:1411.4028 (2014)"],
         )
 
     def build(self, **kwargs) -> Any:
@@ -186,7 +185,7 @@ class QAOACircuit(CircuitTemplate):
             gate_count=total_gates,
             two_qubit_gates=two_qubit_gates,
             measurement_count=1,
-            execution_time_estimate=0.15 * num_qubits * num_layers
+            execution_time_estimate=0.15 * num_qubits * num_layers,
         )
 
 
@@ -208,15 +207,15 @@ class GroverCircuit(CircuitTemplate):
                 type="int",
                 description="Number of qubits for search space",
                 required=True,
-                range=(2, 30)
+                range=(2, 30),
             ),
             ParameterSpec(
                 name="num_iterations",
                 type="int",
                 description="Number of Grover iterations",
                 default=1,
-                range=(1, 100)
-            )
+                range=(1, 100),
+            ),
         ]
 
         super().__init__(
@@ -229,11 +228,9 @@ class GroverCircuit(CircuitTemplate):
             use_cases=[
                 "Database search",
                 "Pattern matching in molecular structures",
-                "SAT solving"
+                "SAT solving",
             ],
-            references=[
-                "Grover, Proceedings of STOC 1996"
-            ]
+            references=["Grover, Proceedings of STOC 1996"],
         )
 
     def build(self, **kwargs) -> Any:
@@ -261,13 +258,9 @@ class GroverCircuit(CircuitTemplate):
             gate_count=total_gates,
             two_qubit_gates=two_qubit_gates,
             measurement_count=1,
-            execution_time_estimate=0.05 * num_iterations
+            execution_time_estimate=0.05 * num_iterations,
         )
 
 
 # Export all algorithm circuits
-__all__ = [
-    "VQECircuit",
-    "QAOACircuit",
-    "GroverCircuit"
-]
+__all__ = ["VQECircuit", "QAOACircuit", "GroverCircuit"]

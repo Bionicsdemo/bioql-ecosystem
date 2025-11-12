@@ -5,13 +5,14 @@ WITH chemical validity filters (PAINS, unstable groups, sanitization)
 """
 
 import random
-from typing import List, Dict, Tuple, Optional
 from dataclasses import dataclass
+from typing import Dict, List, Optional, Tuple
 
 # RDKit for chemical validation
 try:
     from rdkit import Chem
-    from rdkit.Chem import Descriptors, Crippen, Lipinski, FilterCatalog
+    from rdkit.Chem import Crippen, Descriptors, FilterCatalog, Lipinski
+
     HAVE_RDKIT = True
 except ImportError:
     HAVE_RDKIT = False
@@ -20,6 +21,7 @@ except ImportError:
 @dataclass
 class MolecularFragment:
     """Pharmacophore fragment for molecule assembly."""
+
     name: str
     smiles: str
     properties: Dict[str, float]
@@ -29,6 +31,7 @@ class MolecularFragment:
 @dataclass
 class DesignedMolecule:
     """Result of de novo drug design."""
+
     smiles: str
     name: str
     fragments_used: List[str]
@@ -58,131 +61,122 @@ class DrugDesigner:
 
         # Scaffolds - core structures
         self.scaffolds = {
-            'peptide_backbone': MolecularFragment(
-                name='Peptide Backbone',
-                smiles='NC(=O)C',
-                properties={'mw': 73.09, 'logP': -1.0},
-                role='scaffold'
+            "peptide_backbone": MolecularFragment(
+                name="Peptide Backbone",
+                smiles="NC(=O)C",
+                properties={"mw": 73.09, "logP": -1.0},
+                role="scaffold",
             ),
-            'benzene': MolecularFragment(
-                name='Benzene',
-                smiles='c1ccccc1',
-                properties={'mw': 78.11, 'logP': 2.0},
-                role='scaffold'
+            "benzene": MolecularFragment(
+                name="Benzene",
+                smiles="c1ccccc1",
+                properties={"mw": 78.11, "logP": 2.0},
+                role="scaffold",
             ),
-            'pyridine': MolecularFragment(
-                name='Pyridine',
-                smiles='c1ccncc1',
-                properties={'mw': 79.10, 'logP': 0.65},
-                role='scaffold'
+            "pyridine": MolecularFragment(
+                name="Pyridine",
+                smiles="c1ccncc1",
+                properties={"mw": 79.10, "logP": 0.65},
+                role="scaffold",
             ),
-            'indole': MolecularFragment(
-                name='Indole',
-                smiles='c1ccc2c(c1)[nH]cc2',
-                properties={'mw': 117.15, 'logP': 2.14},
-                role='scaffold'
+            "indole": MolecularFragment(
+                name="Indole",
+                smiles="c1ccc2c(c1)[nH]cc2",
+                properties={"mw": 117.15, "logP": 2.14},
+                role="scaffold",
             ),
-            'piperidine': MolecularFragment(
-                name='Piperidine',
-                smiles='C1CCNCC1',
-                properties={'mw': 85.15, 'logP': 0.84},
-                role='scaffold'
+            "piperidine": MolecularFragment(
+                name="Piperidine",
+                smiles="C1CCNCC1",
+                properties={"mw": 85.15, "logP": 0.84},
+                role="scaffold",
             ),
         }
 
         # Linkers - connect scaffolds
         self.linkers = {
-            'amide': MolecularFragment(
-                name='Amide',
-                smiles='C(=O)N',
-                properties={'mw': 43.04, 'logP': -0.5},
-                role='linker'
+            "amide": MolecularFragment(
+                name="Amide", smiles="C(=O)N", properties={"mw": 43.04, "logP": -0.5}, role="linker"
             ),
-            'ether': MolecularFragment(
-                name='Ether',
-                smiles='COC',
-                properties={'mw': 46.07, 'logP': -0.02},
-                role='linker'
+            "ether": MolecularFragment(
+                name="Ether", smiles="COC", properties={"mw": 46.07, "logP": -0.02}, role="linker"
             ),
-            'amine': MolecularFragment(
-                name='Amine',
-                smiles='CN',
-                properties={'mw': 31.06, 'logP': -0.57},
-                role='linker'
+            "amine": MolecularFragment(
+                name="Amine", smiles="CN", properties={"mw": 31.06, "logP": -0.57}, role="linker"
             ),
         }
 
         # Functional groups - modulate activity
         self.functional_groups = {
-            'hydroxyl': MolecularFragment(
-                name='Hydroxyl',
-                smiles='O',
-                properties={'mw': 17.01, 'logP': -0.67},
-                role='functional_group'
+            "hydroxyl": MolecularFragment(
+                name="Hydroxyl",
+                smiles="O",
+                properties={"mw": 17.01, "logP": -0.67},
+                role="functional_group",
             ),
-            'carboxyl': MolecularFragment(
-                name='Carboxyl',
-                smiles='C(=O)O',
-                properties={'mw': 45.02, 'logP': -0.6},
-                role='functional_group'
+            "carboxyl": MolecularFragment(
+                name="Carboxyl",
+                smiles="C(=O)O",
+                properties={"mw": 45.02, "logP": -0.6},
+                role="functional_group",
             ),
-            'amino': MolecularFragment(
-                name='Amino',
-                smiles='N',
-                properties={'mw': 16.02, 'logP': -1.0},
-                role='functional_group'
+            "amino": MolecularFragment(
+                name="Amino",
+                smiles="N",
+                properties={"mw": 16.02, "logP": -1.0},
+                role="functional_group",
             ),
-            'methyl': MolecularFragment(
-                name='Methyl',
-                smiles='C',
-                properties={'mw': 15.03, 'logP': 0.5},
-                role='functional_group'
+            "methyl": MolecularFragment(
+                name="Methyl",
+                smiles="C",
+                properties={"mw": 15.03, "logP": 0.5},
+                role="functional_group",
             ),
-            'fluorine': MolecularFragment(
-                name='Fluorine',
-                smiles='F',
-                properties={'mw': 19.00, 'logP': 0.14},
-                role='functional_group'
+            "fluorine": MolecularFragment(
+                name="Fluorine",
+                smiles="F",
+                properties={"mw": 19.00, "logP": 0.14},
+                role="functional_group",
             ),
         }
 
     def _init_disease_templates(self):
         """Initialize disease-specific molecular templates."""
         self.disease_templates = {
-            'obesity': {
-                'preferred_scaffolds': ['peptide_backbone', 'piperidine'],
-                'required_groups': ['hydroxyl', 'amino'],
-                'target_mw_range': (300, 700),
-                'target_logP_range': (-2, 3),
-                'rationale': 'GLP-1/GIP agonists favor peptidic structures with hydrophilic groups'
+            "obesity": {
+                "preferred_scaffolds": ["peptide_backbone", "piperidine"],
+                "required_groups": ["hydroxyl", "amino"],
+                "target_mw_range": (300, 700),
+                "target_logP_range": (-2, 3),
+                "rationale": "GLP-1/GIP agonists favor peptidic structures with hydrophilic groups",
             },
-            'diabetes': {
-                'preferred_scaffolds': ['peptide_backbone', 'piperidine'],
-                'required_groups': ['hydroxyl', 'carboxyl'],
-                'target_mw_range': (300, 800),
-                'target_logP_range': (-2, 2),
-                'rationale': 'Insulin secretagogues and sensitizers'
+            "diabetes": {
+                "preferred_scaffolds": ["peptide_backbone", "piperidine"],
+                "required_groups": ["hydroxyl", "carboxyl"],
+                "target_mw_range": (300, 800),
+                "target_logP_range": (-2, 2),
+                "rationale": "Insulin secretagogues and sensitizers",
             },
-            'cancer': {
-                'preferred_scaffolds': ['indole', 'benzene', 'pyridine'],
-                'required_groups': ['amino', 'fluorine'],
-                'target_mw_range': (200, 600),
-                'target_logP_range': (1, 5),
-                'rationale': 'Kinase inhibitors favor aromatic scaffolds'
+            "cancer": {
+                "preferred_scaffolds": ["indole", "benzene", "pyridine"],
+                "required_groups": ["amino", "fluorine"],
+                "target_mw_range": (200, 600),
+                "target_logP_range": (1, 5),
+                "rationale": "Kinase inhibitors favor aromatic scaffolds",
             },
-            'alzheimers': {
-                'preferred_scaffolds': ['benzene', 'piperidine'],
-                'required_groups': ['amino', 'methyl'],
-                'target_mw_range': (250, 500),
-                'target_logP_range': (2, 5),
-                'rationale': 'CNS penetration requires moderate lipophilicity'
+            "alzheimers": {
+                "preferred_scaffolds": ["benzene", "piperidine"],
+                "required_groups": ["amino", "methyl"],
+                "target_mw_range": (250, 500),
+                "target_logP_range": (2, 5),
+                "rationale": "CNS penetration requires moderate lipophilicity",
             },
-            'pain': {
-                'preferred_scaffolds': ['piperidine', 'benzene'],
-                'required_groups': ['hydroxyl', 'methyl'],
-                'target_mw_range': (200, 400),
-                'target_logP_range': (1, 4),
-                'rationale': 'Opioid receptor agonists'
+            "pain": {
+                "preferred_scaffolds": ["piperidine", "benzene"],
+                "required_groups": ["hydroxyl", "methyl"],
+                "target_mw_range": (200, 400),
+                "target_logP_range": (1, 4),
+                "rationale": "Opioid receptor agonists",
             },
         }
 
@@ -191,7 +185,7 @@ class DrugDesigner:
         disease: Optional[str] = None,
         target: Optional[str] = None,
         pdb_id: Optional[str] = None,
-        num_candidates: int = 5
+        num_candidates: int = 5,
     ) -> List[DesignedMolecule]:
         """
         Design novel molecules for specified disease/target.
@@ -206,18 +200,18 @@ class DrugDesigner:
             List of DesignedMolecule objects ranked by predicted affinity
         """
         # Select appropriate template
-        template = self.disease_templates.get(disease, self.disease_templates['obesity'])
+        template = self.disease_templates.get(disease, self.disease_templates["obesity"])
 
         candidates = []
 
         for i in range(num_candidates):
             # 1. Select scaffold
-            scaffold_name = random.choice(template['preferred_scaffolds'])
+            scaffold_name = random.choice(template["preferred_scaffolds"])
             scaffold = self.scaffolds[scaffold_name]
 
             # 2. Add functional groups
             groups = []
-            for group_name in template['required_groups']:
+            for group_name in template["required_groups"]:
                 groups.append(self.functional_groups[group_name])
 
             # Add random additional groups
@@ -230,8 +224,8 @@ class DrugDesigner:
             assembled_smiles = self._assemble_smiles(scaffold, groups)
 
             # 4. Calculate properties
-            mw = scaffold.properties['mw'] + sum(g.properties['mw'] for g in groups)
-            logP = scaffold.properties['logP'] + sum(g.properties['logP'] for g in groups)
+            mw = scaffold.properties["mw"] + sum(g.properties["mw"] for g in groups)
+            logP = scaffold.properties["logP"] + sum(g.properties["logP"] for g in groups)
 
             # 5. Estimate binding affinity (simplified - real version uses quantum VQE)
             predicted_affinity = self._estimate_affinity(mw, logP, disease, target)
@@ -247,12 +241,24 @@ class DrugDesigner:
                 predicted_affinity=predicted_affinity,
                 lipinski_compliant=lipinski_compliant,
                 properties={
-                    'molecular_weight': mw,
-                    'logP': logP,
-                    'hbd': len([g for g in groups if 'hydroxyl' in g.name.lower() or 'amino' in g.name.lower()]),
-                    'hba': len([g for g in groups if 'carbonyl' in g.name.lower() or 'hydroxyl' in g.name.lower()]),
+                    "molecular_weight": mw,
+                    "logP": logP,
+                    "hbd": len(
+                        [
+                            g
+                            for g in groups
+                            if "hydroxyl" in g.name.lower() or "amino" in g.name.lower()
+                        ]
+                    ),
+                    "hba": len(
+                        [
+                            g
+                            for g in groups
+                            if "carbonyl" in g.name.lower() or "hydroxyl" in g.name.lower()
+                        ]
+                    ),
                 },
-                design_rationale=template['rationale']
+                design_rationale=template["rationale"],
             )
 
             candidates.append(molecule)
@@ -280,11 +286,7 @@ class DrugDesigner:
         return smiles
 
     def _estimate_affinity(
-        self,
-        mw: float,
-        logP: float,
-        disease: Optional[str],
-        target: Optional[str]
+        self, mw: float, logP: float, disease: Optional[str], target: Optional[str]
     ) -> float:
         """
         Estimate binding affinity using QSAR-like model.
@@ -304,11 +306,11 @@ class DrugDesigner:
         affinity += logP_penalty
 
         # Disease-specific adjustments
-        if disease == 'obesity':
+        if disease == "obesity":
             # GLP-1/GIP agonists are large peptides
             if mw > 400:
                 affinity -= 2.0  # Favor larger molecules
-        elif disease == 'cancer':
+        elif disease == "cancer":
             # Kinase inhibitors are smaller
             if 300 < mw < 500:
                 affinity -= 1.5

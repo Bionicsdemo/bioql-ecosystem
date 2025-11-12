@@ -13,6 +13,7 @@ try:
     from loguru import logger
 except ImportError:
     import logging
+
     logger = logging.getLogger(__name__)
 
 from bioql.ir import (
@@ -23,13 +24,14 @@ from bioql.ir import (
     QuantumBackend,
     QuantumOptimizationOperation,
 )
-from .base import BaseCompiler, CompilationError, QuantumCircuitInterface
 
 # Import Qiskit components (required for production)
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import RealAmplitudes, TwoLocal
+from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit_aer import AerSimulator
+
+from .base import BaseCompiler, CompilationError, QuantumCircuitInterface
 
 QISKIT_AVAILABLE = True
 
@@ -39,8 +41,8 @@ class QiskitCircuitWrapper(QuantumCircuitInterface):
 
     def __init__(self, num_qubits: int):
         self.num_qubits = num_qubits
-        self.qreg = QuantumRegister(num_qubits, 'q')
-        self.creg = ClassicalRegister(num_qubits, 'c')
+        self.qreg = QuantumRegister(num_qubits, "q")
+        self.creg = ClassicalRegister(num_qubits, "c")
         self.circuit = QuantumCircuit(self.qreg, self.creg)
 
     def add_hadamard(self, qubit: int) -> None:
@@ -131,14 +133,18 @@ class QiskitCompiler(BaseCompiler):
                 circuit_wrapper.add_measurement(i, i)
 
             compiled_circuit = circuit_wrapper.get_qiskit_circuit()
-            self.logger.success(f"Compiled circuit: {compiled_circuit.depth()} depth, {len(compiled_circuit.data)} gates")
+            self.logger.success(
+                f"Compiled circuit: {compiled_circuit.depth()} depth, {len(compiled_circuit.data)} gates"
+            )
             return compiled_circuit
 
         except Exception as e:
             self.logger.error(f"Compilation failed: {e}")
             raise CompilationError(f"Failed to compile program: {e}")
 
-    def execute(self, compiled_program: QuantumCircuit, shots: int = 1000, program_id: Optional[str] = None) -> BioQLResult:
+    def execute(
+        self, compiled_program: QuantumCircuit, shots: int = 1000, program_id: Optional[str] = None
+    ) -> BioQLResult:
         """
         Execute a compiled Qiskit program.
 
@@ -158,6 +164,7 @@ class QiskitCompiler(BaseCompiler):
             execution_time = (datetime.datetime.utcnow() - start_time).total_seconds()
 
             from uuid import uuid4
+
             return BioQLResult(
                 program_id=program_id or uuid4(),
                 status="success",
@@ -166,7 +173,7 @@ class QiskitCompiler(BaseCompiler):
                 shots_executed=shots,
                 backend_used=QuantumBackend.QISKIT,
                 execution_timestamp=start_time.isoformat(),
-                version_info={"qiskit": "real"}
+                version_info={"qiskit": "real"},
             )
 
         except Exception as e:
@@ -174,6 +181,7 @@ class QiskitCompiler(BaseCompiler):
             self.logger.error(f"Execution failed: {e}")
 
             from uuid import uuid4
+
             return BioQLResult(
                 program_id=program_id or uuid4(),
                 status="failed",
@@ -181,7 +189,7 @@ class QiskitCompiler(BaseCompiler):
                 error_type=type(e).__name__,
                 execution_time=execution_time,
                 backend_used=QuantumBackend.QISKIT,
-                execution_timestamp=start_time.isoformat()
+                execution_timestamp=start_time.isoformat(),
             )
 
     def _execute_qiskit_circuit(self, circuit: QuantumCircuit, shots: int) -> Dict[str, Any]:
@@ -203,27 +211,20 @@ class QiskitCompiler(BaseCompiler):
             "circuit_depth": transpiled_circuit.depth(),
             "gate_count": len(transpiled_circuit.data),
             "shots_requested": shots,
-            "shots_executed": shots
+            "shots_executed": shots,
         }
 
-
     def _compile_docking_operation(
-        self,
-        operation: DockingOperation,
-        circuit: QuantumCircuitInterface
+        self, operation: DockingOperation, circuit: QuantumCircuitInterface
     ) -> None:
         """Compile a docking operation into quantum gates."""
         self.logger.debug("Compiling docking operation")
 
         # Encode receptor molecule (qubits 0-3)
-        self._create_molecular_encoding_circuit(
-            circuit, operation.receptor.data, 0, 4
-        )
+        self._create_molecular_encoding_circuit(circuit, operation.receptor.data, 0, 4)
 
         # Encode ligand molecule (qubits 4-7)
-        self._create_molecular_encoding_circuit(
-            circuit, operation.ligand.data, 4, 4
-        )
+        self._create_molecular_encoding_circuit(circuit, operation.ligand.data, 4, 4)
 
         # Create entanglement between receptor and ligand
         self._create_entangling_layer(circuit, list(range(8)))
@@ -234,14 +235,12 @@ class QiskitCompiler(BaseCompiler):
             operation.energy_threshold / 10.0,  # Normalize to reasonable range
             operation.num_poses / 100.0,
             3.14159 / 4,  # Some default parameters
-            3.14159 / 2
+            3.14159 / 2,
         ]
         self._create_variational_layer(circuit, list(range(8)), parameters)
 
     def _compile_alignment_operation(
-        self,
-        operation: AlignmentOperation,
-        circuit: QuantumCircuitInterface
+        self, operation: AlignmentOperation, circuit: QuantumCircuitInterface
     ) -> None:
         """Compile an alignment operation into quantum gates."""
         self.logger.debug("Compiling alignment operation")
@@ -266,9 +265,7 @@ class QiskitCompiler(BaseCompiler):
             circuit.add_rotation_z(i, penalty_angle)
 
     def _compile_optimization_operation(
-        self,
-        operation: QuantumOptimizationOperation,
-        circuit: QuantumCircuitInterface
+        self, operation: QuantumOptimizationOperation, circuit: QuantumCircuitInterface
     ) -> None:
         """Compile an optimization operation into quantum gates."""
         self.logger.debug("Compiling optimization operation")
@@ -286,7 +283,7 @@ class QiskitCompiler(BaseCompiler):
                 circuit.add_hadamard(q)
 
             # Add variable-specific rotation
-            if hasattr(variable.value, '__float__'):
+            if hasattr(variable.value, "__float__"):
                 angle = float(variable.value) * 3.14159 / 100
                 for q in range(start_qubit, end_qubit):
                     circuit.add_rotation_y(q, angle)

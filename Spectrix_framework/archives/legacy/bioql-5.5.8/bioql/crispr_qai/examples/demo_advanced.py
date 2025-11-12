@@ -10,15 +10,16 @@ Demonstrates:
 """
 
 import os
+
 from bioql.crispr_qai import (
     estimate_energy_collapse_simulator,
-    rank_guides_batch,
     infer_offtarget_phenotype,
+    rank_guides_batch,
 )
 from bioql.crispr_qai.adapters import LocalSimulatorEngine
-from bioql.crispr_qai.guide_opt import optimize_guide_library, generate_guide_report
+from bioql.crispr_qai.guide_opt import generate_guide_report, optimize_guide_library
 from bioql.crispr_qai.io import save_results_csv, save_results_json
-from bioql.crispr_qai.safety import validate_research_use, print_safety_disclaimer
+from bioql.crispr_qai.safety import print_safety_disclaimer, validate_research_use
 
 
 def demo_custom_engine():
@@ -40,11 +41,8 @@ def demo_custom_engine():
     print()
 
     from bioql.crispr_qai.energies import estimate_energy_custom
-    result = estimate_energy_custom(
-        guide_seq=guide,
-        engine=engine,
-        coupling_strength=1.5
-    )
+
+    result = estimate_energy_custom(guide_seq=guide, engine=engine, coupling_strength=1.5)
 
     print(f"Energy: {result['energy_estimate']:.4f}")
     print(f"Confidence: {result['confidence']:.4f}")
@@ -78,10 +76,7 @@ def demo_library_optimization():
 
     # Optimize for diversity
     optimized = optimize_guide_library(
-        guide_sequences=candidates,
-        target_size=5,
-        shots=1000,
-        diversity_threshold=0.3
+        guide_sequences=candidates, target_size=5, shots=1000, diversity_threshold=0.3
     )
 
     print(f"Selected {len(optimized)} diverse, high-scoring guides:")
@@ -108,10 +103,7 @@ def demo_batch_export():
     print()
 
     # Rank guides
-    ranked = rank_guides_batch(
-        guide_sequences=guides,
-        shots=1000
-    )
+    ranked = rank_guides_batch(guide_sequences=guides, shots=1000)
 
     # Generate report
     report = generate_guide_report(ranked, top_n=3)
@@ -143,7 +135,7 @@ def demo_research_validation():
     result = validate_research_use(
         purpose="In silico CRISPR guide design for cancer research",
         institution="Academic Research Lab",
-        ethics_approval=False  # Not needed for simulation
+        ethics_approval=False,  # Not needed for simulation
     )
 
     print(f"Validated: {result['validated']}")
@@ -151,9 +143,9 @@ def demo_research_validation():
     print(f"Purpose: {result['purpose']}")
     print()
 
-    if result['warnings']:
+    if result["warnings"]:
         print("Warnings:")
-        for warning in result['warnings']:
+        for warning in result["warnings"]:
             print(f"  {warning}")
         print()
 

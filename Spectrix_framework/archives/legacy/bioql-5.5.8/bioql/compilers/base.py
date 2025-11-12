@@ -13,6 +13,7 @@ try:
     from loguru import logger
 except ImportError:
     import logging
+
     logger = logging.getLogger(__name__)
 
 from bioql.ir import (
@@ -28,6 +29,7 @@ from bioql.ir import (
 
 class CompilationError(Exception):
     """Exception raised when compilation fails."""
+
     pass
 
 
@@ -119,7 +121,9 @@ class BaseCompiler(ABC):
         pass
 
     @abstractmethod
-    def execute(self, compiled_program: Any, shots: int = 1000, program_id: Optional[str] = None) -> BioQLResult:
+    def execute(
+        self, compiled_program: Any, shots: int = 1000, program_id: Optional[str] = None
+    ) -> BioQLResult:
         """
         Execute a compiled program.
 
@@ -153,27 +157,21 @@ class BaseCompiler(ABC):
 
     @abstractmethod
     def _compile_docking_operation(
-        self,
-        operation: DockingOperation,
-        circuit: QuantumCircuitInterface
+        self, operation: DockingOperation, circuit: QuantumCircuitInterface
     ) -> None:
         """Compile a docking operation into quantum gates."""
         pass
 
     @abstractmethod
     def _compile_alignment_operation(
-        self,
-        operation: AlignmentOperation,
-        circuit: QuantumCircuitInterface
+        self, operation: AlignmentOperation, circuit: QuantumCircuitInterface
     ) -> None:
         """Compile an alignment operation into quantum gates."""
         pass
 
     @abstractmethod
     def _compile_optimization_operation(
-        self,
-        operation: QuantumOptimizationOperation,
-        circuit: QuantumCircuitInterface
+        self, operation: QuantumOptimizationOperation, circuit: QuantumCircuitInterface
     ) -> None:
         """Compile an optimization operation into quantum gates."""
         pass
@@ -202,7 +200,7 @@ class BaseCompiler(ABC):
         circuit: QuantumCircuitInterface,
         molecule_data: str,
         start_qubit: int,
-        num_qubits: int
+        num_qubits: int,
     ) -> None:
         """
         Create a basic molecular encoding using quantum gates.
@@ -228,20 +226,13 @@ class BaseCompiler(ABC):
                 angle = (ord(molecule_data[i]) % 256) * 3.14159 / 128
                 circuit.add_rotation_y(qubit, angle)
 
-    def _create_entangling_layer(
-        self,
-        circuit: QuantumCircuitInterface,
-        qubits: List[int]
-    ) -> None:
+    def _create_entangling_layer(self, circuit: QuantumCircuitInterface, qubits: List[int]) -> None:
         """Create an entangling layer between qubits."""
         for i in range(len(qubits) - 1):
             circuit.add_cnot(qubits[i], qubits[i + 1])
 
     def _create_variational_layer(
-        self,
-        circuit: QuantumCircuitInterface,
-        qubits: List[int],
-        parameters: List[float]
+        self, circuit: QuantumCircuitInterface, qubits: List[int], parameters: List[float]
     ) -> None:
         """Create a variational layer with parameterized gates."""
         param_idx = 0
@@ -302,7 +293,7 @@ class MockQuantumCircuit(QuantumCircuitInterface):
             "OPENQASM 2.0;",
             'include "qelib1.inc";',
             f"qreg q[{self.num_qubits}];",
-            f"creg c[{len(self.measurements)}];"
+            f"creg c[{len(self.measurements)}];",
         ]
 
         for gate in self.gates:
@@ -330,9 +321,4 @@ class MockQuantumCircuit(QuantumCircuitInterface):
 
 
 # Export main classes
-__all__ = [
-    "BaseCompiler",
-    "CompilationError",
-    "QuantumCircuitInterface",
-    "MockQuantumCircuit"
-]
+__all__ = ["BaseCompiler", "CompilationError", "QuantumCircuitInterface", "MockQuantumCircuit"]

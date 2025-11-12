@@ -13,6 +13,7 @@ try:
     from loguru import logger
 except ImportError:
     import logging
+
     logger = logging.getLogger(__name__)
 
 from bioql.ir import (
@@ -23,11 +24,13 @@ from bioql.ir import (
     QuantumBackend,
     QuantumOptimizationOperation,
 )
+
 from .base import BaseCompiler, CompilationError, QuantumCircuitInterface
 
 # Try to import Cirq with graceful fallback
 try:
     import cirq
+
     CIRQ_AVAILABLE = True
 except ImportError:
     logger.warning("Cirq not available, using mock implementation")
@@ -73,7 +76,7 @@ class CirqCircuitWrapper(QuantumCircuitInterface):
 
     def add_measurement(self, qubit: int, classical_bit: int) -> None:
         if qubit not in self.measurements_added:
-            self.circuit.append(cirq.measure(self.qubits[qubit], key=f'q{qubit}'))
+            self.circuit.append(cirq.measure(self.qubits[qubit], key=f"q{qubit}"))
             self.measurements_added.add(qubit)
 
     def get_depth(self) -> int:
@@ -88,7 +91,7 @@ class CirqCircuitWrapper(QuantumCircuitInterface):
             "OPENQASM 2.0;",
             'include "qelib1.inc";',
             f"qreg q[{self.num_qubits}];",
-            f"creg c[{len(self.measurements_added)}];"
+            f"creg c[{len(self.measurements_added)}];",
         ]
 
         gate_count = 0
@@ -158,6 +161,7 @@ class CirqCompiler(BaseCompiler):
             else:
                 # Use mock implementation
                 from .base import MockQuantumCircuit
+
                 circuit_wrapper = MockQuantumCircuit(num_qubits)
 
             # Compile each operation
@@ -179,22 +183,29 @@ class CirqCompiler(BaseCompiler):
 
             if CIRQ_AVAILABLE and isinstance(circuit_wrapper, CirqCircuitWrapper):
                 compiled_circuit = circuit_wrapper.get_cirq_circuit()
-                self.logger.success(f"Compiled circuit: {len(compiled_circuit)} moments, {circuit_wrapper.get_gate_count()} gates")
+                self.logger.success(
+                    f"Compiled circuit: {len(compiled_circuit)} moments, {circuit_wrapper.get_gate_count()} gates"
+                )
                 return compiled_circuit
             else:
                 # Return mock representation
                 return {
                     "type": "mock_cirq_circuit",
                     "num_qubits": num_qubits,
-                    "gates": getattr(circuit_wrapper, 'gates', []),
-                    "measurements": getattr(circuit_wrapper, 'measurements', [])
+                    "gates": getattr(circuit_wrapper, "gates", []),
+                    "measurements": getattr(circuit_wrapper, "measurements", []),
                 }
 
         except Exception as e:
             self.logger.error(f"Compilation failed: {e}")
             raise CompilationError(f"Failed to compile program: {e}")
 
-    def execute(self, compiled_program: Union[Any, Dict[str, Any]], shots: int = 1000, program_id: Optional[str] = None) -> BioQLResult:
+    def execute(
+        self,
+        compiled_program: Union[Any, Dict[str, Any]],
+        shots: int = 1000,
+        program_id: Optional[str] = None,
+    ) -> BioQLResult:
         """
         Execute a compiled Cirq program.
 
@@ -208,7 +219,7 @@ class CirqCompiler(BaseCompiler):
         start_time = datetime.datetime.utcnow()
 
         try:
-            if CIRQ_AVAILABLE and hasattr(compiled_program, 'all_operations'):
+            if CIRQ_AVAILABLE and hasattr(compiled_program, "all_operations"):
                 # Execute on Cirq
                 result = self._execute_cirq_circuit(compiled_program, shots)
             else:
@@ -218,6 +229,7 @@ class CirqCompiler(BaseCompiler):
             execution_time = (datetime.datetime.utcnow() - start_time).total_seconds()
 
             from uuid import uuid4
+
             return BioQLResult(
                 program_id=program_id or uuid4(),
                 status="success",
@@ -226,7 +238,7 @@ class CirqCompiler(BaseCompiler):
                 shots_executed=shots,
                 backend_used=QuantumBackend.CIRQ,
                 execution_timestamp=start_time.isoformat(),
-                version_info={"cirq": "simulated" if not CIRQ_AVAILABLE else "real"}
+                version_info={"cirq": "simulated" if not CIRQ_AVAILABLE else "real"},
             )
 
         except Exception as e:
@@ -234,6 +246,7 @@ class CirqCompiler(BaseCompiler):
             self.logger.error(f"Execution failed: {e}")
 
             from uuid import uuid4
+
             return BioQLResult(
                 program_id=program_id or uuid4(),
                 status="failed",
@@ -241,7 +254,7 @@ class CirqCompiler(BaseCompiler):
                 error_type=type(e).__name__,
                 execution_time=execution_time,
                 backend_used=QuantumBackend.CIRQ,
-                execution_timestamp=start_time.isoformat()
+                execution_timestamp=start_time.isoformat(),
             )
 
     def _execute_cirq_circuit(self, circuit: Any, shots: int) -> Dict[str, Any]:
@@ -261,7 +274,7 @@ class CirqCompiler(BaseCompiler):
             # Get all measurement keys
             keys = sorted(measurements.keys())
             for i in range(shots):
-                bit_string = ''.join(str(measurements[key][i][0]) for key in keys)
+                bit_string = "".join(str(measurements[key][i][0]) for key in keys)
                 counts[bit_string] = counts.get(bit_string, 0) + 1
 
         return {
@@ -269,7 +282,7 @@ class CirqCompiler(BaseCompiler):
             "circuit_depth": len(circuit),
             "gate_count": len(list(circuit.all_operations())),
             "shots_requested": shots,
-            "shots_executed": shots
+            "shots_executed": shots,
         }
 
     def _execute_mock_circuit(self, circuit_data: Dict[str, Any], shots: int) -> Dict[str, Any]:
@@ -280,7 +293,7 @@ class CirqCompiler(BaseCompiler):
         counts = {}
         for _ in range(shots):
             # Generate random bit string
-            bit_string = ''.join(str(random.randint(0, 1)) for _ in range(num_qubits))
+            bit_string = "".join(str(random.randint(0, 1)) for _ in range(num_qubits))
             counts[bit_string] = counts.get(bit_string, 0) + 1
 
         return {
@@ -289,26 +302,20 @@ class CirqCompiler(BaseCompiler):
             "gate_count": len(circuit_data.get("gates", [])),
             "shots_requested": shots,
             "shots_executed": shots,
-            "note": "Mock execution (Cirq not available)"
+            "note": "Mock execution (Cirq not available)",
         }
 
     def _compile_docking_operation(
-        self,
-        operation: DockingOperation,
-        circuit: QuantumCircuitInterface
+        self, operation: DockingOperation, circuit: QuantumCircuitInterface
     ) -> None:
         """Compile a docking operation into quantum gates."""
         self.logger.debug("Compiling docking operation for Cirq")
 
         # Encode receptor molecule (qubits 0-3)
-        self._create_molecular_encoding_circuit(
-            circuit, operation.receptor.data, 0, 4
-        )
+        self._create_molecular_encoding_circuit(circuit, operation.receptor.data, 0, 4)
 
         # Encode ligand molecule (qubits 4-7)
-        self._create_molecular_encoding_circuit(
-            circuit, operation.ligand.data, 4, 4
-        )
+        self._create_molecular_encoding_circuit(circuit, operation.ligand.data, 4, 4)
 
         # Create entanglement for docking interaction
         self._create_entangling_layer(circuit, list(range(8)))
@@ -319,7 +326,7 @@ class CirqCompiler(BaseCompiler):
             operation.energy_threshold / 10.0,
             operation.num_poses / 100.0,
             1.5708,  # π/2
-            0.7854   # π/4
+            0.7854,  # π/4
         ]
         self._create_variational_layer(circuit, list(range(8)), parameters)
 
@@ -327,9 +334,7 @@ class CirqCompiler(BaseCompiler):
         self._add_cirq_specific_gates(circuit, list(range(8)))
 
     def _compile_alignment_operation(
-        self,
-        operation: AlignmentOperation,
-        circuit: QuantumCircuitInterface
+        self, operation: AlignmentOperation, circuit: QuantumCircuitInterface
     ) -> None:
         """Compile an alignment operation into quantum gates."""
         self.logger.debug("Compiling alignment operation for Cirq")
@@ -356,9 +361,7 @@ class CirqCompiler(BaseCompiler):
         self._add_cirq_specific_gates(circuit, list(range(8)))
 
     def _compile_optimization_operation(
-        self,
-        operation: QuantumOptimizationOperation,
-        circuit: QuantumCircuitInterface
+        self, operation: QuantumOptimizationOperation, circuit: QuantumCircuitInterface
     ) -> None:
         """Compile an optimization operation into quantum gates."""
         self.logger.debug("Compiling optimization operation for Cirq")
@@ -376,7 +379,7 @@ class CirqCompiler(BaseCompiler):
                 circuit.add_hadamard(q)
 
             # Variable-specific encoding
-            if hasattr(variable.value, '__float__'):
+            if hasattr(variable.value, "__float__"):
                 angle = float(variable.value) * 3.14159 / 100
                 for q in range(start_qubit, end_qubit):
                     circuit.add_rotation_y(q, angle)

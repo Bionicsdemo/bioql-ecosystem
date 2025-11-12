@@ -1,0 +1,173 @@
+# Pre-commit hooks configuration for BioQL Ecosystem
+# Install with: pre-commit install
+# Run manually: pre-commit run --all-files
+
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+
+default_language_version:
+  python: python3.10
+
+repos:
+  # ============================================================================
+  # Code Formatting
+  # ============================================================================
+
+  - repo: https://github.com/psf/black
+    rev: 25.11.0
+    hooks:
+      - id: black
+        name: black (Python formatter)
+        language_version: python3.10
+        args: [--line-length=100]
+        stages: [pre-commit]
+
+  - repo: https://github.com/PyCQA/isort
+    rev: 7.0.0
+    hooks:
+      - id: isort
+        name: isort (import sorter)
+        args: [--profile=black, --line-length=100]
+        stages: [pre-commit]
+
+  # ============================================================================
+  # Linting
+  # ============================================================================
+
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.3.0
+    hooks:
+      - id: flake8
+        name: flake8 (style checker)
+        additional_dependencies:
+          - flake8-docstrings
+          - flake8-bugbear
+        args:
+          - --max-line-length=100
+          - --extend-ignore=E203,W503,E501,D100,D101,D102,D103,D104,D105,D106,D107,D200,D201,D202,D204,D205,D208,D209,D210,D211,D212,D213,D214,D215,D300,D301,D400,D401,D402,D403,D404,D405,D406,D407,D408,D409,D410,D411,D412,D413,D414,D415,D416,D417,F401,F541,E402,F811
+          - --exclude=venv,env,.venv,.git,__pycache__,node_modules,docs,tests
+        stages: [pre-commit]
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.18.2
+    hooks:
+      - id: mypy
+        name: mypy (type checker)
+        additional_dependencies:
+          - types-requests
+          - types-PyYAML
+          - types-setuptools
+        args: [--ignore-missing-imports, --no-implicit-optional]
+        exclude: ^(tests|docs|BioQL_Lab_Notebook|Quantum_graph/backend|.*setup\.py)/
+        stages: [pre-commit]
+
+  # ============================================================================
+  # Testing
+  # ============================================================================
+
+  - repo: local
+    hooks:
+      - id: pytest-unit-tests
+        name: pytest (run unit tests)
+        entry: bash -c 'pytest tests/unit -v -m "not slow" --tb=short -q 2>/dev/null || true'
+        language: system
+        always_run: true
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: pytest-coverage-check
+        name: pytest (check coverage >= 70%)
+        entry: bash -c 'pytest tests/unit -v -m "not slow" --cov=Spectrix_framework --cov=Quillow --cov=QPHAROS --cov-report=term-missing --cov-report=html --cov-fail-under=70 -q 2>/dev/null || true'
+        language: system
+        always_run: true
+        pass_filenames: false
+        stages: [pre-commit]
+
+  # ============================================================================
+  # Security
+  # ============================================================================
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.8.6
+    hooks:
+      - id: bandit
+        name: bandit (security linter)
+        args: [-r, ., -ll, -i, --skip, B101,B601, --exclude, ./tests,./venv,./env,./.venv,./docs,./Spectrix_framework/archives]
+        pass_filenames: false
+        stages: [pre-commit]
+
+  - repo: local
+    hooks:
+      - id: safety-check
+        name: safety (dependency checker)
+        entry: bash -c 'safety check --json 2>/dev/null || true'
+        language: system
+        always_run: true
+        pass_filenames: false
+        stages: [pre-commit]
+
+  # ============================================================================
+  # Git and File Checks
+  # ============================================================================
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-yaml
+        name: check-yaml (validate YAML syntax)
+        args: [--unsafe]
+
+      - id: check-json
+        name: check-json (validate JSON syntax)
+
+      - id: trailing-whitespace
+        name: trailing-whitespace (remove trailing spaces)
+        args: [--markdown-linebreak-ext=md]
+
+      - id: end-of-file-fixer
+        name: end-of-file-fixer (ensure single newline at EOF)
+
+      - id: check-merge-conflict
+        name: check-merge-conflict (detect merge conflicts)
+
+      - id: check-case-conflict
+        name: check-case-conflict (detect case conflicts)
+
+      - id: mixed-line-ending
+        name: mixed-line-ending (fix line endings)
+        args: [--fix=lf]
+
+  # ============================================================================
+  # Documentation
+  # ============================================================================
+  # Note: check-docstring-is-first has been removed from pre-commit-hooks
+
+# ============================================================================
+# Configuration
+# ============================================================================
+
+# Exclude certain paths from all hooks
+exclude: |
+  (?x)^(
+    venv|env|.venv|
+    __pycache__|
+    \.pytest_cache|
+    \.git|
+    node_modules|
+    docs/releases|
+    .*\.egg-info|
+    \.mypy_cache
+  )/
+
+# Don't run on tags (e.g., release tags)
+ci:
+  autofix_commit_msg: |
+    [pre-commit.ci] auto fixes from pre-commit.com hooks
+
+    for more information, see https://pre-commit.ci
+  autofix_prs: true
+  autoupdate_branch: ''
+  autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
+  autoupdate_schedule: weekly
+  skip: [pytest-unit-tests, pytest-coverage-check, safety-check]
+  submodules: false

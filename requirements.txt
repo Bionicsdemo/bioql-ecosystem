@@ -1,134 +1,317 @@
-# BioQL Ecosystem - Root Dependencies
-# Version: 1.0.0
+# =============================================================================
+# BioQL ECOSYSTEM - CONSOLIDATED REQUIREMENTS
+# =============================================================================
+# Version: 2.0.0
 # Last Updated: 2025-11-12
+#
+# This file consolidates all dependencies from the BioQL Ecosystem components:
+# - Spectrix_framework (BioQL Core v6.0.1)
+# - Quillow (Quantum Error Correction v1.0.0)
+# - QPHAROS (Quantum Pharmaceutical Optimization v1.1.0)
+# - Quantum_graph (Scientific Visualization v1.0.0)
+# - Server_bioql (BioQL Bench & Backend)
+# - BioQL_agents (Workflow Server)
+# - BioQL_Lab_Notebook (Lab Notebook Backend)
+# - BIOQL_DEMO/GENIKA (Multiomics Demo)
+# - bioql_quillow_docking (Quantum Docking)
+# - ai/quantum_ai_modal (AI/ML Integration)
+#
+# Installation: pip install -r requirements.txt
+# =============================================================================
 
 # =============================================================================
-# CORE QUANTUM COMPUTING
+# QUANTUM COMPUTING FRAMEWORKS
 # =============================================================================
-qiskit>=1.3.0                    # IBM Quantum framework
-qiskit-aer>=0.15.0              # Quantum circuit simulator
-qiskit-ibm-runtime>=0.30.0      # IBM Quantum Runtime
-qiskit-nature>=0.7.0            # Quantum chemistry
-qiskit-optimization>=0.6.0      # Optimization algorithms
+# IBM Quantum stack - using latest compatible versions
+qiskit>=1.3.0,<2.0.0                    # IBM Quantum framework
+qiskit-aer>=0.15.0                      # High-performance quantum circuit simulator
+qiskit-ibm-runtime>=0.30.0              # IBM Quantum Runtime API
+qiskit-nature>=0.7.0                    # Quantum chemistry algorithms
+qiskit-optimization>=0.6.0              # Quantum optimization algorithms
+qiskit-machine-learning>=0.7.0          # Quantum machine learning
+
+# AWS Braket
+amazon-braket-sdk>=1.59.0               # AWS quantum computing service
+
+# Google Cirq ecosystem
+cirq>=1.3.0                             # Google's quantum computing framework
+cirq-ionq>=1.3.0                        # IonQ quantum computing backend
+
+# Quantum Error Correction (Quillow dependencies)
+stim>=1.12.0                            # Fast stabilizer circuit simulator
+pymatching>=2.0.0                       # Minimum weight perfect matching decoder
 
 # =============================================================================
-# BIOQL ECOSYSTEM PACKAGES
+# BIOQL ECOSYSTEM PACKAGES (Core)
 # =============================================================================
 # Install from local directories in development:
-# pip install -e ./Spectrix_framework
-# pip install -e ./Quillow
-# pip install -e ./QPHAROS
-# pip install -e ./Quantum_graph
-
-# Or from PyPI in production:
+#   pip install -e ./Spectrix_framework
+#   pip install -e ./Quillow
+#   pip install -e ./QPHAROS
+#   pip install -e ./Quantum_graph
+#
+# Or from PyPI in production (uncomment as needed):
 # bioql>=6.0.1
 # quillow>=1.0.0
 # qpharos>=1.1.0
+# quantum-graph>=1.0.0
 
 # =============================================================================
-# MOLECULAR & CHEMISTRY
+# CHEMISTRY & MOLECULAR MODELING
 # =============================================================================
-rdkit>=2023.9.1                 # Cheminformatics
-openbabel>=3.1.1                # Chemical toolbox
-biopython>=1.81                 # Bioinformatics
-scipy>=1.11.0                   # Scientific computing
-numpy>=1.24.0                   # Array operations
+rdkit>=2023.9.1                         # Cheminformatics toolkit
+rdkit-pypi>=2022.9.1                    # Alternative RDKit package
+# openbabel-wheel>=3.1.1 - REMOVED: GPL-2.0 license incompatible with Apache 2.0
+# Users who need OpenBabel must install it separately
+# Alternative: RDKit provides similar functionality
+biopython>=1.81                         # Bioinformatics library
+
+# Advanced Bioinformatics
+pyteomics>=4.6                          # Mass spectrometry data analysis
+pymzml>=2.5.2                           # mzML file parser
+pyopenms>=2.9.1                         # OpenMS framework for mass spectrometry
+
+# Molecular Docking (optional extras)
+# meeko>=0.4.0                          # Ligand preparation for AutoDock Vina
+# pybel>=0.15.0                         # Python bindings for OpenBabel
 
 # =============================================================================
-# WEB FRAMEWORKS & APIs
+# SCIENTIFIC COMPUTING & DATA PROCESSING
 # =============================================================================
-fastapi>=0.104.0                # Web framework
-uvicorn[standard]>=0.24.0       # ASGI server
-requests>=2.31.0                # HTTP client
-pydantic>=2.4.0                 # Data validation
-websockets>=12.0                # WebSocket support
+numpy>=1.26.0,<3.0.0                    # Numerical computing
+scipy>=1.11.0                           # Scientific computing algorithms
+pandas>=2.1.0                           # Data manipulation and analysis
+scikit-learn>=1.3.0                     # Machine learning algorithms
+numba>=0.56.0                           # JIT compilation for performance
+networkx>=3.0                           # Graph and network algorithms
+python-dateutil>=2.8.2                  # Date utilities
 
 # =============================================================================
-# DATABASE & CACHING
+# WEB FRAMEWORKS & API
 # =============================================================================
-sqlalchemy>=2.0.0               # SQL toolkit
-redis>=5.0.0                    # Caching
-psycopg2-binary>=2.9.0          # PostgreSQL adapter
+# FastAPI stack (preferred for new services)
+fastapi>=0.104.1                        # Modern web framework
+uvicorn[standard]>=0.24.0               # ASGI server
+pydantic>=2.5.0                         # Data validation
+python-multipart>=0.0.6                 # Multipart form data support
+
+# Flask stack (legacy support)
+Flask>=3.0.0                            # Web framework
+flask-cors>=4.0.0                       # CORS support
+flask-socketio>=5.3.5                   # WebSocket support
+Flask-SQLAlchemy>=3.1.1                 # SQLAlchemy integration
+Flask-Migrate>=4.0.5                    # Database migrations
+Flask-Login>=0.6.3                      # User authentication
+Flask-WTF>=1.2.1                        # Forms integration
+Werkzeug>=3.0.1                         # WSGI utilities
+python-socketio>=5.10.0                 # Socket.IO server
+python-engineio>=4.8.0                  # Engine.IO server
+gevent>=23.9.1                          # Coroutine networking
+gevent-websocket>=0.10.1                # WebSocket support for gevent
+eventlet>=0.33.3                        # Concurrent networking
+
+# API Utilities
+marshmallow>=3.20.1                     # Object serialization
+flask-marshmallow>=0.15.0               # Flask + Marshmallow integration
+marshmallow-sqlalchemy>=0.29.0          # SQLAlchemy integration
+flasgger>=0.9.7.1                       # Swagger UI for Flask
+requests>=2.31.0                        # HTTP client library
+httpx>=0.27.0                           # Async HTTP client
+websockets>=12.0                        # WebSocket protocol
+aiofiles>=23.2.1                        # Async file operations
 
 # =============================================================================
-# AUTHENTICATION & BILLING
+# DATABASE & STORAGE
 # =============================================================================
-stripe>=7.0.0                   # Payment processing
-pyjwt>=2.8.0                    # JWT tokens
-passlib>=1.7.4                  # Password hashing
-bcrypt>=4.0.0                   # Encryption
+SQLAlchemy>=2.0.23                      # SQL toolkit and ORM
+psycopg2-binary>=2.9.9                  # PostgreSQL adapter
+pymongo>=4.5.0                          # MongoDB driver
+alembic>=1.12.1                         # Database migrations
+aiosqlite>=0.19.0                       # Async SQLite
+redis>=5.0.1                            # Redis client
+celery>=5.3.4                           # Distributed task queue
+
+# =============================================================================
+# AUTHENTICATION & SECURITY
+# =============================================================================
+stripe>=7.8.0                           # Payment processing
+PyJWT>=2.8.0                            # JSON Web Token
+bcrypt>=4.1.1                           # Password hashing
+passlib>=1.7.4                          # Password hashing library
+email-validator>=2.1.0                  # Email validation
+WTForms>=3.1.1                          # Web forms validation
+python-magic>=0.4.27                    # File type identification
+bleach>=6.1.0                           # HTML sanitization
 
 # =============================================================================
 # AI & MACHINE LEARNING
 # =============================================================================
-torch>=2.1.0                    # Deep learning
-transformers>=4.35.0            # NLP models
-scikit-learn>=1.3.0             # ML algorithms
+# Deep Learning Frameworks
+torch>=2.3.0                            # PyTorch deep learning
+tensorflow>=2.13.0                      # TensorFlow framework
+keras>=2.13.0                           # High-level neural networks API
+
+# NLP & Transformers
+transformers>=4.41.1                    # Hugging Face transformers
+datasets>=2.19.1                        # Dataset library
+accelerate>=0.31.0                      # Distributed training
+peft>=0.11.1                            # Parameter-efficient fine-tuning
+bitsandbytes>=0.43.1                    # 8-bit optimizers
+sentencepiece>=0.2.0                    # Text tokenization
 
 # =============================================================================
-# DATA PROCESSING
+# DATA VISUALIZATION
 # =============================================================================
-pandas>=2.1.0                   # Data manipulation
-matplotlib>=3.8.0               # Plotting
-seaborn>=0.13.0                 # Statistical plots
-plotly>=5.17.0                  # Interactive plots
+matplotlib>=3.8.2                       # 2D plotting library
+seaborn>=0.13.0                         # Statistical visualization
+plotly>=5.18.0                          # Interactive plots
+py3Dmol>=2.0.4                          # 3D molecular visualization
+
+# Advanced Visualization (optional)
+# nglview>=3.0.8                        # Molecular structure viewer
+# pymol-open-source>=2.5.0              # Molecular graphics system
+# bokeh>=3.3.0                          # Interactive visualization
 
 # =============================================================================
-# UTILITIES
+# FILE HANDLING & FORMATS
 # =============================================================================
-python-dotenv>=1.0.0            # Environment variables
-pyyaml>=6.0.1                   # YAML parsing
-toml>=0.10.2                    # TOML parsing
-click>=8.1.7                    # CLI framework
-rich>=13.6.0                    # Terminal formatting
-loguru>=0.7.2                   # Logging
+openpyxl>=3.1.2                         # Excel file handling
+PyPDF2>=3.0.1                           # PDF file manipulation
+Pillow>=10.1.0                          # Image processing
+pyyaml>=6.0.1                           # YAML parser
+jsonschema>=4.19.0                      # JSON schema validation
+toml>=0.10.2                            # TOML parser
+markdown>=3.5.1                         # Markdown parser
 
 # =============================================================================
-# TESTING & QUALITY
+# UTILITIES & CLI
 # =============================================================================
-pytest>=7.4.0                   # Testing framework
-pytest-cov>=4.1.0               # Coverage reports
-pytest-asyncio>=0.21.0          # Async testing
-black>=23.11.0                  # Code formatter
-flake8>=6.1.0                   # Linter
-mypy>=1.7.0                     # Type checker
-isort>=5.12.0                   # Import sorter
+python-dotenv>=1.0.1                    # Environment variable management
+click>=8.1.7                            # CLI framework
+typer>=0.9.0                            # Modern CLI framework
+rich>=13.6.0                            # Terminal formatting and colors
+tqdm>=4.66.0                            # Progress bars
+loguru>=0.7.2                           # Enhanced logging
+python-json-logger>=2.0.7               # JSON logging
+uuid6>=2023.5.2                         # UUID support
+
+# =============================================================================
+# TESTING & DEVELOPMENT
+# =============================================================================
+pytest>=7.4.3                           # Testing framework
+pytest-flask>=1.3.0                     # Flask testing utilities
+pytest-cov>=4.1.0                       # Coverage plugin
+pytest-asyncio>=0.21.0                  # Async testing support
+coverage>=7.3.2                         # Code coverage measurement
+
+# Code Quality
+black>=23.12.1                          # Code formatter
+flake8>=6.1.0                           # Style guide enforcement
+autopep8>=2.0.4                         # PEP 8 auto-formatter
+mypy>=1.7.0                             # Static type checker
+pylint>=2.17.0                          # Code analysis
+isort>=5.12.0                           # Import sorter
+pre-commit>=2.20.0                      # Git hooks framework
+
+# Development Tools
+ipython>=8.17.2                         # Enhanced Python shell
+ipywidgets>=8.1.0                       # Interactive widgets
 
 # =============================================================================
 # DOCUMENTATION
 # =============================================================================
-sphinx>=7.2.0                   # Docs generator
-sphinx-rtd-theme>=1.3.0         # ReadTheDocs theme
-mkdocs>=1.5.0                   # Alternative docs
-mkdocs-material>=9.4.0          # Material theme
+sphinx>=7.2.0                           # Documentation generator
+sphinx-rtd-theme>=1.3.0                 # Read the Docs theme
+sphinx-autodoc-typehints>=1.19.0        # Type hints in docs
+myst-parser>=2.0.0                      # Markdown parser for Sphinx
+mkdocs>=1.5.0                           # Alternative docs generator
+mkdocs-material>=9.4.0                  # Material theme for MkDocs
+sphinxcontrib-napoleon>=0.7             # Google/NumPy docstring support
 
 # =============================================================================
-# DEPLOYMENT & MONITORING
+# DEPLOYMENT & PRODUCTION
 # =============================================================================
-gunicorn>=21.2.0                # WSGI server
-prometheus-client>=0.19.0       # Metrics
-sentry-sdk>=1.38.0              # Error tracking
+gunicorn>=21.2.0                        # WSGI HTTP server
+prometheus-client>=0.19.0               # Metrics collection
+sentry-sdk>=1.38.0                      # Error tracking and monitoring
 
 # =============================================================================
-# CLOUD PROVIDERS (OPTIONAL)
+# CLOUD & DISTRIBUTED COMPUTING (Optional)
 # =============================================================================
-# modal>=0.56.0                 # Modal deployment
-# boto3>=1.29.0                 # AWS SDK
+# modal>=0.62.0                         # Modal serverless platform
+# boto3>=1.29.0                         # AWS SDK
+# azure-quantum>=1.0.0                  # Azure Quantum SDK
+
+# Optional GPU Support
+# cupy>=12.0.0                          # CUDA arrays for GPU acceleration
 
 # =============================================================================
-# NOTES
+# JUPYTER NOTEBOOK SUPPORT (Optional)
 # =============================================================================
-# To install all dependencies:
+jupyter>=1.0.0                          # Jupyter metapackage
+jupyterlab>=4.0.0                       # JupyterLab environment
+notebook>=7.0.0                         # Jupyter Notebook
+
+# =============================================================================
+# BUILD & PACKAGING TOOLS (Development)
+# =============================================================================
+# build>=0.10.0                         # PEP 517 build frontend
+# twine>=4.0.0                          # PyPI upload tool
+# setuptools>=65.0.0                    # Package installer
+# wheel>=0.38.0                         # Package format
+
+# =============================================================================
+# QUANTUM CHEMISTRY (Advanced - Optional)
+# =============================================================================
+# openfermionpyscf>=0.5                 # Quantum chemistry with PySCF
+# pyscf>=2.0.0                          # Python quantum chemistry
+# openmm>=8.0.0                         # Molecular dynamics
+
+# =============================================================================
+# NOTES & INSTALLATION INSTRUCTIONS
+# =============================================================================
+#
+# BASIC INSTALLATION:
 #   pip install -r requirements.txt
 #
-# To install development dependencies:
-#   pip install -r requirements.txt -r requirements-dev.txt
+# DEVELOPMENT INSTALLATION:
+#   pip install -r requirements.txt
+#   pip install -e ./Spectrix_framework
+#   pip install -e ./Quillow
+#   pip install -e ./QPHAROS
+#   pip install -e ./Quantum_graph
 #
-# To create lockfile:
+# CREATE LOCKFILE:
 #   pip freeze > requirements-lock.txt
 #
-# Component-specific requirements:
-#   - Quillow: See Quillow/requirements.txt
-#   - QPHAROS: See QPHAROS/requirements.txt
-#   - Quantum_graph: See Quantum_graph/requirements.txt
+# UPGRADE ALL PACKAGES:
+#   pip install --upgrade -r requirements.txt
+#
+# COMPONENT-SPECIFIC REQUIREMENTS:
+#   - Spectrix_framework: Core BioQL dependencies in setup.py
+#   - Quillow: See Quillow/requirements.txt and setup.py
+#   - QPHAROS: See QPHAROS/requirements.txt and setup.py
+#   - Quantum_graph: See Quantum_graph/requirements.txt and setup.py
+#   - Server_bioql: See Server_bioql/bioql-bench/requirements.txt
 #   - BioQL_agents: See BioQL_agents/backend/requirements.txt
+#   - BioQL_Lab_Notebook: See BioQL_Lab_Notebook/backend/requirements.txt
+#   - BIOQL_DEMO/GENIKA: See BIOQL_DEMO/GENIKA/requirements.txt
+#   - bioql_quillow_docking: See bioql_quillow_docking/requirements.txt
+#   - ai/quantum_ai_modal: See ai/quantum_ai_modal/requirements.txt
+#
+# PLATFORM-SPECIFIC NOTES:
+#   - macOS: Some packages may require Xcode Command Line Tools
+#   - Linux: May need build-essential, python3-dev packages
+#   - Windows: Some chemistry packages may require additional setup
+#
+# PYTHON VERSION REQUIREMENTS:
+#   - Minimum: Python 3.8
+#   - Recommended: Python 3.10 or 3.11
+#   - Maximum tested: Python 3.12
+#
+# QUANTUM HARDWARE ACCESS:
+#   - IBM Quantum: Requires IBM Quantum account and API token
+#   - AWS Braket: Requires AWS account with Braket permissions
+#   - IonQ: Requires IonQ account or access through cloud providers
+#
+# =============================================================================

@@ -8,7 +8,8 @@ All quantum backends must implement this interface for:
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
+
 import numpy as np
 
 
@@ -38,7 +39,7 @@ class QuantumEngine(ABC):
         self,
         angles: List[float],
         coupling_strength: float = 1.0,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Execute quantum circuit for energy estimation
@@ -78,10 +79,10 @@ class QuantumEngine(ABC):
             Dictionary with backend details
         """
         return {
-            'backend_name': self.backend_name,
-            'shots': self.shots,
-            'validated': self.validated,
-            'engine_type': self.__class__.__name__
+            "backend_name": self.backend_name,
+            "shots": self.shots,
+            "validated": self.validated,
+            "engine_type": self.__class__.__name__,
         }
 
     def _validate_angles(self, angles: List[float]) -> None:
@@ -100,7 +101,7 @@ class QuantumEngine(ABC):
         if not all(isinstance(a, (int, float)) for a in angles):
             raise ValueError("All angles must be numeric")
 
-        if not all(0 <= a <= 2*np.pi for a in angles):
+        if not all(0 <= a <= 2 * np.pi for a in angles):
             raise ValueError("All angles must be in range [0, 2π]")
 
     def _calculate_confidence(self, counts: Dict[str, int]) -> float:

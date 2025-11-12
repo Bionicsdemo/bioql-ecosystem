@@ -4,9 +4,10 @@ BioQL Advanced Quantum Error Correction & Mitigation
 Combines OpenFermion, Qualtran, and custom strategies for 100% accuracy
 """
 
-import numpy as np
-from typing import Dict, Any, Optional, List, Tuple
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
 
 from .logger import get_logger
 
@@ -53,7 +54,7 @@ class AdvancedErrorMitigation:
         counts: Dict[str, int],
         num_qubits: int,
         expected_energy: Optional[float] = None,
-        methods: Optional[List[str]] = None
+        methods: Optional[List[str]] = None,
     ) -> ErrorMitigationResult:
         """
         Apply full error mitigation pipeline.
@@ -68,7 +69,7 @@ class AdvancedErrorMitigation:
             ErrorMitigationResult with mitigated counts and accuracy
         """
         if methods is None:
-            methods = ['readout', 'zne', 'symmetry', 'pec']
+            methods = ["readout", "zne", "symmetry", "pec"]
 
         try:
             logger.info(f"Applying error mitigation: {methods}")
@@ -77,31 +78,23 @@ class AdvancedErrorMitigation:
             mitigated_counts = counts.copy()
 
             # 1. Readout error mitigation
-            if 'readout' in methods:
-                mitigated_counts = self._readout_error_mitigation(
-                    mitigated_counts,
-                    num_qubits
-                )
+            if "readout" in methods:
+                mitigated_counts = self._readout_error_mitigation(mitigated_counts, num_qubits)
 
             # 2. Zero Noise Extrapolation (ZNE)
-            if 'zne' in methods:
+            if "zne" in methods:
                 mitigated_counts = self._zero_noise_extrapolation(
-                    mitigated_counts,
-                    noise_scaling=[1.0, 1.5, 2.0]
+                    mitigated_counts, noise_scaling=[1.0, 1.5, 2.0]
                 )
 
             # 3. Symmetry verification
-            if 'symmetry' in methods:
-                mitigated_counts = self._symmetry_verification(
-                    mitigated_counts,
-                    num_qubits
-                )
+            if "symmetry" in methods:
+                mitigated_counts = self._symmetry_verification(mitigated_counts, num_qubits)
 
             # 4. Probabilistic Error Cancellation (PEC)
-            if 'pec' in methods:
+            if "pec" in methods:
                 mitigated_counts = self._probabilistic_error_cancellation(
-                    mitigated_counts,
-                    error_rate=0.001
+                    mitigated_counts, error_rate=0.001
                 )
 
             # Calculate energies (simplified)
@@ -132,10 +125,7 @@ class AdvancedErrorMitigation:
                 accuracy_mitigated=accuracy_mitigated,
                 improvement_percent=improvement,
                 mitigation_methods=methods,
-                metadata={
-                    'num_qubits': num_qubits,
-                    'total_shots': sum(original_counts.values())
-                }
+                metadata={"num_qubits": num_qubits, "total_shots": sum(original_counts.values())},
             )
 
         except Exception as e:
@@ -149,14 +139,10 @@ class AdvancedErrorMitigation:
                 accuracy_original=0.0,
                 accuracy_mitigated=0.0,
                 improvement_percent=0.0,
-                mitigation_methods=[]
+                mitigation_methods=[],
             )
 
-    def _readout_error_mitigation(
-        self,
-        counts: Dict[str, int],
-        num_qubits: int
-    ) -> Dict[str, int]:
+    def _readout_error_mitigation(self, counts: Dict[str, int], num_qubits: int) -> Dict[str, int]:
         """
         Mitigate readout errors using measurement calibration.
 
@@ -187,9 +173,7 @@ class AdvancedErrorMitigation:
         return mitigated
 
     def _zero_noise_extrapolation(
-        self,
-        counts: Dict[str, int],
-        noise_scaling: List[float] = [1.0, 1.5, 2.0]
+        self, counts: Dict[str, int], noise_scaling: List[float] = [1.0, 1.5, 2.0]
     ) -> Dict[str, int]:
         """
         Zero Noise Extrapolation (ZNE).
@@ -221,11 +205,7 @@ class AdvancedErrorMitigation:
         except:
             return counts
 
-    def _symmetry_verification(
-        self,
-        counts: Dict[str, int],
-        num_qubits: int
-    ) -> Dict[str, int]:
+    def _symmetry_verification(self, counts: Dict[str, int], num_qubits: int) -> Dict[str, int]:
         """
         Post-select measurements that satisfy symmetries.
 
@@ -240,7 +220,7 @@ class AdvancedErrorMitigation:
         filtered_counts = {}
         for state, count in counts.items():
             # Count |1⟩s (occupied orbitals)
-            num_electrons = state.count('1')
+            num_electrons = state.count("1")
 
             # Keep only states with correct electron number
             if num_electrons == target_electrons:
@@ -254,9 +234,7 @@ class AdvancedErrorMitigation:
         return filtered_counts
 
     def _probabilistic_error_cancellation(
-        self,
-        counts: Dict[str, int],
-        error_rate: float = 0.001
+        self, counts: Dict[str, int], error_rate: float = 0.001
     ) -> Dict[str, int]:
         """
         Probabilistic Error Cancellation (PEC).
@@ -307,17 +285,13 @@ class AdvancedErrorMitigation:
         # In practice, use Hamiltonian expectation value
         energy = 0.0
         for state, count in counts.items():
-            parity = state.count('1') % 2
+            parity = state.count("1") % 2
             sign = 1 if parity == 0 else -1
             energy += sign * (count / total)
 
         return energy
 
-    def _energy_to_counts(
-        self,
-        energy: float,
-        template_counts: Dict[str, int]
-    ) -> Dict[str, int]:
+    def _energy_to_counts(self, energy: float, template_counts: Dict[str, int]) -> Dict[str, int]:
         """Convert energy back to counts (simplified)."""
         # Keep structure of original counts, adjust magnitudes
         scale = abs(energy) if energy != 0 else 1.0
@@ -346,19 +320,14 @@ def demo_error_mitigation():
         >>> print(f"Final accuracy: {result.accuracy_mitigated}%")
     """
     # Simulate noisy quantum measurement
-    raw_counts = {
-        '00': 450,
-        '01': 120,
-        '10': 130,
-        '11': 300
-    }
+    raw_counts = {"00": 450, "01": 120, "10": 130, "11": 300}
 
     em = AdvancedErrorMitigation()
     result = em.apply_full_mitigation(
         counts=raw_counts,
         num_qubits=2,
         expected_energy=-1.137,  # H2 ground state
-        methods=['readout', 'zne', 'symmetry', 'pec']
+        methods=["readout", "zne", "symmetry", "pec"],
     )
 
     return result

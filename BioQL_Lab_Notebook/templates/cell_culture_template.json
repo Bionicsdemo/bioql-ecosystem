@@ -1,0 +1,60 @@
+{
+  "name": "Cell Culture Template",
+  "description": "General mammalian cell culture protocol",
+  "fields": {
+    "objective": "Maintain and passage mammalian cell lines",
+    "hypothesis": "",
+    "materials": "- Cell line of interest\n- Complete growth medium\n- PBS (phosphate-buffered saline)\n- Trypsin-EDTA (0.25%) or cell dissociation solution\n- Cell culture flasks/plates\n- Hemocytometer or automated cell counter\n- Trypan blue\n- Centrifuge\n- 37°C incubator with 5% CO2\n- Biosafety cabinet\n- 70% ethanol",
+    "protocol": [
+      {
+        "step": 1,
+        "description": "Preparation:\n  - Pre-warm medium, PBS, and trypsin in 37°C water bath\n  - Sterilize biosafety cabinet with 70% ethanol\n  - Label new flasks with cell line, passage number, and date"
+      },
+      {
+        "step": 2,
+        "description": "Remove Old Medium:\n  - Examine cells under microscope, note confluence and morphology\n  - Aspirate medium from flask"
+      },
+      {
+        "step": 3,
+        "description": "Wash Cells:\n  - Add PBS to wash cells (5-10 mL for T75 flask)\n  - Gently rock flask\n  - Aspirate PBS"
+      },
+      {
+        "step": 4,
+        "description": "Trypsinization:\n  - Add trypsin-EDTA (2-3 mL for T75 flask)\n  - Rock to cover all cells\n  - Incubate at 37°C for 3-5 minutes\n  - Tap flask to dislodge cells\n  - Check under microscope to confirm detachment"
+      },
+      {
+        "step": 5,
+        "description": "Neutralize Trypsin:\n  - Add complete medium (equal or greater volume than trypsin)\n  - Mix by pipetting up and down gently\n  - Transfer to sterile centrifuge tube"
+      },
+      {
+        "step": 6,
+        "description": "Centrifugation:\n  - Centrifuge at 200-300 x g for 5 minutes\n  - Aspirate supernatant carefully\n  - Resuspend pellet in fresh medium"
+      },
+      {
+        "step": 7,
+        "description": "Cell Counting:\n  - Mix cell suspension 1:1 with trypan blue\n  - Load into hemocytometer\n  - Count viable (clear) cells\n  - Calculate cell concentration and viability"
+      },
+      {
+        "step": 8,
+        "description": "Seeding:\n  - Dilute cells to desired seeding density\n  - Add appropriate volume to new flask\n  - Add complete medium to final volume\n  - Gently rock to distribute cells evenly"
+      },
+      {
+        "step": 9,
+        "description": "Incubation:\n  - Label flask with cell line, passage number, date, and initials\n  - Return to 37°C incubator with 5% CO2\n  - Monitor daily for growth and contamination"
+      }
+    ],
+    "dataFields": [
+      "Cell line name",
+      "Passage number",
+      "Initial confluence (%)",
+      "Cells counted",
+      "Viability (%)",
+      "Cell concentration (cells/mL)",
+      "Split ratio",
+      "Seeding density",
+      "Final volume"
+    ],
+    "observations": "- Record cell morphology\n- Note any contamination or abnormalities\n- Document growth rate\n- Track passage number",
+    "tags": ["cell-culture", "mammalian-cells", "tissue-culture", "maintenance"]
+  }
+}

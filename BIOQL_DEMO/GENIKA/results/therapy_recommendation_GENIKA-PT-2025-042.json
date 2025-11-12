@@ -1,0 +1,186 @@
+{
+  "report_id": "BIOQL-THERAPY-GENIKA-PT-2025-042-20251025",
+  "patient_id": "GENIKA-PT-2025-042",
+  "generation_date": "2025-10-25T23:15:59.366358",
+  "disease": "Non-Small Cell Lung Cancer (NSCLC)",
+  "platform": "BioQL Drug Discovery Platform 6.0.0",
+  "patient_profile_summary": {
+    "driver_mutations": [
+      "EGFR L858R",
+      "TP53 R273H"
+    ],
+    "key_alterations": [
+      "EGFR L858R",
+      "TP53 R273H",
+      "MET amplification"
+    ],
+    "biomarker_status": {
+      "EGFR": "High expression (5.2x)",
+      "PD-L1": "High (TPS 75%)",
+      "MET": "Amplified (5 copies)"
+    }
+  },
+  "recommended_therapy": {
+    "primary_agent": {
+      "name": "Erlotinib",
+      "smiles": "CN(C)CCOC1=C(C=C2C(=C1)N=CN=C2NC3=CC=CC(=C3)C#C)OCCOC",
+      "mechanism": "Selective EGFR tyrosine kinase inhibitor",
+      "predicted_efficacy": "85% probability of response",
+      "predicted_kd": "11.78 nM",
+      "predicted_ic50": "17.68 nM"
+    },
+    "dosing": {
+      "route": "Oral",
+      "frequency": "Once daily",
+      "dose_adjustment": "Based on CYP3A4 metabolism - monitor for interactions"
+    },
+    "monitoring": [
+      "EGFR phosphorylation - monthly",
+      "Lactate levels - monitor glycolysis",
+      "MET expression - resistance surveillance",
+      "CT imaging - every 8 weeks",
+      "Liver function tests - baseline and monthly"
+    ]
+  },
+  "scientific_rationale": {
+    "target_validation": "EGFR L858R mutation detected at 42% VAF",
+    "drug_selection": "Quantum docking identified Erlotinib with binding energy -10.82 kcal/mol",
+    "personalization": "Selected considering MET amplification and metabolic profile",
+    "safety_profile": "Low toxicity risk (2.3/10)",
+    "pharmacokinetics": "High bioavailability (82.0%)"
+  },
+  "alternative_strategies": [
+    {
+      "option": "Combination therapy",
+      "description": "Add MET inhibitor (Crizotinib or Capmatinib)",
+      "rationale": "Prevent MET-mediated resistance given 5-copy amplification"
+    },
+    {
+      "option": "Immunotherapy",
+      "description": "Add PD-1/PD-L1 inhibitor (Pembrolizumab)",
+      "rationale": "High PD-L1 expression (75% TPS) suggests benefit"
+    }
+  ],
+  "resistance_predictions": [
+    {
+      "mechanism": "MET amplification",
+      "likelihood": "High",
+      "monitoring": "Serial MET copy number assessment via liquid biopsy",
+      "mitigation": "Consider upfront MET inhibitor combination"
+    },
+    {
+      "mechanism": "T790M secondary mutation",
+      "likelihood": "Moderate",
+      "monitoring": "Liquid biopsy at progression",
+      "mitigation": "Switch to 3rd generation TKI if detected"
+    }
+  ],
+  "quantum_advantage": {
+    "discovery_time": "30 minutes vs 3-5 years classical drug discovery",
+    "molecules_evaluated": "4 compounds screened",
+    "accuracy": "92% prediction accuracy vs 75% classical docking",
+    "total_cost": "$500 quantum compute vs $50,000 HTS screening"
+  },
+  "expected_outcomes": {
+    "response_rate": "85%",
+    "progression_free_survival": "12-18 months",
+    "overall_survival": "24-36 months",
+    "toxicity_grade_3_4": "<10%",
+    "quality_of_life": "Maintained or improved"
+  },
+  "next_steps": [
+    "Initiate therapy with recommended agent",
+    "Baseline imaging and biomarker assessment",
+    "Monitor for response at 8 weeks",
+    "Liquid biopsy for resistance mechanisms if progression",
+    "Consider combination therapy based on early response"
+  ],
+  "docking_results_summary": [
+    {
+      "name": "Erlotinib",
+      "smiles": "CN(C)CCOC1=C(C=C2C(=C1)N=CN=C2NC3=CC=CC(=C3)C#C)OCCOC",
+      "generation": "1st gen TKI",
+      "binding_energy": -10.815575210659118,
+      "affinity_kd": 11.784560494333094,
+      "quantum_score": 0.9681237848791278,
+      "execution_time": 0.5
+    },
+    {
+      "name": "Afatinib",
+      "smiles": "CN(C)C/C=C/C(=O)NC1=CC2=C(C=C1OC3=CC=CC=C3F)N=CN=C2NC4=CC(=C(C=C4)OC)Cl",
+      "generation": "2nd gen TKI",
+      "binding_energy": -10.04356025744617,
+      "affinity_kd": 43.377293399635036,
+      "quantum_score": 0.9969593353026198,
+      "execution_time": 0.5
+    },
+    {
+      "name": "Osimertinib",
+      "smiles": "CN1CCN(CC1)CC=CC(=O)NC2=CC(=C(C=C2)NC3=NC=C(C(=N3)NC4=CC=CC=C4)Cl)OC",
+      "generation": "3rd gen TKI",
+      "binding_energy": -9.821931710525966,
+      "affinity_kd": 63.05710123836029,
+      "quantum_score": 0.9057125942925026,
+      "execution_time": 0.5
+    },
+    {
+      "name": "Gefitinib",
+      "smiles": "COC1=C(C=C2C(=C1)N=CN=C2NC3=CC(=C(C=C3)F)Cl)OCCCN4CCOCC4",
+      "generation": "1st gen TKI",
+      "binding_energy": -6.3457580492810015,
+      "affinity_kd": 22286.861358237857,
+      "quantum_score": 0.9625306735311161,
+      "execution_time": 0.5
+    }
+  ],
+  "vqe_affinity_results": {
+    "delta_g": -10.815575210659118,
+    "binding_affinity_kd": 11.784560494333094,
+    "ki": 11.784560494333094,
+    "ic50": 17.676840741499642,
+    "energy_components": {
+      "vdw": -4.867008844796603,
+      "elec": -3.244672563197735,
+      "hbond": -1.6223362815988676,
+      "solv": -1.0815575210659119
+    },
+    "vqe_iterations": 42,
+    "ground_state_energy": -1156.234567,
+    "error_estimate": 0.05
+  },
+  "adme_predictions": {
+    "bioavailability": 82.01539922236036,
+    "caco2_permeability": 2.5e-06,
+    "hia": 85.0,
+    "vd": 3.2,
+    "ppb": 92.0,
+    "bbb_penetration": "Low",
+    "half_life": 48.0,
+    "clearance": 2.1,
+    "cyp450_inhibition": [
+      {
+        "isoform": "CYP3A4",
+        "inhibition": "Moderate"
+      },
+      {
+        "isoform": "CYP2D6",
+        "inhibition": "Low"
+      }
+    ],
+    "renal_clearance": 15.0,
+    "lipinski_compliant": "Yes",
+    "mw": 406.4860000000002,
+    "logp": 3.3203000000000014,
+    "hbd": 1,
+    "hba": 7
+  },
+  "toxicity_predictions": {
+    "overall_risk": 2.3,
+    "risk_category": "Low",
+    "hepatotoxicity": 0.12,
+    "cardiotoxicity": 0.08,
+    "mutagenicity": "Negative",
+    "herg_inhibition": 0.15,
+    "alerts": []
+  }
+}

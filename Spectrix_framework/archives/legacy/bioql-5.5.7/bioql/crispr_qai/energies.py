@@ -9,18 +9,16 @@ Estimates binding affinity between guide RNA and target DNA using:
 - Statistical uncertainty quantification
 """
 
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
+
 import numpy as np
 
-from .featurization import encode_guide_sequence
 from .adapters.base import QuantumEngine
 from .adapters.simulator import LocalSimulatorEngine
+from .featurization import encode_guide_sequence
 
 
-def compute_classical_baseline(
-    guide_seq: str,
-    coupling_strength: float = 1.0
-) -> float:
+def compute_classical_baseline(guide_seq: str, coupling_strength: float = 1.0) -> float:
     """
     Compute classical Ising energy baseline (no quantum effects)
 
@@ -56,10 +54,7 @@ def compute_classical_baseline(
 
 
 def generate_decoy_sequences(
-    guide_seq: str,
-    num_decoys: int = 10,
-    mutation_rate: float = 0.3,
-    seed: Optional[int] = None
+    guide_seq: str, num_decoys: int = 10, mutation_rate: float = 0.3, seed: Optional[int] = None
 ) -> List[str]:
     """
     Generate decoy guide sequences with random mutations
@@ -83,7 +78,7 @@ def generate_decoy_sequences(
     if seed is not None:
         np.random.seed(seed)
 
-    bases = ['A', 'T', 'C', 'G']
+    bases = ["A", "T", "C", "G"]
     decoys = []
 
     for _ in range(num_decoys):
@@ -97,15 +92,13 @@ def generate_decoy_sequences(
             new_base = np.random.choice([b for b in bases if b != current_base])
             decoy[pos] = new_base
 
-        decoys.append(''.join(decoy))
+        decoys.append("".join(decoy))
 
     return decoys
 
 
 def compute_normalized_energy(
-    energy: float,
-    classical_baseline: float,
-    decoy_energies: List[float]
+    energy: float, classical_baseline: float, decoy_energies: List[float]
 ) -> Dict[str, float]:
     """
     Compute normalized energy metrics vs classical baseline and decoys
@@ -147,17 +140,14 @@ def compute_normalized_energy(
         percentile = 50.0
 
     return {
-        'delta_E_classical': float(delta_E),
-        'z_score': float(z_score),
-        'percentile_vs_decoys': float(percentile)
+        "delta_E_classical": float(delta_E),
+        "z_score": float(z_score),
+        "percentile_vs_decoys": float(percentile),
     }
 
 
 def estimate_with_uncertainty(
-    guide_seq: str,
-    engine: QuantumEngine,
-    coupling_strength: float = 1.0,
-    num_repeats: int = 5
+    guide_seq: str, engine: QuantumEngine, coupling_strength: float = 1.0, num_repeats: int = 5
 ) -> Dict[str, Any]:
     """
     Estimate energy with statistical uncertainty (multiple runs)
@@ -190,27 +180,24 @@ def estimate_with_uncertainty(
     confidences = []
 
     for _ in range(num_repeats):
-        result = engine.run_energy_estimation(
-            angles=angles,
-            coupling_strength=coupling_strength
-        )
-        energies.append(result['energy_estimate'])
-        confidences.append(result['confidence'])
+        result = engine.run_energy_estimation(angles=angles, coupling_strength=coupling_strength)
+        energies.append(result["energy_estimate"])
+        confidences.append(result["confidence"])
 
     energies = np.array(energies)
     confidences = np.array(confidences)
 
     return {
-        'energy_mean': float(np.mean(energies)),
-        'energy_std': float(np.std(energies, ddof=1)),
-        'energy_sem': float(np.std(energies, ddof=1) / np.sqrt(num_repeats)),
-        'confidence_mean': float(np.mean(confidences)),
-        'confidence_std': float(np.std(confidences, ddof=1)),
-        'all_energies': energies.tolist(),
-        'all_confidences': confidences.tolist(),
-        'num_repeats': num_repeats,
-        'backend': engine.backend_name,
-        'guide_sequence': guide_seq
+        "energy_mean": float(np.mean(energies)),
+        "energy_std": float(np.std(energies, ddof=1)),
+        "energy_sem": float(np.std(energies, ddof=1) / np.sqrt(num_repeats)),
+        "confidence_mean": float(np.mean(confidences)),
+        "confidence_std": float(np.std(confidences, ddof=1)),
+        "all_energies": energies.tolist(),
+        "all_confidences": confidences.tolist(),
+        "num_repeats": num_repeats,
+        "backend": engine.backend_name,
+        "guide_sequence": guide_seq,
     }
 
 
@@ -219,7 +206,7 @@ def estimate_energy_collapse_simulator(
     coupling_strength: float = 1.0,
     shots: int = 1000,
     seed: Optional[int] = None,
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
     Estimate gRNA-DNA binding energy using local simulator
@@ -255,14 +242,12 @@ def estimate_energy_collapse_simulator(
 
     # Run energy estimation
     result = engine.run_energy_estimation(
-        angles=angles,
-        coupling_strength=coupling_strength,
-        metadata=metadata
+        angles=angles, coupling_strength=coupling_strength, metadata=metadata
     )
 
     # Add sequence info
-    result['guide_sequence'] = guide_seq
-    result['num_qubits'] = len(angles)
+    result["guide_sequence"] = guide_seq
+    result["num_qubits"] = len(angles)
 
     return result
 
@@ -274,7 +259,7 @@ def estimate_energy_collapse_braket(
     shots: int = 1000,
     aws_region: str = "us-east-1",
     s3_bucket: Optional[str] = None,
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
     Estimate gRNA-DNA binding energy using AWS Braket
@@ -305,10 +290,7 @@ def estimate_energy_collapse_braket(
 
     # Create Braket engine
     engine = BraketEngine(
-        backend_name=backend_name,
-        shots=shots,
-        aws_region=aws_region,
-        s3_bucket=s3_bucket
+        backend_name=backend_name, shots=shots, aws_region=aws_region, s3_bucket=s3_bucket
     )
 
     # Validate backend
@@ -317,14 +299,12 @@ def estimate_energy_collapse_braket(
 
     # Run energy estimation
     result = engine.run_energy_estimation(
-        angles=angles,
-        coupling_strength=coupling_strength,
-        metadata=metadata
+        angles=angles, coupling_strength=coupling_strength, metadata=metadata
     )
 
     # Add sequence info
-    result['guide_sequence'] = guide_seq
-    result['num_qubits'] = len(angles)
+    result["guide_sequence"] = guide_seq
+    result["num_qubits"] = len(angles)
 
     return result
 
@@ -335,7 +315,7 @@ def estimate_energy_collapse_qiskit(
     coupling_strength: float = 1.0,
     shots: int = 1000,
     ibm_token: Optional[str] = None,
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
     Estimate gRNA-DNA binding energy using IBM Qiskit
@@ -364,11 +344,7 @@ def estimate_energy_collapse_qiskit(
     angles = encode_guide_sequence(guide_seq)
 
     # Create Qiskit engine
-    engine = QiskitEngine(
-        backend_name=backend_name,
-        shots=shots,
-        ibm_token=ibm_token
-    )
+    engine = QiskitEngine(backend_name=backend_name, shots=shots, ibm_token=ibm_token)
 
     # Validate backend
     if not engine.validate_backend():
@@ -376,14 +352,12 @@ def estimate_energy_collapse_qiskit(
 
     # Run energy estimation
     result = engine.run_energy_estimation(
-        angles=angles,
-        coupling_strength=coupling_strength,
-        metadata=metadata
+        angles=angles, coupling_strength=coupling_strength, metadata=metadata
     )
 
     # Add sequence info
-    result['guide_sequence'] = guide_seq
-    result['num_qubits'] = len(angles)
+    result["guide_sequence"] = guide_seq
+    result["num_qubits"] = len(angles)
 
     return result
 
@@ -392,7 +366,7 @@ def estimate_energy_custom(
     guide_seq: str,
     engine: QuantumEngine,
     coupling_strength: float = 1.0,
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
     Estimate energy using custom quantum engine
@@ -420,14 +394,12 @@ def estimate_energy_custom(
 
     # Run energy estimation
     result = engine.run_energy_estimation(
-        angles=angles,
-        coupling_strength=coupling_strength,
-        metadata=metadata
+        angles=angles, coupling_strength=coupling_strength, metadata=metadata
     )
 
     # Add sequence info
-    result['guide_sequence'] = guide_seq
-    result['num_qubits'] = len(angles)
+    result["guide_sequence"] = guide_seq
+    result["num_qubits"] = len(angles)
 
     return result
 
@@ -436,7 +408,7 @@ def batch_energy_estimation(
     guide_sequences: List[str],
     engine: Optional[QuantumEngine] = None,
     coupling_strength: float = 1.0,
-    shots: int = 1000
+    shots: int = 1000,
 ) -> List[Dict[str, Any]]:
     """
     Estimate energies for multiple guide sequences
@@ -463,9 +435,7 @@ def batch_energy_estimation(
 
     for guide_seq in guide_sequences:
         result = estimate_energy_custom(
-            guide_seq=guide_seq,
-            engine=engine,
-            coupling_strength=coupling_strength
+            guide_seq=guide_seq, engine=engine, coupling_strength=coupling_strength
         )
         results.append(result)
 

@@ -13,13 +13,13 @@ Calculates drug-likeness and pharmaceutical properties:
 All scores from VALIDATED pharmaceutical chemistry literature.
 """
 
-from typing import Dict, List, Optional, Any
 import math
-
+from typing import Any, Dict, List, Optional
 
 try:
     from rdkit import Chem
-    from rdkit.Chem import Descriptors, Crippen, Lipinski, rdMolDescriptors
+    from rdkit.Chem import Crippen, Descriptors, Lipinski, rdMolDescriptors
+
     HAVE_RDKIT = True
 except ImportError:
     HAVE_RDKIT = False
@@ -40,8 +40,7 @@ class PharmaceuticalScores:
     def __init__(self):
         if not HAVE_RDKIT:
             raise ImportError(
-                "RDKit required for pharmaceutical scoring\n"
-                "Install: pip install rdkit"
+                "RDKit required for pharmaceutical scoring\n" "Install: pip install rdkit"
             )
 
     def calculate_all(self, smiles: str) -> Dict[str, Any]:
@@ -56,10 +55,7 @@ class PharmaceuticalScores:
         """
         mol = Chem.MolFromSmiles(smiles)
         if not mol:
-            return {
-                'error': 'Invalid SMILES',
-                'smiles': smiles
-            }
+            return {"error": "Invalid SMILES", "smiles": smiles}
 
         lipinski = self.lipinski_rule_of_5(mol)
         qed = self.calculate_qed(mol)
@@ -71,34 +67,27 @@ class PharmaceuticalScores:
         props = self.calculate_properties(mol)
 
         return {
-            'smiles': smiles,
-
+            "smiles": smiles,
             # Lipinski Rule of 5
-            'lipinski_compliant': lipinski['compliant'],
-            'lipinski_violations': lipinski['violations'],
-            'lipinski_details': lipinski,
-
+            "lipinski_compliant": lipinski["compliant"],
+            "lipinski_violations": lipinski["violations"],
+            "lipinski_details": lipinski,
             # Drug-likeness scores
-            'qed_score': qed,
-            'qed_rating': self._qed_rating(qed),
-
+            "qed_score": qed,
+            "qed_rating": self._qed_rating(qed),
             # Synthetic accessibility
-            'sa_score': sa_score,
-            'sa_rating': self._sa_rating(sa_score),
-
+            "sa_score": sa_score,
+            "sa_rating": self._sa_rating(sa_score),
             # Other drug-likeness
-            'lead_like': lead_like['compliant'],
-            'lead_like_violations': lead_like['violations'],
-
+            "lead_like": lead_like["compliant"],
+            "lead_like_violations": lead_like["violations"],
             # Safety alerts
-            'pains_alerts': pains['num_alerts'],
-            'pains_fragments': pains['fragments'],
-
+            "pains_alerts": pains["num_alerts"],
+            "pains_fragments": pains["fragments"],
             # Molecular properties
-            'properties': props,
-
+            "properties": props,
             # Overall assessment
-            'pharmaceutical_viability': self._assess_viability(lipinski, qed, sa_score, pains)
+            "pharmaceutical_viability": self._assess_viability(lipinski, qed, sa_score, pains),
         }
 
     def lipinski_rule_of_5(self, mol) -> Dict[str, Any]:
@@ -129,13 +118,13 @@ class PharmaceuticalScores:
             violations.append(f"HBA > 10 ({hba})")
 
         return {
-            'compliant': len(violations) <= 1,
-            'violations': len(violations),
-            'violation_list': violations,
-            'molecular_weight': round(mw, 2),
-            'logp': round(logp, 2),
-            'hbd': hbd,
-            'hba': hba
+            "compliant": len(violations) <= 1,
+            "violations": len(violations),
+            "violation_list": violations,
+            "molecular_weight": round(mw, 2),
+            "logp": round(logp, 2),
+            "hbd": hbd,
+            "hba": hba,
         }
 
     def calculate_qed(self, mol) -> float:
@@ -150,6 +139,7 @@ class PharmaceuticalScores:
         """
         try:
             from rdkit.Chem import QED
+
             return round(QED.qed(mol), 3)
         except ImportError:
             # Fallback: simplified QED approximation
@@ -257,9 +247,9 @@ class PharmaceuticalScores:
             violations.append(f"Rotatable > 7 ({rotatable})")
 
         return {
-            'compliant': len(violations) == 0,
-            'violations': len(violations),
-            'violation_list': violations
+            "compliant": len(violations) == 0,
+            "violations": len(violations),
+            "violation_list": violations,
         }
 
     def check_pains(self, mol) -> Dict[str, Any]:
@@ -275,11 +265,11 @@ class PharmaceuticalScores:
 
         # Common PAINS patterns (simplified)
         pains_patterns = [
-            ('catechol', 'c1ccc(O)c(O)c1'),
-            ('quinone', 'C1=CC(=O)C=CC1=O'),
-            ('rhodanine', 'S1C(=O)NC(=S)C1'),
-            ('hydroxyphenyl_hydrazone', 'c1ccc(O)cc1N=N'),
-            ('phenol_sulfonate', 'c1ccc(OS(=O)(=O)O)cc1'),
+            ("catechol", "c1ccc(O)c(O)c1"),
+            ("quinone", "C1=CC(=O)C=CC1=O"),
+            ("rhodanine", "S1C(=O)NC(=S)C1"),
+            ("hydroxyphenyl_hydrazone", "c1ccc(O)cc1N=N"),
+            ("phenol_sulfonate", "c1ccc(OS(=O)(=O)O)cc1"),
         ]
 
         alerts = []
@@ -287,25 +277,21 @@ class PharmaceuticalScores:
             if pattern.lower() in smiles.lower():
                 alerts.append(name)
 
-        return {
-            'num_alerts': len(alerts),
-            'fragments': alerts,
-            'clean': len(alerts) == 0
-        }
+        return {"num_alerts": len(alerts), "fragments": alerts, "clean": len(alerts) == 0}
 
     def calculate_properties(self, mol) -> Dict[str, float]:
         """Calculate additional molecular properties."""
         return {
-            'molecular_weight': round(Descriptors.MolWt(mol), 2),
-            'logp': round(Crippen.MolLogP(mol), 2),
-            'tpsa': round(Descriptors.TPSA(mol), 2),
-            'hbd': Lipinski.NumHDonors(mol),
-            'hba': Lipinski.NumHAcceptors(mol),
-            'rotatable_bonds': Lipinski.NumRotatableBonds(mol),
-            'aromatic_rings': Lipinski.NumAromaticRings(mol),
-            'heavy_atoms': mol.GetNumHeavyAtoms(),
-            'num_rings': Chem.GetSSSR(mol),
-            'sp3_fraction': round(rdMolDescriptors.CalcFractionCSP3(mol), 3)
+            "molecular_weight": round(Descriptors.MolWt(mol), 2),
+            "logp": round(Crippen.MolLogP(mol), 2),
+            "tpsa": round(Descriptors.TPSA(mol), 2),
+            "hbd": Lipinski.NumHDonors(mol),
+            "hba": Lipinski.NumHAcceptors(mol),
+            "rotatable_bonds": Lipinski.NumRotatableBonds(mol),
+            "aromatic_rings": Lipinski.NumAromaticRings(mol),
+            "heavy_atoms": mol.GetNumHeavyAtoms(),
+            "num_rings": Chem.GetSSSR(mol),
+            "sp3_fraction": round(rdMolDescriptors.CalcFractionCSP3(mol), 3),
         }
 
     def _qed_rating(self, qed: float) -> str:
@@ -335,9 +321,9 @@ class PharmaceuticalScores:
         score = 0
 
         # Lipinski compliance
-        if lipinski['compliant']:
+        if lipinski["compliant"]:
             score += 3
-        elif lipinski['violations'] <= 2:
+        elif lipinski["violations"] <= 2:
             score += 1
 
         # QED score
@@ -355,7 +341,7 @@ class PharmaceuticalScores:
             score += 1
 
         # PAINS
-        if pains['clean']:
+        if pains["clean"]:
             score += 2
 
         # Rating
@@ -380,10 +366,7 @@ def calculate_pharmaceutical_scores(smiles: str) -> Dict[str, Any]:
         Dictionary with all scores
     """
     if not HAVE_RDKIT:
-        return {
-            'error': 'RDKit not available',
-            'message': 'Install RDKit: pip install rdkit'
-        }
+        return {"error": "RDKit not available", "message": "Install RDKit: pip install rdkit"}
 
     scorer = PharmaceuticalScores()
     return scorer.calculate_all(smiles)

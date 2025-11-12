@@ -1,0 +1,246 @@
+================================================================================
+                    BIOQL + IONQ SIMULATORS - QUICK START
+================================================================================
+
+🔑 DEMO API KEY (UNLIMITED ACCESS):
+__BIOQL_REDACTED__
+
+================================================================================
+                        IONQ SIMULATORS AVAILABLE
+================================================================================
+
+1. IDEAL SIMULATOR
+   Backend: ionq.simulator
+   Qubits: 29
+   Noise: None (ideal)
+   Queue: 0 minutes
+   Best for: Development, learning, fastest execution
+
+2. ARIA 1 NOISY SIMULATOR
+   Backend: ionq.qpu.aria-1
+   Qubits: 25
+   Noise: Aria 1 hardware model
+   Queue: 0 minutes
+   Best for: Production testing, realistic results
+
+3. HARMONY NOISY SIMULATOR
+   Backend: ionq.qpu.harmony
+   Qubits: 11
+   Noise: Harmony hardware model
+   Queue: 0 minutes
+   Best for: Small circuits, legacy validation
+
+================================================================================
+                        QUICK START
+================================================================================
+
+OPTION 1 - Test All IonQ Simulators (30 seconds):
+pip install bioql
+python examples/ionq_simulators_test.py
+
+OPTION 2 - Drug Discovery Demo (2 minutes):
+pip install bioql
+python examples/ionq_drug_discovery_demo.py
+
+OPTION 3 - Your Own Code:
+from bioql import quantum
+
+API_KEY = "__BIOQL_REDACTED__"
+
+# Example 1: Ideal Simulator (29 qubits, no noise)
+result = quantum(
+    "create a bell state with two qubits and measure both",
+    backend='ionq.simulator',
+    api_key=API_KEY,
+    shots=1000
+)
+
+# Example 2: Aria 1 Simulator (25 qubits, realistic noise)
+result = quantum(
+    "simulate aspirin molecule using VQE with 4 qubits",
+    backend='ionq.qpu.aria-1',
+    api_key=API_KEY,
+    shots=2048
+)
+
+# Example 3: Harmony Simulator (11 qubits, legacy)
+result = quantum(
+    "apply grover search on 3 qubits to find state 101",
+    backend='ionq.qpu.harmony',
+    api_key=API_KEY,
+    shots=1024
+)
+
+================================================================================
+                        NATURAL LANGUAGE EXAMPLES
+================================================================================
+
+All examples work on ALL IonQ simulators - just change the backend!
+
+DRUG DISCOVERY:
+quantum(
+    "simulate molecular structure of aspirin using variational quantum "
+    "eigensolver with 4 qubits to find ground state energy",
+    backend='ionq.simulator',  # or ionq.qpu.aria-1 or ionq.qpu.harmony
+    api_key=API_KEY
+)
+
+PROTEIN FOLDING:
+quantum(
+    "simulate protein folding with 6 qubits using quantum annealing",
+    backend='ionq.simulator',
+    api_key=API_KEY
+)
+
+QUANTUM CHEMISTRY:
+quantum(
+    "calculate dipole moment and bond angles of water molecule using 4 qubits",
+    backend='ionq.qpu.aria-1',
+    api_key=API_KEY
+)
+
+DRUG BINDING:
+quantum(
+    "compute binding energy between semaglutide and glp1 receptor using VQE",
+    backend='ionq.qpu.aria-1',
+    api_key=API_KEY
+)
+
+QUANTUM SEARCH:
+quantum(
+    "apply grover search algorithm on 5 qubits to find marked state",
+    backend='ionq.qpu.harmony',
+    api_key=API_KEY
+)
+
+================================================================================
+                        BACKEND SELECTION GUIDE
+================================================================================
+
+START HERE → ionq.simulator (Ideal)
+  • Fastest execution
+  • No noise overhead
+  • Perfect accuracy
+  • Up to 29 qubits
+  • Best for development
+
+TEST HERE → ionq.qpu.aria-1 (Realistic)
+  • Realistic noise simulation
+  • Matches real Aria 1 hardware
+  • Up to 25 qubits
+  • Best for production testing
+
+VALIDATE HERE → ionq.qpu.harmony (Legacy)
+  • Small circuit testing
+  • Harmony hardware model
+  • Up to 11 qubits
+  • Best for compatibility
+
+================================================================================
+                        COMPARISON TABLE
+================================================================================
+
+Feature          | Ideal     | Aria 1    | Harmony   |
+-----------------|-----------|-----------|-----------|
+Qubits           | 29        | 25        | 11        |
+Noise            | None      | Realistic | Realistic |
+Speed            | Fastest   | Fast      | Fastest   |
+Accuracy         | 100%      | ~98%      | ~95%      |
+Queue Time       | 0 min     | 0 min     | 0 min     |
+Cost (Demo)      | FREE      | FREE      | FREE      |
+Best For         | Dev       | Testing   | Small     |
+
+================================================================================
+                        DEMO SCRIPTS
+================================================================================
+
+1. examples/ionq_simulators_test.py
+   • Tests all 3 IonQ simulators
+   • Single Bell state query
+   • 30 seconds to complete
+   • Perfect for verification
+
+2. examples/ionq_drug_discovery_demo.py
+   • Complete drug discovery workflow
+   • 3 examples (aspirin, protein, binding)
+   • Tests across multiple simulators
+   • 2-3 minutes to complete
+   • Production-ready examples
+
+================================================================================
+                        RECOMMENDED WORKFLOW
+================================================================================
+
+STEP 1: DEVELOP
+  Backend: ionq.simulator
+  Purpose: Fast algorithm development
+  Shots: 1024 (low for speed)
+
+STEP 2: TEST
+  Backend: ionq.qpu.aria-1
+  Purpose: Realistic performance testing
+  Shots: 2048-4096 (medium)
+
+STEP 3: VALIDATE
+  Backend: All three simulators
+  Purpose: Cross-validation
+  Shots: 4096-8192 (high for accuracy)
+
+STEP 4: DEPLOY
+  Backend: Real IonQ hardware (requires production API key)
+  Purpose: Production execution
+  Shots: 8192+ (production quality)
+
+================================================================================
+                        TROUBLESHOOTING
+================================================================================
+
+ERROR: "Too many qubits"
+SOLUTION: Check qubit limits
+  • ionq.simulator: up to 29 qubits ✅
+  • ionq.qpu.aria-1: up to 25 qubits
+  • ionq.qpu.harmony: up to 11 qubits
+
+ERROR: "Backend not found"
+SOLUTION: Use correct backend name
+  ✅ ionq.simulator (with dot)
+  ❌ ionq_simulator (with underscore)
+
+ERROR: "Invalid API key"
+SOLUTION: Use exact demo key
+  __BIOQL_REDACTED__
+
+================================================================================
+                        QUICK REFERENCE
+================================================================================
+
+API Key:
+__BIOQL_REDACTED__
+
+Backends:
+ionq.simulator        # 29 qubits, ideal
+ionq.qpu.aria-1       # 25 qubits, realistic
+ionq.qpu.harmony      # 11 qubits, legacy
+
+Installation:
+pip install bioql
+
+Test Scripts:
+python examples/ionq_simulators_test.py
+python examples/ionq_drug_discovery_demo.py
+
+Documentation:
+IONQ_SIMULATORS_GUIDE.md - Complete guide
+START_HERE.md - Quick start
+DEMO_CREDENTIALS.md - Full examples
+
+================================================================================
+                        SUPPORT
+================================================================================
+
+Email: support@bioql.com
+Docs: https://docs.bioql.com
+IonQ Docs: https://docs.ionq.com
+GitHub: https://github.com/bioql/bioql
+
+================================================================================

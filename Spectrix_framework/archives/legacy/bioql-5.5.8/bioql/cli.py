@@ -5,11 +5,11 @@ Provides CLI commands for BioQL quantum computing framework
 """
 
 import argparse
-import sys
+import json
 import os
 import subprocess
+import sys
 from pathlib import Path
-import json
 from typing import Optional
 
 from . import __version__, get_info
@@ -17,6 +17,7 @@ from .logger import get_logger
 
 # Get logger for CLI operations
 logger = get_logger(__name__)
+
 
 def install_cursor_extension():
     """Install BioQL extension for Cursor IDE"""
@@ -32,8 +33,9 @@ def install_cursor_extension():
 
     try:
         # Run the installation script
-        result = subprocess.run([sys.executable, str(script_path)],
-                              check=True, capture_output=True, text=True)
+        result = subprocess.run(
+            [sys.executable, str(script_path)], check=True, capture_output=True, text=True
+        )
 
         print(result.stdout)
         print("✅ Cursor extension installation completed!")
@@ -47,6 +49,7 @@ def install_cursor_extension():
     except Exception as e:
         print(f"❌ Unexpected error during installation: {e}")
         return False
+
 
 def install_windsurf_extension():
     """Install BioQL plugin for Windsurf IDE"""
@@ -62,8 +65,9 @@ def install_windsurf_extension():
 
     try:
         # Run the installation script
-        result = subprocess.run([sys.executable, str(script_path)],
-                              check=True, capture_output=True, text=True)
+        result = subprocess.run(
+            [sys.executable, str(script_path)], check=True, capture_output=True, text=True
+        )
 
         print(result.stdout)
         print("✅ Windsurf plugin installation completed!")
@@ -78,6 +82,7 @@ def install_windsurf_extension():
         print(f"❌ Unexpected error during installation: {e}")
         return False
 
+
 def show_version():
     """Show BioQL version and system information"""
     print(f"BioQL v{__version__}")
@@ -89,16 +94,23 @@ def show_version():
     print(f"  Python: {info['python_version']}")
     print(f"  Qiskit: {'✅' if info['qiskit_available'] else '❌'}")
 
-    if info['qiskit_available']:
+    if info["qiskit_available"]:
         print(f"    Version: {info.get('qiskit_version', 'Unknown')}")
 
     print("\\nOptional Modules:")
-    for module, available in info['optional_modules'].items():
-        status = '✅' if available else '❌'
+    for module, available in info["optional_modules"].items():
+        status = "✅" if available else "❌"
         print(f"  {module}: {status}")
 
-def run_quantum_code(code: str, shots: int = 1024, backend: str = "simulator",
-                   api_key: str = None, enhanced: bool = True, return_ir: bool = False):
+
+def run_quantum_code(
+    code: str,
+    shots: int = 1024,
+    backend: str = "simulator",
+    api_key: str = None,
+    enhanced: bool = True,
+    return_ir: bool = False,
+):
     """Run BioQL quantum code from command line with enhanced DevKit capabilities"""
     try:
         if enhanced:
@@ -124,14 +136,14 @@ def run_quantum_code(code: str, shots: int = 1024, backend: str = "simulator",
                 shots=shots,
                 use_nlp=True,
                 use_ir_compiler=True,
-                return_ir=return_ir
+                return_ir=return_ir,
             )
 
             # Handle enhanced result with IR
-            if isinstance(result, dict) and 'result' in result:
-                quantum_result = result['result']
-                ir_program = result['ir']
-                enhanced_flag = result['enhanced']
+            if isinstance(result, dict) and "result" in result:
+                quantum_result = result["result"]
+                ir_program = result["ir"]
+                enhanced_flag = result["enhanced"]
 
                 print(f"\\n✅ Enhanced processing: {enhanced_flag}")
                 if ir_program:
@@ -163,20 +175,20 @@ def run_quantum_code(code: str, shots: int = 1024, backend: str = "simulator",
             print(f"🎲 Total shots: {result.total_shots}")
             print(f"🏆 Most likely outcome: {result.most_likely_outcome}")
 
-            if hasattr(result, 'energy') and result.energy is not None:
+            if hasattr(result, "energy") and result.energy is not None:
                 print(f"⚡ Energy: {result.energy}")
 
-            if hasattr(result, 'bio_interpretation') and result.bio_interpretation:
+            if hasattr(result, "bio_interpretation") and result.bio_interpretation:
                 print(f"🧬 Biological interpretation: {result.bio_interpretation}")
 
-            if hasattr(result, 'cost_estimate') and result.cost_estimate:
+            if hasattr(result, "cost_estimate") and result.cost_estimate:
                 print(f"💰 Cost estimate: ${result.cost_estimate:.4f}")
 
             # Show enhanced processing metadata
-            if hasattr(result, 'metadata') and result.metadata:
-                enhanced_processing = result.metadata.get('enhanced_processing', False)
-                nlp_used = result.metadata.get('nlp_used', False)
-                ir_compiler_used = result.metadata.get('ir_compiler_used', False)
+            if hasattr(result, "metadata") and result.metadata:
+                enhanced_processing = result.metadata.get("enhanced_processing", False)
+                nlp_used = result.metadata.get("nlp_used", False)
+                ir_compiler_used = result.metadata.get("ir_compiler_used", False)
 
                 if enhanced_processing:
                     print(f"🔧 Enhanced processing used")
@@ -197,6 +209,7 @@ def run_quantum_code(code: str, shots: int = 1024, backend: str = "simulator",
         print(f"❌ Error executing quantum code: {e}")
         return False
 
+
 def compile_bioql_file(file_path: str, output_path: Optional[str] = None):
     """Compile a BioQL file"""
     try:
@@ -210,7 +223,7 @@ def compile_bioql_file(file_path: str, output_path: Optional[str] = None):
         print(f"🔧 Compiling BioQL file: {file_path}")
 
         # Read the file
-        with open(input_file, 'r', encoding='utf-8') as f:
+        with open(input_file, "r", encoding="utf-8") as f:
             content = f.read()
 
         # Compile the content
@@ -218,7 +231,7 @@ def compile_bioql_file(file_path: str, output_path: Optional[str] = None):
 
         if output_path:
             output_file = Path(output_path)
-            with open(output_file, 'w', encoding='utf-8') as f:
+            with open(output_file, "w", encoding="utf-8") as f:
                 f.write(compiled_result)
             print(f"✅ Compiled output saved to: {output_path}")
         else:
@@ -235,6 +248,7 @@ def compile_bioql_file(file_path: str, output_path: Optional[str] = None):
         print(f"❌ Compilation failed: {e}")
         return False
 
+
 def check_installation():
     """Check if BioQL is properly installed"""
     print("🔍 Checking BioQL installation...")
@@ -245,11 +259,11 @@ def check_installation():
 
         # Test core BioQL modules
         core_modules = [
-            ('qiskit', 'qiskit'),
-            ('qiskit_aer', 'qiskit_aer'),
-            ('numpy', 'numpy'),
-            ('matplotlib', 'matplotlib'),
-            ('biopython', 'Bio')
+            ("qiskit", "qiskit"),
+            ("qiskit_aer", "qiskit_aer"),
+            ("numpy", "numpy"),
+            ("matplotlib", "matplotlib"),
+            ("biopython", "Bio"),
         ]
 
         missing_modules = []
@@ -278,6 +292,7 @@ def check_installation():
             # Test BioQL functionality
             try:
                 from . import quantum
+
                 print("✅ BioQL quantum module imported successfully")
                 return True
             except ImportError as e:
@@ -288,6 +303,7 @@ def check_installation():
         print(f"❌ Installation check failed: {e}")
         return False
 
+
 def setup_api_keys():
     """Interactive setup for IBM Quantum and IonQ API keys"""
     print("🔐 Setting up API keys for quantum cloud providers")
@@ -295,16 +311,16 @@ def setup_api_keys():
 
     # Determine config directory
     home_dir = Path.home()
-    config_dir = home_dir / '.bioql'
+    config_dir = home_dir / ".bioql"
     config_dir.mkdir(exist_ok=True)
 
-    config_file = config_dir / 'config.json'
+    config_file = config_dir / "config.json"
 
     # Load existing config if it exists
     config = {}
     if config_file.exists():
         try:
-            with open(config_file, 'r') as f:
+            with open(config_file, "r") as f:
                 config = json.load(f)
         except (json.JSONDecodeError, IOError):
             config = {}
@@ -322,17 +338,17 @@ def setup_api_keys():
     print("3. Go to 'Account' > 'API Token'")
     print("4. Copy your token")
 
-    current_ibm = config.get('ibm_token', '')
+    current_ibm = config.get("ibm_token", "")
     if current_ibm:
         print(f"\\nCurrent IBM token: {current_ibm[:8]}...{current_ibm[-4:]}")
         update_ibm = input("Update IBM Quantum token? (y/N): ").lower().strip()
     else:
-        update_ibm = 'y'
+        update_ibm = "y"
 
-    if update_ibm == 'y':
+    if update_ibm == "y":
         ibm_token = input("Enter your IBM Quantum token (or press Enter to skip): ").strip()
         if ibm_token:
-            config['ibm_token'] = ibm_token
+            config["ibm_token"] = ibm_token
             print("✅ IBM Quantum token saved")
         else:
             print("⏭️  Skipping IBM Quantum setup")
@@ -346,31 +362,31 @@ def setup_api_keys():
     print("3. Go to 'API Keys' in the dashboard")
     print("4. Create a new API key and copy it")
 
-    current_ionq = config.get('ionq_token', '')
+    current_ionq = config.get("ionq_token", "")
     if current_ionq:
         print(f"\\nCurrent IonQ token: {current_ionq[:8]}...{current_ionq[-4:]}")
         update_ionq = input("Update IonQ API key? (y/N): ").lower().strip()
     else:
-        update_ionq = 'y'
+        update_ionq = "y"
 
-    if update_ionq == 'y':
+    if update_ionq == "y":
         ionq_token = input("Enter your IonQ API key (or press Enter to skip): ").strip()
         if ionq_token:
-            config['ionq_token'] = ionq_token
+            config["ionq_token"] = ionq_token
             print("✅ IonQ API key saved")
         else:
             print("⏭️  Skipping IonQ setup")
 
     # Save configuration
     try:
-        with open(config_file, 'w') as f:
+        with open(config_file, "w") as f:
             json.dump(config, f, indent=2)
 
         print(f"\\n✅ Configuration saved to: {config_file}")
         print("\\n💡 Usage examples:")
-        if config.get('ibm_token'):
+        if config.get("ibm_token"):
             print("  quantum('simulate protein folding', backend='ibm_brisbane')")
-        if config.get('ionq_token'):
+        if config.get("ionq_token"):
             print("  quantum('analyze DNA sequence', backend='ionq_simulator')")
 
         print("\\n🔒 Security note: API keys are stored locally in ~/.bioql/config.json")
@@ -382,9 +398,10 @@ def setup_api_keys():
         print(f"❌ Failed to save configuration: {e}")
         return False
 
+
 def create_example_file(name: str = "example.bql"):
     """Create an example BioQL file"""
-    example_content = '''# BioQL Example: Quantum Protein Analysis
+    example_content = """# BioQL Example: Quantum Protein Analysis
 # This file demonstrates basic BioQL syntax and capabilities
 
 # Create a Bell state for quantum entanglement
@@ -417,11 +434,11 @@ initialize qubits in ground state
 apply hadamard gates
 add measurement operations
 execute with 1024 shots
-'''
+"""
 
     try:
         file_path = Path(name)
-        with open(file_path, 'w', encoding='utf-8') as f:
+        with open(file_path, "w", encoding="utf-8") as f:
             f.write(example_content)
 
         print(f"✅ Example file created: {file_path}")
@@ -435,6 +452,7 @@ execute with 1024 shots
     except Exception as e:
         print(f"❌ Failed to create example file: {e}")
         return False
+
 
 def main():
     """Main CLI entry point"""
@@ -474,89 +492,128 @@ Examples:
 🔑 Get your API key at: https://bioql.com/signup
 📚 For more information, visit: https://bioql.org
 🧬 Drug Discovery Pack: https://docs.bioql.com/drug-discovery
-        """
+        """,
     )
 
-    parser.add_argument('--version', action='version', version=f'BioQL {__version__}')
+    parser.add_argument("--version", action="version", version=f"BioQL {__version__}")
 
-    subparsers = parser.add_subparsers(dest='command', help='Available commands')
+    subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # Install command
-    install_parser = subparsers.add_parser('install', help='Install IDE extensions')
-    install_parser.add_argument('ide', choices=['cursor', 'windsurf'],
-                               help='IDE to install extension for')
+    install_parser = subparsers.add_parser("install", help="Install IDE extensions")
+    install_parser.add_argument(
+        "ide", choices=["cursor", "windsurf"], help="IDE to install extension for"
+    )
 
     # Quantum command
-    quantum_parser = subparsers.add_parser('quantum', help='Run quantum code with DevKit capabilities')
-    quantum_parser.add_argument('code', help='BioQL code to execute')
-    quantum_parser.add_argument('--shots', type=int, default=1024,
-                               help='Number of shots (default: 1024)')
-    quantum_parser.add_argument('--backend', default='simulator',
-                               help='Quantum backend (default: simulator)')
-    quantum_parser.add_argument('--api-key', dest='api_key',
-                               help='BioQL API key (required)')
-    quantum_parser.add_argument('--enhanced', action='store_true', default=True,
-                               help='Use enhanced DevKit capabilities (default: True)')
-    quantum_parser.add_argument('--no-enhanced', action='store_false', dest='enhanced',
-                               help='Disable enhanced DevKit capabilities')
-    quantum_parser.add_argument('--return-ir', action='store_true', dest='return_ir',
-                               help='Return intermediate representation (IR) along with results')
+    quantum_parser = subparsers.add_parser(
+        "quantum", help="Run quantum code with DevKit capabilities"
+    )
+    quantum_parser.add_argument("code", help="BioQL code to execute")
+    quantum_parser.add_argument(
+        "--shots", type=int, default=1024, help="Number of shots (default: 1024)"
+    )
+    quantum_parser.add_argument(
+        "--backend", default="simulator", help="Quantum backend (default: simulator)"
+    )
+    quantum_parser.add_argument("--api-key", dest="api_key", help="BioQL API key (required)")
+    quantum_parser.add_argument(
+        "--enhanced",
+        action="store_true",
+        default=True,
+        help="Use enhanced DevKit capabilities (default: True)",
+    )
+    quantum_parser.add_argument(
+        "--no-enhanced",
+        action="store_false",
+        dest="enhanced",
+        help="Disable enhanced DevKit capabilities",
+    )
+    quantum_parser.add_argument(
+        "--return-ir",
+        action="store_true",
+        dest="return_ir",
+        help="Return intermediate representation (IR) along with results",
+    )
 
     # Compile command
-    compile_parser = subparsers.add_parser('compile', help='Compile BioQL file')
-    compile_parser.add_argument('file', help='BioQL file to compile')
-    compile_parser.add_argument('-o', '--output', help='Output file path')
+    compile_parser = subparsers.add_parser("compile", help="Compile BioQL file")
+    compile_parser.add_argument("file", help="BioQL file to compile")
+    compile_parser.add_argument("-o", "--output", help="Output file path")
 
     # Check command
-    subparsers.add_parser('check', help='Check BioQL installation')
+    subparsers.add_parser("check", help="Check BioQL installation")
 
     # Version command
-    subparsers.add_parser('version', help='Show version information')
+    subparsers.add_parser("version", help="Show version information")
 
     # Setup keys command
-    subparsers.add_parser('setup-keys', help='Configure API keys for quantum cloud providers')
+    subparsers.add_parser("setup-keys", help="Configure API keys for quantum cloud providers")
 
     # Example command
-    example_parser = subparsers.add_parser('example', help='Create example BioQL file')
-    example_parser.add_argument('--name', default='example.bql',
-                               help='Example file name (default: example.bql)')
+    example_parser = subparsers.add_parser("example", help="Create example BioQL file")
+    example_parser.add_argument(
+        "--name", default="example.bql", help="Example file name (default: example.bql)"
+    )
 
     # Dock command (NEW - Drug Discovery)
-    dock_parser = subparsers.add_parser('dock', help='Perform molecular docking')
-    dock_parser.add_argument('--receptor', required=True,
-                            help='Path to receptor PDB file')
-    dock_parser.add_argument('--smiles', dest='ligand_smiles',
-                            help='Ligand SMILES string')
-    dock_parser.add_argument('--ligand', dest='ligand_file',
-                            help='Path to ligand file (alternative to --smiles)')
-    dock_parser.add_argument('--backend', default='auto',
-                            choices=['auto', 'vina', 'quantum'],
-                            help='Docking backend (default: auto)')
-    dock_parser.add_argument('--out', dest='output_dir',
-                            help='Output directory for results')
-    dock_parser.add_argument('--center', nargs=3, type=float, metavar=('X', 'Y', 'Z'),
-                            help='Binding site center coordinates')
-    dock_parser.add_argument('--box-size', nargs=3, type=float, default=[20, 20, 20],
-                            metavar=('X', 'Y', 'Z'), help='Search box size (default: 20 20 20)')
-    dock_parser.add_argument('--exhaustiveness', type=int, default=8,
-                            help='Vina exhaustiveness (default: 8)')
-    dock_parser.add_argument('--api-key', help='API key for quantum backend')
+    dock_parser = subparsers.add_parser("dock", help="Perform molecular docking")
+    dock_parser.add_argument("--receptor", required=True, help="Path to receptor PDB file")
+    dock_parser.add_argument("--smiles", dest="ligand_smiles", help="Ligand SMILES string")
+    dock_parser.add_argument(
+        "--ligand", dest="ligand_file", help="Path to ligand file (alternative to --smiles)"
+    )
+    dock_parser.add_argument(
+        "--backend",
+        default="auto",
+        choices=["auto", "vina", "quantum"],
+        help="Docking backend (default: auto)",
+    )
+    dock_parser.add_argument("--out", dest="output_dir", help="Output directory for results")
+    dock_parser.add_argument(
+        "--center",
+        nargs=3,
+        type=float,
+        metavar=("X", "Y", "Z"),
+        help="Binding site center coordinates",
+    )
+    dock_parser.add_argument(
+        "--box-size",
+        nargs=3,
+        type=float,
+        default=[20, 20, 20],
+        metavar=("X", "Y", "Z"),
+        help="Search box size (default: 20 20 20)",
+    )
+    dock_parser.add_argument(
+        "--exhaustiveness", type=int, default=8, help="Vina exhaustiveness (default: 8)"
+    )
+    dock_parser.add_argument("--api-key", help="API key for quantum backend")
 
     # Visualize command (NEW - Drug Discovery)
-    viz_parser = subparsers.add_parser('visualize', help='Visualize molecular structures')
-    viz_parser.add_argument('--structure', required=True,
-                           help='Path to structure file (PDB, MOL2, SDF)')
-    viz_parser.add_argument('--style', default='cartoon',
-                           choices=['cartoon', 'sticks', 'spheres', 'surface'],
-                           help='Display style (default: cartoon)')
-    viz_parser.add_argument('--output', help='Save image to file')
-    viz_parser.add_argument('--session', help='Save PyMOL session file')
-    viz_parser.add_argument('--ligand', help='Additional ligand file for complex visualization')
+    viz_parser = subparsers.add_parser("visualize", help="Visualize molecular structures")
+    viz_parser.add_argument(
+        "--structure", required=True, help="Path to structure file (PDB, MOL2, SDF)"
+    )
+    viz_parser.add_argument(
+        "--style",
+        default="cartoon",
+        choices=["cartoon", "sticks", "spheres", "surface"],
+        help="Display style (default: cartoon)",
+    )
+    viz_parser.add_argument("--output", help="Save image to file")
+    viz_parser.add_argument("--session", help="Save PyMOL session file")
+    viz_parser.add_argument("--ligand", help="Additional ligand file for complex visualization")
 
     # Dynamic call command (NEW - Meta-wrapper)
-    dynamic_parser = subparsers.add_parser('call', help='Call any Python library via natural language')
-    dynamic_parser.add_argument('command', nargs='+',
-                               help='Natural language command (e.g., "Use RDKit to calculate molecular weight of aspirin SMILES ...")')
+    dynamic_parser = subparsers.add_parser(
+        "call", help="Call any Python library via natural language"
+    )
+    dynamic_parser.add_argument(
+        "command",
+        nargs="+",
+        help='Natural language command (e.g., "Use RDKit to calculate molecular weight of aspirin SMILES ...")',
+    )
 
     # Parse arguments
     args = parser.parse_args()
@@ -567,10 +624,10 @@ Examples:
 
     # Execute commands
     try:
-        if args.command == 'install':
-            if args.ide == 'cursor':
+        if args.command == "install":
+            if args.ide == "cursor":
                 success = install_cursor_extension()
-            elif args.ide == 'windsurf':
+            elif args.ide == "windsurf":
                 success = install_windsurf_extension()
             else:
                 print(f"❌ Unknown IDE: {args.ide}")
@@ -578,9 +635,9 @@ Examples:
 
             return 0 if success else 1
 
-        elif args.command == 'quantum':
+        elif args.command == "quantum":
             # Get API key from argument or environment
-            api_key = args.api_key or os.getenv('BIOQL_API_KEY')
+            api_key = args.api_key or os.getenv("BIOQL_API_KEY")
 
             success = run_quantum_code(
                 code=args.code,
@@ -588,31 +645,31 @@ Examples:
                 backend=args.backend,
                 api_key=api_key,
                 enhanced=args.enhanced,
-                return_ir=args.return_ir
+                return_ir=args.return_ir,
             )
             return 0 if success else 1
 
-        elif args.command == 'compile':
+        elif args.command == "compile":
             success = compile_bioql_file(args.file, args.output)
             return 0 if success else 1
 
-        elif args.command == 'check':
+        elif args.command == "check":
             success = check_installation()
             return 0 if success else 1
 
-        elif args.command == 'version':
+        elif args.command == "version":
             show_version()
             return 0
 
-        elif args.command == 'setup-keys':
+        elif args.command == "setup-keys":
             success = setup_api_keys()
             return 0 if success else 1
 
-        elif args.command == 'example':
+        elif args.command == "example":
             success = create_example_file(args.name)
             return 0 if success else 1
 
-        elif args.command == 'dock':
+        elif args.command == "dock":
             # Molecular docking command
             from .docking import dock
 
@@ -622,7 +679,7 @@ Examples:
             print(f"  Backend: {args.backend}")
 
             # Get API key from argument or environment
-            api_key = args.api_key or os.getenv('BIOQL_API_KEY')
+            api_key = args.api_key or os.getenv("BIOQL_API_KEY")
 
             result = dock(
                 receptor=args.receptor,
@@ -651,9 +708,9 @@ Examples:
                 print(f"\\n❌ Docking failed: {result.error_message}")
                 return 1
 
-        elif args.command == 'visualize':
+        elif args.command == "visualize":
             # Molecular visualization command
-            from .visualize import show, save_image, save_session, visualize_complex
+            from .visualize import save_image, save_session, show, visualize_complex
 
             print(f"🔬 Visualizing: {args.structure}")
 
@@ -685,23 +742,23 @@ Examples:
                     style=args.style,
                 )
 
-            if hasattr(result, 'success') and result.success:
+            if hasattr(result, "success") and result.success:
                 print(f"✅ Visualization complete")
                 if result.output_path:
                     print(f"  Output: {result.output_path}")
                 return 0
-            elif hasattr(result, 'success'):
+            elif hasattr(result, "success"):
                 print(f"❌ Visualization failed: {result.error_message}")
                 return 1
             else:
                 print(f"✅ Visualization displayed (if in appropriate environment)")
                 return 0
 
-        elif args.command == 'call':
+        elif args.command == "call":
             # Dynamic library call command
             from .dynamic_bridge import dynamic_call
 
-            command_str = ' '.join(args.command)
+            command_str = " ".join(args.command)
             print(f"🔮 Executing: {command_str}")
 
             result = dynamic_call(command_str)
@@ -732,5 +789,6 @@ Examples:
         logger.error(f"CLI error: {e}", exc_info=True)
         return 1
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     sys.exit(main())

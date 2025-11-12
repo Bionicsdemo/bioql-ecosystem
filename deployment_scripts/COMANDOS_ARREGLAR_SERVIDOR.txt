@@ -1,0 +1,104 @@
+═══════════════════════════════════════════════════════════════════════════════
+🚨 SOLUCIÓN URGENTE: Arreglar bioql-api.service
+═══════════════════════════════════════════════════════════════════════════════
+
+EJECUTA ESTOS COMANDOS EN EL SERVIDOR (ssh root@167.71.86.90):
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PASO 1: Ver el error completo
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+journalctl -u bioql-api.service -n 100 --no-pager
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PASO 2: Verificar que los archivos existen
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+cd /root/bioql_apps/bioql_quillow_docking/web_interface/
+ls -la
+
+# Verifica estos archivos específicos:
+ls -la venv/bin/gunicorn
+ls -la wsgi.py
+ls -la gunicorn_config.py
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PASO 3: Probar el comando manualmente
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+cd /root/bioql_apps/bioql_quillow_docking/web_interface/
+venv/bin/gunicorn --config gunicorn_config.py wsgi:app
+
+# Si esto falla, verás el error exacto.
+
+# Para detenerlo: Ctrl+C
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SOLUCIONES RÁPIDAS COMUNES:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Si el error es "ModuleNotFoundError" o problema de imports:
+────────────────────────────────────────────────────────────────────────────────
+cd /root/bioql_apps/bioql_quillow_docking/web_interface/
+venv/bin/pip install flask flask-cors gunicorn loguru requests
+
+
+Si el error es "Permission denied" o puerto en uso:
+────────────────────────────────────────────────────────────────────────────────
+# Ver qué proceso está usando el puerto
+netstat -tulpn | grep :8100
+
+# Si hay otro proceso, mátalo:
+kill -9 <PID>
+
+
+Si el archivo wsgi.py o gunicorn_config.py no existen:
+────────────────────────────────────────────────────────────────────────────────
+# Necesitaremos recrearlos. Copia estos archivos desde tu máquina local.
+
+
+Si el virtual environment (venv) no existe:
+────────────────────────────────────────────────────────────────────────────────
+cd /root/bioql_apps/bioql_quillow_docking/web_interface/
+python3 -m venv venv
+venv/bin/pip install flask flask-cors gunicorn loguru requests
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PASO 4: Después de arreglar, reinicia el servicio
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+systemctl daemon-reload
+systemctl restart bioql-api.service
+systemctl status bioql-api.service --no-pager
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFICACIÓN FINAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Verificar que todos los servicios estén corriendo:
+systemctl status bioql-api.service --no-pager
+systemctl status bioql-quantum.service --no-pager
+
+# Ver qué puertos están escuchando:
+netstat -tulpn | grep python
+
+═══════════════════════════════════════════════════════════════════════════════
+
+⚡ SOLUCIÓN TEMPORAL PARA TU DEMO (si no puedes arreglar bioql-api):
+═══════════════════════════════════════════════════════════════════════════════
+
+Si no logras arreglar bioql-api.service y necesitas hacer la DEMO YA:
+
+1. Deshabilita bioql-api.service:
+   systemctl stop bioql-api.service
+   systemctl disable bioql-api.service
+
+2. Usa solo bioql-quantum.service (puerto 5002) que SÍ funciona
+
+3. En tu código local, modifica testing1.py para usar modo DEV:
+   api_key = 'bioql_dev_test'
+
+Esto te permitirá hacer la demo sin autenticación del servidor.
+
+═══════════════════════════════════════════════════════════════════════════════

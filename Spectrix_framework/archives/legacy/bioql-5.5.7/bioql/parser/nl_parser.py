@@ -14,6 +14,7 @@ try:
 except ImportError:
     # Fallback to standard logging
     import logging
+
     logger = logging.getLogger(__name__)
 
 from bioql.ir import (
@@ -24,13 +25,14 @@ from bioql.ir import (
     DataType,
     DockingOperation,
     Molecule,
-    QuantumOptimizationOperation,
     QuantumBackend,
+    QuantumOptimizationOperation,
 )
 
 
 class ParseError(Exception):
     """Exception raised when parsing fails."""
+
     pass
 
 
@@ -47,23 +49,21 @@ class PatternMatcher:
             "pdb_id": re.compile(r"\b([1-9][A-Za-z0-9]{3})\b", re.IGNORECASE),
             "smiles": re.compile(r"\b([CONSPFHcnopsfh\[\]()@=#\-+\\\/]+)\b"),
             "sequence": re.compile(r"\b([ACDEFGHIKLMNPQRSTVWY]{3,})\b"),
-
             # Operations
             "docking": re.compile(r"\b(dock|docking|bind|binding|complex|pose)\b", re.IGNORECASE),
             "alignment": re.compile(r"\b(align|alignment|match|sequence)\b", re.IGNORECASE),
-            "optimization": re.compile(r"\b(optimize|optimization|minimize|energy)\b", re.IGNORECASE),
-
+            "optimization": re.compile(
+                r"\b(optimize|optimization|minimize|energy)\b", re.IGNORECASE
+            ),
             # Parameters
             "energy": re.compile(r"(-?\d+(?:\.\d+)?)\s*(kcal|kj|ev|hartree)", re.IGNORECASE),
             "poses": re.compile(r"(\d+)\s*poses?", re.IGNORECASE),
             "shots": re.compile(r"(\d+)\s*shots?", re.IGNORECASE),
-
             # File formats
             "pdb_file": re.compile(r"(\S+\.pdb)", re.IGNORECASE),
             "mol2_file": re.compile(r"(\S+\.mol2)", re.IGNORECASE),
             "sdf_file": re.compile(r"(\S+\.sdf)", re.IGNORECASE),
             "fasta_file": re.compile(r"(\S+\.fasta)", re.IGNORECASE),
-
             # Quantum backends
             "backend": re.compile(r"\b(qiskit|cirq|pennylane|braket|simulator)\b", re.IGNORECASE),
         }
@@ -105,24 +105,28 @@ class MoleculeExtractor:
         # Extract PDB molecules
         if "pdb_id" in entities:
             for pdb_id in entities["pdb_id"]:
-                molecules.append(Molecule(
-                    id=f"pdb_{pdb_id}",
-                    type=DataType.PROTEIN,
-                    format="pdb",
-                    data=pdb_id,
-                    name=f"PDB structure {pdb_id}"
-                ))
+                molecules.append(
+                    Molecule(
+                        id=f"pdb_{pdb_id}",
+                        type=DataType.PROTEIN,
+                        format="pdb",
+                        data=pdb_id,
+                        name=f"PDB structure {pdb_id}",
+                    )
+                )
 
         # Extract SMILES molecules
         if "smiles" in entities:
             for i, smiles in enumerate(entities["smiles"]):
-                molecules.append(Molecule(
-                    id=f"smiles_{i}",
-                    type=DataType.LIGAND,
-                    format="smiles",
-                    data=smiles,
-                    name=f"SMILES ligand {i}"
-                ))
+                molecules.append(
+                    Molecule(
+                        id=f"smiles_{i}",
+                        type=DataType.LIGAND,
+                        format="smiles",
+                        data=smiles,
+                        name=f"SMILES ligand {i}",
+                    )
+                )
 
         # Extract sequence molecules
         if "sequence" in entities:
@@ -132,13 +136,15 @@ class MoleculeExtractor:
                 if all(base in "ATCGUN" for base in sequence.upper()):
                     mol_type = DataType.DNA if "T" in sequence.upper() else DataType.RNA
 
-                molecules.append(Molecule(
-                    id=f"sequence_{i}",
-                    type=mol_type,
-                    format="fasta",
-                    data=sequence,
-                    name=f"Sequence {i}"
-                ))
+                molecules.append(
+                    Molecule(
+                        id=f"sequence_{i}",
+                        type=mol_type,
+                        format="fasta",
+                        data=sequence,
+                        name=f"Sequence {i}",
+                    )
+                )
 
         # Extract file-based molecules
         file_patterns = ["pdb_file", "mol2_file", "sdf_file", "fasta_file"]
@@ -148,13 +154,15 @@ class MoleculeExtractor:
                     format_type = pattern_name.split("_")[0]
                     mol_type = self._infer_molecule_type(format_type)
 
-                    molecules.append(Molecule(
-                        id=f"file_{file_path}",
-                        type=mol_type,
-                        format=format_type,
-                        data=file_path,
-                        name=f"Molecule from {file_path}"
-                    ))
+                    molecules.append(
+                        Molecule(
+                            id=f"file_{file_path}",
+                            type=mol_type,
+                            format=format_type,
+                            data=file_path,
+                            name=f"Molecule from {file_path}",
+                        )
+                    )
 
         return molecules
 
@@ -186,30 +194,34 @@ class ParameterExtractor:
             for energy_match in entities["energy"]:
                 if isinstance(energy_match, tuple) and len(energy_match) == 2:
                     value, unit = energy_match
-                    parameters.append(BioQLParameter(
-                        name="energy_threshold",
-                        value=float(value),
-                        unit=unit,
-                        description="Energy threshold for filtering"
-                    ))
+                    parameters.append(
+                        BioQLParameter(
+                            name="energy_threshold",
+                            value=float(value),
+                            unit=unit,
+                            description="Energy threshold for filtering",
+                        )
+                    )
 
         # Extract number of poses
         if "poses" in entities:
             for poses_str in entities["poses"]:
-                parameters.append(BioQLParameter(
-                    name="num_poses",
-                    value=int(poses_str),
-                    description="Number of poses to generate"
-                ))
+                parameters.append(
+                    BioQLParameter(
+                        name="num_poses",
+                        value=int(poses_str),
+                        description="Number of poses to generate",
+                    )
+                )
 
         # Extract quantum shots
         if "shots" in entities:
             for shots_str in entities["shots"]:
-                parameters.append(BioQLParameter(
-                    name="shots",
-                    value=int(shots_str),
-                    description="Number of quantum shots"
-                ))
+                parameters.append(
+                    BioQLParameter(
+                        name="shots", value=int(shots_str), description="Number of quantum shots"
+                    )
+                )
 
         return parameters
 
@@ -271,15 +283,13 @@ class NaturalLanguageParser:
                 description=f"Generated from: {text}",
                 inputs=molecules,
                 operations=operations,
-                backend=backend
+                backend=backend,
             )
 
             # Add audit entry
-            program.add_audit_entry("parsed", {
-                "source": "natural_language",
-                "domain": domain.value,
-                "input_text": text
-            })
+            program.add_audit_entry(
+                "parsed", {"source": "natural_language", "domain": domain.value, "input_text": text}
+            )
 
             logger.success(f"Successfully parsed program with {len(operations)} operations")
             return program
@@ -289,10 +299,7 @@ class NaturalLanguageParser:
             raise ParseError(f"Failed to parse text: {e}")
 
     def _create_docking_operation(
-        self,
-        text: str,
-        molecules: List[Molecule],
-        parameters: List[BioQLParameter]
+        self, text: str, molecules: List[Molecule], parameters: List[BioQLParameter]
     ) -> DockingOperation:
         """Create a docking operation from extracted information."""
         # Find receptor and ligand
@@ -312,7 +319,7 @@ class NaturalLanguageParser:
                 type=DataType.PROTEIN,
                 format="pdb",
                 data="receptor.pdb",
-                name="Default receptor"
+                name="Default receptor",
             )
 
         if not ligand:
@@ -322,7 +329,7 @@ class NaturalLanguageParser:
                 type=DataType.LIGAND,
                 format="smiles",
                 data="CCO",  # ethanol as default
-                name="Default ligand"
+                name="Default ligand",
             )
 
         # Extract docking-specific parameters
@@ -341,50 +348,45 @@ class NaturalLanguageParser:
             ligand=ligand,
             num_poses=num_poses,
             energy_threshold=energy_threshold,
-            parameters=parameters
+            parameters=parameters,
         )
 
     def _create_alignment_operation(
-        self,
-        text: str,
-        molecules: List[Molecule],
-        parameters: List[BioQLParameter]
+        self, text: str, molecules: List[Molecule], parameters: List[BioQLParameter]
     ) -> AlignmentOperation:
         """Create an alignment operation from extracted information."""
         # Need at least 2 sequences for alignment
-        sequences = [mol for mol in molecules if mol.type in [DataType.PROTEIN, DataType.DNA, DataType.RNA]]
+        sequences = [
+            mol for mol in molecules if mol.type in [DataType.PROTEIN, DataType.DNA, DataType.RNA]
+        ]
 
         if len(sequences) < 2:
             # Create default sequences if needed
             while len(sequences) < 2:
-                sequences.append(Molecule(
-                    id=f"default_seq_{len(sequences)}",
-                    type=DataType.PROTEIN,
-                    format="fasta",
-                    data="ACDEFGHIKLMNPQRSTVWY",
-                    name=f"Default sequence {len(sequences)}"
-                ))
+                sequences.append(
+                    Molecule(
+                        id=f"default_seq_{len(sequences)}",
+                        type=DataType.PROTEIN,
+                        format="fasta",
+                        data="ACDEFGHIKLMNPQRSTVWY",
+                        name=f"Default sequence {len(sequences)}",
+                    )
+                )
 
         return AlignmentOperation(
             description=f"Alignment operation from: {text}",
             sequences=sequences,
-            parameters=parameters
+            parameters=parameters,
         )
 
     def _create_optimization_operation(
-        self,
-        text: str,
-        molecules: List[Molecule],
-        parameters: List[BioQLParameter]
+        self, text: str, molecules: List[Molecule], parameters: List[BioQLParameter]
     ) -> QuantumOptimizationOperation:
         """Create an optimization operation from extracted information."""
         # Default optimization variables
         variables = parameters or [
             BioQLParameter(
-                name="energy",
-                value=0.0,
-                unit="kcal/mol",
-                description="Energy to minimize"
+                name="energy", value=0.0, unit="kcal/mol", description="Energy to minimize"
             )
         ]
 
@@ -392,7 +394,7 @@ class NaturalLanguageParser:
             description=f"Optimization operation from: {text}",
             objective_function="minimize_energy",
             variables=variables,
-            parameters=parameters
+            parameters=parameters,
         )
 
 
@@ -402,5 +404,5 @@ __all__ = [
     "PatternMatcher",
     "MoleculeExtractor",
     "ParameterExtractor",
-    "ParseError"
+    "ParseError",
 ]

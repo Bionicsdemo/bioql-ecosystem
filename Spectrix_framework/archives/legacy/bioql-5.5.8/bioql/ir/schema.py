@@ -50,15 +50,15 @@ class DataType(str, Enum):
 class QuantumGate(str, Enum):
     """Standard quantum gates supported in BioQL."""
 
-    H = "h"          # Hadamard
-    X = "x"          # Pauli-X
-    Y = "y"          # Pauli-Y
-    Z = "z"          # Pauli-Z
-    CNOT = "cnot"    # Controlled-NOT
-    CZ = "cz"        # Controlled-Z
-    RX = "rx"        # Rotation-X
-    RY = "ry"        # Rotation-Y
-    RZ = "rz"        # Rotation-Z
+    H = "h"  # Hadamard
+    X = "x"  # Pauli-X
+    Y = "y"  # Pauli-Y
+    Z = "z"  # Pauli-Z
+    CNOT = "cnot"  # Controlled-NOT
+    CZ = "cz"  # Controlled-Z
+    RX = "rx"  # Rotation-X
+    RY = "ry"  # Rotation-Y
+    RZ = "rz"  # Rotation-Z
     MEASURE = "measure"
 
 
@@ -76,10 +76,14 @@ class Molecule(BaseModel):
 
     id: str = Field(..., description="Unique molecule identifier")
     type: DataType = Field(..., description="Molecule type")
-    format: Literal["pdb", "smiles", "sdf", "mol2", "fasta"] = Field(..., description="Molecular format")
+    format: Literal["pdb", "smiles", "sdf", "mol2", "fasta"] = Field(
+        ..., description="Molecular format"
+    )
     data: str = Field(..., description="Molecular data (file path or inline data)")
     name: Optional[str] = Field(None, description="Human-readable molecule name")
-    properties: Dict[str, Any] = Field(default_factory=dict, description="Additional molecular properties")
+    properties: Dict[str, Any] = Field(
+        default_factory=dict, description="Additional molecular properties"
+    )
 
 
 class QuantumCircuit(BaseModel):
@@ -91,17 +95,10 @@ class QuantumCircuit(BaseModel):
     parameters: List[BioQLParameter] = Field(default_factory=list, description="Circuit parameters")
 
     def add_gate(
-        self,
-        gate: QuantumGate,
-        qubits: List[int],
-        params: Optional[List[float]] = None
+        self, gate: QuantumGate, qubits: List[int], params: Optional[List[float]] = None
     ) -> None:
         """Add a quantum gate to the circuit."""
-        gate_dict = {
-            "gate": gate.value,
-            "qubits": qubits,
-            "params": params or []
-        }
+        gate_dict = {"gate": gate.value, "qubits": qubits, "params": params or []}
         self.gates.append(gate_dict)
 
     def add_measurement(self, qubit: int) -> None:
@@ -117,7 +114,9 @@ class BioQLOperation(BaseModel):
     domain: BioQLDomain = Field(..., description="Computational domain")
     operation_type: str = Field(..., description="Specific operation type")
     description: Optional[str] = Field(None, description="Operation description")
-    parameters: List[BioQLParameter] = Field(default_factory=list, description="Operation parameters")
+    parameters: List[BioQLParameter] = Field(
+        default_factory=list, description="Operation parameters"
+    )
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
 
 
@@ -171,8 +170,8 @@ class BioQLProgram(BaseModel):
 
     # Input specifications
     inputs: List[Molecule] = Field(default_factory=list, description="Input molecules")
-    operations: List[Union[DockingOperation, AlignmentOperation, QuantumOptimizationOperation]] = Field(
-        ..., description="List of operations to perform"
+    operations: List[Union[DockingOperation, AlignmentOperation, QuantumOptimizationOperation]] = (
+        Field(..., description="List of operations to perform")
     )
 
     # Quantum circuit (if applicable)
@@ -192,7 +191,7 @@ class BioQLProgram(BaseModel):
     created_by: Optional[str] = Field(None, description="Creator identifier")
     audit_trail: List[Dict[str, Any]] = Field(default_factory=list, description="Audit trail")
 
-    @validator('operations')
+    @validator("operations")
     def validate_operations(cls, v):
         """Validate that operations are not empty."""
         if not v:
@@ -219,7 +218,7 @@ class BioQLProgram(BaseModel):
         entry = {
             "timestamp": datetime.datetime.utcnow().isoformat(),
             "action": action,
-            "details": details
+            "details": details,
         }
         self.audit_trail.append(entry)
 
@@ -270,5 +269,5 @@ __all__ = [
     "AlignmentOperation",
     "QuantumOptimizationOperation",
     "BioQLProgram",
-    "BioQLResult"
+    "BioQLResult",
 ]

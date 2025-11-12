@@ -13,15 +13,17 @@ Requires:
 """
 
 import time
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
+
 import numpy as np
 
 from .base import QuantumEngine
 
 try:
+    import boto3
     from braket.circuits import Circuit
     from braket.devices import LocalSimulator
-    import boto3
+
     HAVE_BRAKET = True
 except ImportError:
     HAVE_BRAKET = False
@@ -37,7 +39,7 @@ class BraketEngine(QuantumEngine):
         backend_name: str = "SV1",
         shots: int = 1000,
         aws_region: str = "us-east-1",
-        s3_bucket: Optional[str] = None
+        s3_bucket: Optional[str] = None,
     ):
         """
         Initialize Braket backend
@@ -50,8 +52,7 @@ class BraketEngine(QuantumEngine):
         """
         if not HAVE_BRAKET:
             raise ImportError(
-                "AWS Braket not installed. "
-                "Install with: pip install amazon-braket-sdk boto3"
+                "AWS Braket not installed. " "Install with: pip install amazon-braket-sdk boto3"
             )
 
         super().__init__(backend_name=backend_name, shots=shots)
@@ -63,7 +64,7 @@ class BraketEngine(QuantumEngine):
         self,
         angles: List[float],
         coupling_strength: float = 1.0,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Run energy estimation on AWS Braket
@@ -96,23 +97,21 @@ class BraketEngine(QuantumEngine):
         counts = result.measurement_counts
 
         # Calculate energy
-        energy_estimate = self._calculate_energy_from_counts(
-            counts, angles, coupling_strength
-        )
+        energy_estimate = self._calculate_energy_from_counts(counts, angles, coupling_strength)
 
         confidence = self._calculate_confidence(counts)
 
         runtime = time.time() - start_time
 
         return {
-            'energy_estimate': float(energy_estimate),
-            'confidence': float(confidence),
-            'runtime_seconds': runtime,
-            'backend': self.backend_name,
-            'shots': self.shots,
-            'num_qubits': num_qubits,
-            'task_arn': task.id,
-            'metadata': metadata or {}
+            "energy_estimate": float(energy_estimate),
+            "confidence": float(confidence),
+            "runtime_seconds": runtime,
+            "backend": self.backend_name,
+            "shots": self.shots,
+            "num_qubits": num_qubits,
+            "task_arn": task.id,
+            "metadata": metadata or {},
         }
 
     def validate_backend(self) -> bool:
@@ -129,11 +128,10 @@ class BraketEngine(QuantumEngine):
             else:
                 # Real quantum hardware (requires S3)
                 if not self.s3_bucket:
-                    raise ValueError(
-                        f"s3_bucket required for hardware backend {self.backend_name}"
-                    )
+                    raise ValueError(f"s3_bucket required for hardware backend {self.backend_name}")
 
                 from braket.aws import AwsDevice
+
                 device_arn = self._get_device_arn(self.backend_name)
                 self.device = AwsDevice(device_arn)
 
@@ -145,11 +143,7 @@ class BraketEngine(QuantumEngine):
             self.validated = False
             return False
 
-    def _build_circuit(
-        self,
-        angles: List[float],
-        coupling_strength: float
-    ) -> "Circuit":
+    def _build_circuit(self, angles: List[float], coupling_strength: float) -> "Circuit":
         """
         Build Braket quantum circuit for energy estimation
 
@@ -171,7 +165,7 @@ class BraketEngine(QuantumEngine):
         for i in range(num_qubits - 1):
             # ZZ(θ) = exp(-i θ/2 Z_i Z_{i+1})
             theta = coupling_strength * np.pi / 4
-            circuit.zz(i, i+1, theta)
+            circuit.zz(i, i + 1, theta)
 
         # Measure all qubits
         circuit.measure(range(num_qubits))
@@ -179,10 +173,7 @@ class BraketEngine(QuantumEngine):
         return circuit
 
     def _calculate_energy_from_counts(
-        self,
-        counts: Dict[str, int],
-        angles: List[float],
-        coupling_strength: float
+        self, counts: Dict[str, int], angles: List[float], coupling_strength: float
     ) -> float:
         """
         Calculate energy expectation from Braket measurement counts
@@ -200,13 +191,13 @@ class BraketEngine(QuantumEngine):
         energy = 0.0
 
         for bitstring, count in counts.items():
-            spins = np.array([1 if b == '1' else -1 for b in bitstring])
+            spins = np.array([1 if b == "1" else -1 for b in bitstring])
 
             # H = Σ h_i Z_i + Σ J_ij Z_i Z_j
             config_energy = np.dot(h_fields, spins)
 
             for i in range(len(spins) - 1):
-                config_energy += coupling_strength * spins[i] * spins[i+1]
+                config_energy += coupling_strength * spins[i] * spins[i + 1]
 
             energy += (count / total_shots) * config_energy
 
@@ -223,14 +214,13 @@ class BraketEngine(QuantumEngine):
             Device ARN
         """
         device_map = {
-            'Aspen-M': 'arn:aws:braket:us-west-1::device/qpu/rigetti/Aspen-M-3',
-            'Harmony': 'arn:aws:braket:us-east-1::device/qpu/ionq/Harmony',
+            "Aspen-M": "arn:aws:braket:us-west-1::device/qpu/rigetti/Aspen-M-3",
+            "Harmony": "arn:aws:braket:us-east-1::device/qpu/ionq/Harmony",
         }
 
         if device_name not in device_map:
             raise ValueError(
-                f"Unknown device: {device_name}. "
-                f"Available: {list(device_map.keys())}"
+                f"Unknown device: {device_name}. " f"Available: {list(device_map.keys())}"
             )
 
         return device_map[device_name]

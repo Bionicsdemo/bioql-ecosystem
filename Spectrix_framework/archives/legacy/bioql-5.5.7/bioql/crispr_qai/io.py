@@ -8,14 +8,12 @@ Handles:
 """
 
 import csv
-from typing import List, Dict, Any, Optional
 import json
+from typing import Any, Dict, List, Optional
 
 
 def load_guides_csv(
-    csv_path: str,
-    sequence_column: str = 'sequence',
-    id_column: Optional[str] = 'guide_id'
+    csv_path: str, sequence_column: str = "sequence", id_column: Optional[str] = "guide_id"
 ) -> List[Dict[str, Any]]:
     """
     Load guide RNA sequences from CSV file
@@ -39,7 +37,7 @@ def load_guides_csv(
     """
     guides = []
 
-    with open(csv_path, 'r') as f:
+    with open(csv_path, "r") as f:
         reader = csv.DictReader(f)
 
         for row in reader:
@@ -49,13 +47,11 @@ def load_guides_csv(
                     f"Available: {list(row.keys())}"
                 )
 
-            guide_data = {
-                'sequence': row[sequence_column].strip().upper()
-            }
+            guide_data = {"sequence": row[sequence_column].strip().upper()}
 
             # Add guide ID if available
             if id_column and id_column in row:
-                guide_data['guide_id'] = row[id_column]
+                guide_data["guide_id"] = row[id_column]
 
             # Include all other columns as metadata
             for key, value in row.items():
@@ -68,9 +64,7 @@ def load_guides_csv(
 
 
 def save_results_csv(
-    results: List[Dict[str, Any]],
-    output_path: str,
-    include_metadata: bool = True
+    results: List[Dict[str, Any]], output_path: str, include_metadata: bool = True
 ) -> None:
     """
     Save CRISPR-QAI results to CSV file
@@ -89,14 +83,14 @@ def save_results_csv(
 
     # Determine CSV columns
     base_columns = [
-        'rank',
-        'guide_sequence',
-        'composite_score',
-        'energy_estimate',
-        'confidence',
-        'gc_content',
-        'runtime_seconds',
-        'backend'
+        "rank",
+        "guide_sequence",
+        "composite_score",
+        "energy_estimate",
+        "confidence",
+        "gc_content",
+        "runtime_seconds",
+        "backend",
     ]
 
     # Add metadata columns if requested
@@ -112,28 +106,29 @@ def save_results_csv(
                 all_columns.append(key)
 
     # Write CSV
-    with open(output_path, 'w', newline='') as f:
+    with open(output_path, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=all_columns)
         writer.writeheader()
 
         for result in results:
             # Only write columns that exist in result
-            row = {k: result.get(k, '') for k in all_columns}
+            row = {k: result.get(k, "") for k in all_columns}
 
             # Format floats
-            for key in ['composite_score', 'energy_estimate', 'confidence',
-                        'gc_content', 'runtime_seconds']:
+            for key in [
+                "composite_score",
+                "energy_estimate",
+                "confidence",
+                "gc_content",
+                "runtime_seconds",
+            ]:
                 if key in row and isinstance(row[key], float):
                     row[key] = f"{row[key]:.6f}"
 
             writer.writerow(row)
 
 
-def save_results_json(
-    results: List[Dict[str, Any]],
-    output_path: str,
-    pretty: bool = True
-) -> None:
+def save_results_json(results: List[Dict[str, Any]], output_path: str, pretty: bool = True) -> None:
     """
     Save CRISPR-QAI results to JSON file
 
@@ -146,7 +141,7 @@ def save_results_json(
         >>> ranked = rank_guides_batch(guides, shots=1000)
         >>> save_results_json(ranked, 'ranked_guides.json')
     """
-    with open(output_path, 'w') as f:
+    with open(output_path, "w") as f:
         if pretty:
             json.dump(results, f, indent=2)
         else:
@@ -167,7 +162,7 @@ def load_results_json(json_path: str) -> List[Dict[str, Any]]:
         >>> results = load_results_json('ranked_guides.json')
         >>> print(f"Loaded {len(results)} results")
     """
-    with open(json_path, 'r') as f:
+    with open(json_path, "r") as f:
         results = json.load(f)
 
     return results
@@ -198,17 +193,14 @@ def load_fasta(fasta_path: str) -> List[Dict[str, str]]:
     current_id = None
     current_seq = []
 
-    with open(fasta_path, 'r') as f:
+    with open(fasta_path, "r") as f:
         for line in f:
             line = line.strip()
 
-            if line.startswith('>'):
+            if line.startswith(">"):
                 # Save previous sequence
                 if current_id is not None:
-                    sequences.append({
-                        'id': current_id,
-                        'sequence': ''.join(current_seq).upper()
-                    })
+                    sequences.append({"id": current_id, "sequence": "".join(current_seq).upper()})
 
                 # Start new sequence
                 current_id = line[1:].split()[0]
@@ -219,19 +211,12 @@ def load_fasta(fasta_path: str) -> List[Dict[str, str]]:
 
         # Save last sequence
         if current_id is not None:
-            sequences.append({
-                'id': current_id,
-                'sequence': ''.join(current_seq).upper()
-            })
+            sequences.append({"id": current_id, "sequence": "".join(current_seq).upper()})
 
     return sequences
 
 
-def save_fasta(
-    sequences: List[Dict[str, str]],
-    output_path: str,
-    line_length: int = 80
-) -> None:
+def save_fasta(sequences: List[Dict[str, str]], output_path: str, line_length: int = 80) -> None:
     """
     Save sequences to FASTA file
 
@@ -247,23 +232,20 @@ def save_fasta(
         ... ]
         >>> save_fasta(seqs, 'guides.fasta')
     """
-    with open(output_path, 'w') as f:
+    with open(output_path, "w") as f:
         for seq_dict in sequences:
-            seq_id = seq_dict.get('id', 'unknown')
-            seq = seq_dict.get('sequence', '')
+            seq_id = seq_dict.get("id", "unknown")
+            seq = seq_dict.get("sequence", "")
 
             # Write header
-            f.write(f'>{seq_id}\n')
+            f.write(f">{seq_id}\n")
 
             # Write sequence (wrapped at line_length)
             for i in range(0, len(seq), line_length):
-                f.write(seq[i:i + line_length] + '\n')
+                f.write(seq[i : i + line_length] + "\n")
 
 
-def batch_load_guides(
-    file_path: str,
-    file_format: Optional[str] = None
-) -> List[str]:
+def batch_load_guides(file_path: str, file_format: Optional[str] = None) -> List[str]:
     """
     Load guide sequences from CSV or FASTA (auto-detect format)
 
@@ -280,23 +262,23 @@ def batch_load_guides(
     """
     if file_format is None:
         # Auto-detect format
-        if file_path.endswith('.csv'):
-            file_format = 'csv'
-        elif file_path.endswith(('.fasta', '.fa', '.fna')):
-            file_format = 'fasta'
+        if file_path.endswith(".csv"):
+            file_format = "csv"
+        elif file_path.endswith((".fasta", ".fa", ".fna")):
+            file_format = "fasta"
         else:
             raise ValueError(
                 f"Cannot auto-detect format for {file_path}. "
                 f"Specify file_format='csv' or 'fasta'"
             )
 
-    if file_format == 'csv':
+    if file_format == "csv":
         guides_data = load_guides_csv(file_path)
-        return [g['sequence'] for g in guides_data]
+        return [g["sequence"] for g in guides_data]
 
-    elif file_format == 'fasta':
+    elif file_format == "fasta":
         fasta_data = load_fasta(file_path)
-        return [s['sequence'] for s in fasta_data]
+        return [s["sequence"] for s in fasta_data]
 
     else:
         raise ValueError(f"Unknown format: {file_format}")

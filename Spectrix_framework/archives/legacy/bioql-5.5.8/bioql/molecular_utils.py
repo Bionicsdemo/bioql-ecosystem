@@ -7,15 +7,17 @@ Author: BioQL Team
 Version: 5.0.1
 """
 
-import requests
 import re
-from typing import Optional, Dict, Any, List
-from pathlib import Path
 import time
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+import requests
 
 # ==============================================================================
 # SMILES VALIDATION AND PARSING
 # ==============================================================================
+
 
 def validate_smiles(smiles: str) -> Dict[str, Any]:
     """
@@ -37,11 +39,7 @@ def validate_smiles(smiles: str) -> Dict[str, Any]:
             "error": str (if invalid)
         }
     """
-    result = {
-        "valid": False,
-        "smiles": smiles,
-        "error": None
-    }
+    result = {"valid": False, "smiles": smiles, "error": None}
 
     # Basic validation: check for valid characters
     valid_chars = set("CNOSPFClBrIHcnos0123456789[]()=#@+-\\/%.")
@@ -59,20 +57,22 @@ def validate_smiles(smiles: str) -> Dict[str, Any]:
             result["error"] = "RDKit cannot parse SMILES"
             return result
 
-        result.update({
-            "valid": True,
-            "canonical_smiles": Chem.MolToSmiles(mol),
-            "molecular_weight": Descriptors.MolWt(mol),
-            "formula": Chem.rdMolDescriptors.CalcMolFormula(mol),
-            "num_atoms": mol.GetNumAtoms(),
-            "num_bonds": mol.GetNumBonds(),
-            "num_heavy_atoms": mol.GetNumHeavyAtoms(),
-            "logp": Descriptors.MolLogP(mol),
-            "h_bond_donors": Descriptors.NumHDonors(mol),
-            "h_bond_acceptors": Descriptors.NumHAcceptors(mol),
-            "rotatable_bonds": Descriptors.NumRotatableBonds(mol),
-            "aromatic_rings": Descriptors.NumAromaticRings(mol)
-        })
+        result.update(
+            {
+                "valid": True,
+                "canonical_smiles": Chem.MolToSmiles(mol),
+                "molecular_weight": Descriptors.MolWt(mol),
+                "formula": Chem.rdMolDescriptors.CalcMolFormula(mol),
+                "num_atoms": mol.GetNumAtoms(),
+                "num_bonds": mol.GetNumBonds(),
+                "num_heavy_atoms": mol.GetNumHeavyAtoms(),
+                "logp": Descriptors.MolLogP(mol),
+                "h_bond_donors": Descriptors.NumHDonors(mol),
+                "h_bond_acceptors": Descriptors.NumHAcceptors(mol),
+                "rotatable_bonds": Descriptors.NumRotatableBonds(mol),
+                "aromatic_rings": Descriptors.NumAromaticRings(mol),
+            }
+        )
 
     except ImportError:
         # RDKit not available - basic validation passed
@@ -98,6 +98,7 @@ def normalize_smiles(smiles: str) -> str:
     """
     try:
         from rdkit import Chem
+
         mol = Chem.MolFromSmiles(smiles)
         if mol:
             return Chem.MolToSmiles(mol)
@@ -110,6 +111,7 @@ def normalize_smiles(smiles: str) -> str:
 # ==============================================================================
 # PDB SEARCHING AND DOWNLOADING
 # ==============================================================================
+
 
 def search_pdb_rcsb(query: str, max_results: int = 10) -> List[Dict[str, Any]]:
     """
@@ -140,15 +142,15 @@ def search_pdb_rcsb(query: str, max_results: int = 10) -> List[Dict[str, Any]]:
             "parameters": {
                 "attribute": "struct.title",
                 "operator": "contains_words",
-                "value": query
-            }
+                "value": query,
+            },
         },
         "return_type": "entry",
         "request_options": {
             "results_content_type": ["experimental"],
             "return_all_hits": False,
-            "results_verbosity": "verbose"
-        }
+            "results_verbosity": "verbose",
+        },
     }
 
     try:
@@ -228,10 +230,7 @@ def get_pdb_info(pdb_id: str) -> Dict[str, Any]:
     """
     pdb_id = pdb_id.upper()
 
-    result = {
-        "found": False,
-        "pdb_id": pdb_id
-    }
+    result = {"found": False, "pdb_id": pdb_id}
 
     # Try RCSB PDB REST API
     url = f"https://data.rcsb.org/rest/v1/core/entry/{pdb_id}"
@@ -242,13 +241,17 @@ def get_pdb_info(pdb_id: str) -> Dict[str, Any]:
         if response.status_code == 200:
             data = response.json()
 
-            result.update({
-                "found": True,
-                "title": data.get("struct", {}).get("title", ""),
-                "method": data.get("exptl", [{}])[0].get("method", ""),
-                "release_date": data.get("rcsb_accession_info", {}).get("initial_release_date", ""),
-                "download_url": f"https://files.rcsb.org/download/{pdb_id}.pdb"
-            })
+            result.update(
+                {
+                    "found": True,
+                    "title": data.get("struct", {}).get("title", ""),
+                    "method": data.get("exptl", [{}])[0].get("method", ""),
+                    "release_date": data.get("rcsb_accession_info", {}).get(
+                        "initial_release_date", ""
+                    ),
+                    "download_url": f"https://files.rcsb.org/download/{pdb_id}.pdb",
+                }
+            )
 
             # Resolution (if X-ray)
             if "refine" in data:
@@ -261,10 +264,16 @@ def get_pdb_info(pdb_id: str) -> Dict[str, Any]:
                 if summary_response.status_code == 200:
                     summary_data = summary_response.json()
 
-                    result["protein_name"] = summary_data.get("rcsb_polymer_entity", {}).get("pdbx_description", "")
-                    result["organism"] = summary_data.get("rcsb_entity_source_organism", [{}])[0].get("scientific_name", "")
+                    result["protein_name"] = summary_data.get("rcsb_polymer_entity", {}).get(
+                        "pdbx_description", ""
+                    )
+                    result["organism"] = summary_data.get("rcsb_entity_source_organism", [{}])[
+                        0
+                    ].get("scientific_name", "")
 
-                    gene_info = summary_data.get("rcsb_entity_source_organism", [{}])[0].get("rcsb_gene_name", [])
+                    gene_info = summary_data.get("rcsb_entity_source_organism", [{}])[0].get(
+                        "rcsb_gene_name", []
+                    )
                     result["gene_name"] = gene_info[0].get("value", "") if gene_info else ""
             except:
                 pass
@@ -299,10 +308,7 @@ def download_pdb(pdb_id: str, output_dir: Optional[str] = None) -> Dict[str, Any
     """
     pdb_id = pdb_id.upper()
 
-    result = {
-        "success": False,
-        "pdb_id": pdb_id
-    }
+    result = {"success": False, "pdb_id": pdb_id}
 
     # Set output directory
     if output_dir is None:
@@ -321,15 +327,17 @@ def download_pdb(pdb_id: str, output_dir: Optional[str] = None) -> Dict[str, Any
 
         if response.status_code == 200:
             # Save to file
-            with open(output_file, 'w') as f:
+            with open(output_file, "w") as f:
                 f.write(response.text)
 
-            result.update({
-                "success": True,
-                "file_path": str(output_file),
-                "size_bytes": output_file.stat().st_size,
-                "url": url
-            })
+            result.update(
+                {
+                    "success": True,
+                    "file_path": str(output_file),
+                    "size_bytes": output_file.stat().st_size,
+                    "url": url,
+                }
+            )
 
         elif response.status_code == 404:
             result["error"] = f"PDB file {pdb_id}.pdb not found on RCSB PDB"
@@ -363,10 +371,7 @@ def smart_pdb_search(query: str) -> Dict[str, Any]:
             "best_match": dict (if found)
         }
     """
-    result = {
-        "query": query,
-        "results": []
-    }
+    result = {"query": query, "results": []}
 
     # Detect query type
     if len(query) == 4 and query.isalnum():
@@ -376,7 +381,7 @@ def smart_pdb_search(query: str) -> Dict[str, Any]:
             result["results"] = [pdb_info]
             result["best_match"] = pdb_info
 
-    elif re.match(r'^[A-Z][0-9][A-Z0-9]{3}[0-9]$', query.upper()):
+    elif re.match(r"^[A-Z][0-9][A-Z0-9]{3}[0-9]$", query.upper()):
         result["query_type"] = "uniprot_id"
         result["results"] = search_pdb_by_uniprot(query.upper())
         if result["results"]:
@@ -395,9 +400,13 @@ def smart_pdb_search(query: str) -> Dict[str, Any]:
 # INTEGRATED MOLECULAR PROCESSING
 # ==============================================================================
 
-def process_molecular_inputs(ligand: str, receptor: str,
-                            ligand_smiles: Optional[str] = None,
-                            receptor_pdb: Optional[str] = None) -> Dict[str, Any]:
+
+def process_molecular_inputs(
+    ligand: str,
+    receptor: str,
+    ligand_smiles: Optional[str] = None,
+    receptor_pdb: Optional[str] = None,
+) -> Dict[str, Any]:
     """
     Process and validate molecular inputs for docking/binding affinity.
 
@@ -423,28 +432,25 @@ def process_molecular_inputs(ligand: str, receptor: str,
             }
         }
     """
-    result = {
-        "ligand": {"name": ligand},
-        "receptor": {"name": receptor}
-    }
+    result = {"ligand": {"name": ligand}, "receptor": {"name": receptor}}
 
     # Process ligand
     if ligand_smiles:
         smiles_validation = validate_smiles(ligand_smiles)
-        result["ligand"].update({
-            "smiles": ligand_smiles,
-            "valid": smiles_validation["valid"],
-            "properties": smiles_validation
-        })
+        result["ligand"].update(
+            {
+                "smiles": ligand_smiles,
+                "valid": smiles_validation["valid"],
+                "properties": smiles_validation,
+            }
+        )
     else:
         # Assume ligand is a SMILES string
         smiles_validation = validate_smiles(ligand)
         if smiles_validation["valid"]:
-            result["ligand"].update({
-                "smiles": ligand,
-                "valid": True,
-                "properties": smiles_validation
-            })
+            result["ligand"].update(
+                {"smiles": ligand, "valid": True, "properties": smiles_validation}
+            )
         else:
             result["ligand"]["valid"] = False
             result["ligand"]["error"] = "Could not parse as SMILES"
@@ -454,10 +460,7 @@ def process_molecular_inputs(ligand: str, receptor: str,
         # Explicit PDB provided
         if len(receptor_pdb) == 4 and receptor_pdb.isalnum():
             pdb_info = get_pdb_info(receptor_pdb.upper())
-            result["receptor"].update({
-                "pdb_id": receptor_pdb.upper(),
-                "info": pdb_info
-            })
+            result["receptor"].update({"pdb_id": receptor_pdb.upper(), "info": pdb_info})
         else:
             result["receptor"]["pdb_file"] = receptor_pdb
     else:
@@ -465,10 +468,7 @@ def process_molecular_inputs(ligand: str, receptor: str,
         search_result = smart_pdb_search(receptor)
         if search_result.get("best_match"):
             best = search_result["best_match"]
-            result["receptor"].update({
-                "pdb_id": best["pdb_id"],
-                "info": best
-            })
+            result["receptor"].update({"pdb_id": best["pdb_id"], "info": best})
         else:
             result["receptor"]["error"] = "PDB not found"
 
@@ -490,7 +490,7 @@ if __name__ == "__main__":
     validation = validate_smiles(smiles)
     print(f"   SMILES: {smiles}")
     print(f"   Valid: {validation['valid']}")
-    if validation['valid']:
+    if validation["valid"]:
         print(f"   MW: {validation.get('molecular_weight', 'N/A')} Da")
         print(f"   Formula: {validation.get('formula', 'N/A')}")
 
@@ -506,7 +506,7 @@ if __name__ == "__main__":
     pdb_info = get_pdb_info("2Y94")
     print(f"   PDB ID: {pdb_info['pdb_id']}")
     print(f"   Found: {pdb_info['found']}")
-    if pdb_info['found']:
+    if pdb_info["found"]:
         print(f"   Title: {pdb_info.get('title', 'N/A')[:60]}...")
         print(f"   Method: {pdb_info.get('method', 'N/A')}")
 
@@ -516,15 +516,15 @@ if __name__ == "__main__":
     print(f"   Query: {search['query']}")
     print(f"   Type: {search['query_type']}")
     print(f"   Results: {len(search['results'])}")
-    if search.get('best_match'):
-        best = search['best_match']
+    if search.get("best_match"):
+        best = search["best_match"]
         print(f"   Best match: {best['pdb_id']} - {best.get('title', 'N/A')[:50]}...")
 
     # Test 5: Download PDB
     print("\n5. Download PDB:")
     download = download_pdb("2Y94", "/tmp/bioql_pdb")
     print(f"   Success: {download['success']}")
-    if download['success']:
+    if download["success"]:
         print(f"   File: {download['file_path']}")
         print(f"   Size: {download['size_bytes']:,} bytes")
 

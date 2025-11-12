@@ -15,21 +15,23 @@ Agents:
     5. Hardware Selector: Chooses optimal quantum backend
 """
 
+import json
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, List, Optional, Any
-import json
+from typing import Any, Dict, List, Optional
 
 # Optional logging
 try:
     from loguru import logger
 except ImportError:
     import logging
+
     logger = logging.getLogger(__name__)
 
 
 class AgentType(Enum):
     """Types of specialized agents."""
+
     CODE_GENERATOR = "code_generator"
     CIRCUIT_OPTIMIZER = "optimizer"
     ERROR_CORRECTOR = "error_corrector"
@@ -41,6 +43,7 @@ class AgentType(Enum):
 @dataclass
 class AgentTask:
     """Task for an agent to complete."""
+
     task_id: str
     agent_type: AgentType
     description: str
@@ -52,6 +55,7 @@ class AgentTask:
 @dataclass
 class AgentResult:
     """Result from an agent."""
+
     task_id: str
     agent_type: AgentType
     success: bool
@@ -102,45 +106,53 @@ class AgentOrchestrator:
         tasks = []
 
         # 1. Always start with code generation
-        tasks.append(AgentTask(
-            task_id="gen_1",
-            agent_type=AgentType.CODE_GENERATOR,
-            description=f"Generate BioQL code for: {user_request}",
-            context={"user_request": user_request},
-            priority=1
-        ))
+        tasks.append(
+            AgentTask(
+                task_id="gen_1",
+                agent_type=AgentType.CODE_GENERATOR,
+                description=f"Generate BioQL code for: {user_request}",
+                context={"user_request": user_request},
+                priority=1,
+            )
+        )
 
         # 2. Check if bioinformatics optimization needed
         bio_keywords = ["protein", "drug", "dna", "molecule", "binding", "folding"]
         if any(kw in user_request.lower() for kw in bio_keywords):
-            tasks.append(AgentTask(
-                task_id="bio_1",
-                agent_type=AgentType.BIO_EXPERT,
-                description="Optimize for bioinformatics workload",
-                context={"user_request": user_request},
-                dependencies=["gen_1"],
-                priority=2
-            ))
+            tasks.append(
+                AgentTask(
+                    task_id="bio_1",
+                    agent_type=AgentType.BIO_EXPERT,
+                    description="Optimize for bioinformatics workload",
+                    context={"user_request": user_request},
+                    dependencies=["gen_1"],
+                    priority=2,
+                )
+            )
 
         # 3. Always optimize circuit
-        tasks.append(AgentTask(
-            task_id="opt_1",
-            agent_type=AgentType.CIRCUIT_OPTIMIZER,
-            description="Optimize quantum circuit",
-            context={},
-            dependencies=["gen_1"],
-            priority=3
-        ))
+        tasks.append(
+            AgentTask(
+                task_id="opt_1",
+                agent_type=AgentType.CIRCUIT_OPTIMIZER,
+                description="Optimize quantum circuit",
+                context={},
+                dependencies=["gen_1"],
+                priority=3,
+            )
+        )
 
         # 4. Select optimal hardware
-        tasks.append(AgentTask(
-            task_id="hw_1",
-            agent_type=AgentType.HARDWARE_SELECTOR,
-            description="Select optimal quantum backend",
-            context={"user_request": user_request},
-            dependencies=["opt_1"],
-            priority=4
-        ))
+        tasks.append(
+            AgentTask(
+                task_id="hw_1",
+                agent_type=AgentType.HARDWARE_SELECTOR,
+                description="Select optimal quantum backend",
+                context={"user_request": user_request},
+                dependencies=["opt_1"],
+                priority=4,
+            )
+        )
 
         logger.info(f"Decomposed into {len(tasks)} tasks")
         return tasks
@@ -160,7 +172,7 @@ class AgentOrchestrator:
                     agent_type=task.agent_type,
                     success=True,
                     output=f"Mock result for {task.description}",
-                    metadata={"mock": True}
+                    metadata={"mock": True},
                 )
 
             # Execute real agent
@@ -171,7 +183,7 @@ class AgentOrchestrator:
                 agent_type=task.agent_type,
                 success=True,
                 output=result,
-                metadata={"agent": agent.__class__.__name__}
+                metadata={"agent": agent.__class__.__name__},
             )
 
         except Exception as e:
@@ -181,7 +193,7 @@ class AgentOrchestrator:
                 agent_type=task.agent_type,
                 success=False,
                 output=None,
-                error=str(e)
+                error=str(e),
             )
 
     def execute(self, user_request: str, **kwargs) -> Dict[str, Any]:
@@ -233,7 +245,7 @@ class AgentOrchestrator:
             "tasks_executed": len(completed_tasks),
             "tasks_failed": len(tasks) - len(completed_tasks),
             "results": results,
-            "success": len(completed_tasks) == len(tasks)
+            "success": len(completed_tasks) == len(tasks),
         }
 
         logger.info(f"=== Execution complete: {final_result['success']} ===")
@@ -247,7 +259,7 @@ class AgentOrchestrator:
             f"Successful: {sum(1 for r in self.result_history if r.success)}",
             f"Failed: {sum(1 for r in self.result_history if not r.success)}",
             "",
-            "Agent breakdown:"
+            "Agent breakdown:",
         ]
 
         agent_counts = {}
@@ -282,15 +294,13 @@ class ThinkHarderOrchestrator(AgentOrchestrator):
 
         Analyzes previous attempts and tries again with improvements.
         """
-        logger.info(f"🧠 Thinking harder on task {task.task_id} (attempt {len(previous_attempts) + 1})")
+        logger.info(
+            f"🧠 Thinking harder on task {task.task_id} (attempt {len(previous_attempts) + 1})"
+        )
 
         # Add context from previous attempts
         task.context["previous_attempts"] = [
-            {
-                "success": r.success,
-                "output": str(r.output)[:200],
-                "error": r.error
-            }
+            {"success": r.success, "output": str(r.output)[:200], "error": r.error}
             for r in previous_attempts
         ]
 

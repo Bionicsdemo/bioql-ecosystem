@@ -14,9 +14,10 @@ NUNCA se usa para "mejorar" o "corregir" energías de docking.
 """
 
 import math
-import numpy as np
-from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
+
+import numpy as np
 
 
 @dataclass
@@ -26,6 +27,7 @@ class QuantumFeatures:
 
     ⚠️  Estos NO son energías físicas, son características estadísticas.
     """
+
     entropy_bits: float  # Entropía de Shannon en bits
     purity: float  # Pureza del estado (1 = puro, <1 = mixto)
     participation_ratio: float  # Número efectivo de estados
@@ -50,11 +52,13 @@ class QuantumFeatures:
             "total_shots": self.total_shots,
             "num_qubits": self.num_qubits,
             "timestamp": self.timestamp,
-            "WARNING": self.warning
+            "WARNING": self.warning,
         }
 
 
-def extract_quantum_features(counts: Dict[str, int], timestamp: Optional[str] = None) -> QuantumFeatures:
+def extract_quantum_features(
+    counts: Dict[str, int], timestamp: Optional[str] = None
+) -> QuantumFeatures:
     """
     Extrae features estadísticos de counts cuánticos.
 
@@ -98,6 +102,7 @@ def extract_quantum_features(counts: Dict[str, int], timestamp: Optional[str] = 
     num_qubits = len(list(counts.keys())[0])
 
     from datetime import datetime
+
     ts = timestamp or datetime.now().isoformat()
 
     return QuantumFeatures(
@@ -109,14 +114,14 @@ def extract_quantum_features(counts: Dict[str, int], timestamp: Optional[str] = 
         max_probability=max_probability,
         total_shots=total_shots,
         num_qubits=num_qubits,
-        timestamp=ts
+        timestamp=ts,
     )
 
 
 def correlate_quantum_classical(
     quantum_features: QuantumFeatures,
     docking_affinity: Optional[float] = None,
-    docking_poses: Optional[int] = None
+    docking_poses: Optional[int] = None,
 ) -> Dict[str, Any]:
     """
     Correlaciona features cuánticos con resultados de docking.
@@ -137,28 +142,30 @@ def correlate_quantum_classical(
         "DOCKING_RESULTS": {
             "affinity_kcal_per_mol": docking_affinity,
             "num_poses": docking_poses,
-            "NOTE": "⚠️  Affinity de Vina NO fue modificada por features cuánticos"
+            "NOTE": "⚠️  Affinity de Vina NO fue modificada por features cuánticos",
         },
         "CORRELATION_ANALYSIS": {
             "entropy_vs_affinity": {
                 "entropy": quantum_features.entropy_bits,
                 "affinity": docking_affinity,
-                "note": "Correlación estadística - NO causal"
+                "note": "Correlación estadística - NO causal",
             },
             "purity_metric": quantum_features.purity,
-            "interpretation": "Features cuánticos y docking son independientes"
+            "interpretation": "Features cuánticos y docking son independientes",
         },
         "WARNINGS": [
             "⚠️  Features cuánticos NO son energías de binding",
             "⚠️  ΔG de Vina es resultado de cálculo clásico puro",
-            "⚠️  Esta correlación es para análisis, no para mejorar resultados"
-        ]
+            "⚠️  Esta correlación es para análisis, no para mejorar resultados",
+        ],
     }
 
     return result
 
 
-def analyze_quantum_noise(counts: Dict[str, int], expected_state: Optional[str] = None) -> Dict[str, float]:
+def analyze_quantum_noise(
+    counts: Dict[str, int], expected_state: Optional[str] = None
+) -> Dict[str, float]:
     """
     Analiza el ruido en mediciones cuánticas comparando con estado esperado.
 
@@ -170,14 +177,14 @@ def analyze_quantum_noise(counts: Dict[str, int], expected_state: Optional[str] 
         Dict con métricas de ruido
     """
     total = sum(counts.values())
-    probs = {s: c/total for s, c in counts.items()}
+    probs = {s: c / total for s, c in counts.items()}
 
     analysis = {
         "total_shots": total,
         "num_unique_states": len(counts),
         "max_probability": max(probs.values()),
         "min_probability": min(probs.values()),
-        "probability_spread": max(probs.values()) - min(probs.values())
+        "probability_spread": max(probs.values()) - min(probs.values()),
     }
 
     if expected_state and expected_state in counts:
@@ -205,16 +212,16 @@ def create_ml_features(quantum_features: QuantumFeatures) -> np.ndarray:
         quantum_features.participation_ratio,
         quantum_features.max_probability,
         quantum_features.total_shots,
-        quantum_features.num_qubits
+        quantum_features.num_qubits,
     ]
 
     return np.array(features, dtype=np.float32)
 
 
 __all__ = [
-    'QuantumFeatures',
-    'extract_quantum_features',
-    'correlate_quantum_classical',
-    'analyze_quantum_noise',
-    'create_ml_features'
+    "QuantumFeatures",
+    "extract_quantum_features",
+    "correlate_quantum_classical",
+    "analyze_quantum_noise",
+    "create_ml_features",
 ]

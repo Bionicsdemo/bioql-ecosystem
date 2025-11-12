@@ -26,8 +26,8 @@ References:
 - Hsu et al. (2013) Nat Biotechnol - GUIDE-seq experimental method
 """
 
-from typing import Dict, List, Any, Tuple
 import re
+from typing import Any, Dict, List, Tuple
 
 
 class OffTargetPredictor:
@@ -58,7 +58,7 @@ class OffTargetPredictor:
         Position 1 = furthest from PAM, Position 20 = closest to PAM
         """
         return [
-            0.0,   # Position 1 (far from PAM)
+            0.0,  # Position 1 (far from PAM)
             0.0,
             0.0,
             0.0,
@@ -67,7 +67,7 @@ class OffTargetPredictor:
             0.0,
             0.0,
             0.0,
-            0.014, # Position 10
+            0.014,  # Position 10
             0.0,
             0.0,
             0.0,
@@ -77,7 +77,7 @@ class OffTargetPredictor:
             0.317,
             0.0,
             0.389,
-            0.079, # Position 20 (seed region, closest to PAM)
+            0.079,  # Position 20 (seed region, closest to PAM)
         ]
 
     def _get_mismatch_penalties(self) -> Dict[Tuple[str, str], float]:
@@ -89,33 +89,34 @@ class OffTargetPredictor:
         penalties = {}
 
         # rA:dX mismatches (where guide has rA)
-        penalties[('A', 'A')] = 0.0    # Match
-        penalties[('A', 'C')] = 0.0
-        penalties[('A', 'G')] = 0.0
-        penalties[('A', 'T')] = 0.0
+        penalties[("A", "A")] = 0.0  # Match
+        penalties[("A", "C")] = 0.0
+        penalties[("A", "G")] = 0.0
+        penalties[("A", "T")] = 0.0
 
         # rC:dX mismatches
-        penalties[('C', 'C')] = 0.0    # Match
-        penalties[('C', 'A')] = 0.0
-        penalties[('C', 'G')] = 0.0
-        penalties[('C', 'T')] = 0.0
+        penalties[("C", "C")] = 0.0  # Match
+        penalties[("C", "A")] = 0.0
+        penalties[("C", "G")] = 0.0
+        penalties[("C", "T")] = 0.0
 
         # rG:dX mismatches
-        penalties[('G', 'G')] = 0.0    # Match
-        penalties[('G', 'A')] = 0.259
-        penalties[('G', 'C')] = 0.022
-        penalties[('G', 'T')] = 0.0
+        penalties[("G", "G")] = 0.0  # Match
+        penalties[("G", "A")] = 0.259
+        penalties[("G", "C")] = 0.022
+        penalties[("G", "T")] = 0.0
 
         # rU:dX mismatches (U in guide RNA)
-        penalties[('T', 'T')] = 0.0    # Match (T in DNA template)
-        penalties[('T', 'A')] = 0.0
-        penalties[('T', 'C')] = 0.0
-        penalties[('T', 'G')] = 0.0
+        penalties[("T", "T")] = 0.0  # Match (T in DNA template)
+        penalties[("T", "A")] = 0.0
+        penalties[("T", "C")] = 0.0
+        penalties[("T", "G")] = 0.0
 
         return penalties
 
-    def calculate_offtarget_score(self, guide_seq: str, target_seq: str,
-                                   pam_seq: str = "NGG") -> Dict[str, Any]:
+    def calculate_offtarget_score(
+        self, guide_seq: str, target_seq: str, pam_seq: str = "NGG"
+    ) -> Dict[str, Any]:
         """
         Calculate off-target score for guide-target pair
 
@@ -153,7 +154,7 @@ class OffTargetPredictor:
             base_penalty = self.mismatch_penalties.get(mismatch_key, 0.5)
 
             # Apply penalty
-            cfd_score *= (1.0 - base_penalty - pos_weight)
+            cfd_score *= 1.0 - base_penalty - pos_weight
 
         # PAM validation (NGG is required)
         pam_valid = self._validate_pam(pam_seq)
@@ -176,14 +177,14 @@ class OffTargetPredictor:
             risk_category = "5+ mismatches"
 
         return {
-            'cfd_score': cfd_score,
-            'num_mismatches': num_mismatches,
-            'mismatch_positions': mismatch_positions,
-            'mismatch_details': mismatches,
-            'pam_valid': pam_valid,
-            'pam_sequence': pam_seq,
-            'risk_level': risk_level,
-            'risk_category': risk_category
+            "cfd_score": cfd_score,
+            "num_mismatches": num_mismatches,
+            "mismatch_positions": mismatch_positions,
+            "mismatch_details": mismatches,
+            "pam_valid": pam_valid,
+            "pam_sequence": pam_seq,
+            "risk_level": risk_level,
+            "risk_category": risk_category,
         }
 
     def _validate_pam(self, pam_seq: str) -> bool:
@@ -194,9 +195,9 @@ class OffTargetPredictor:
         # NGG pattern: any base + GG
         return pam_seq[1:] == "GG"
 
-    def scan_genome_for_offtargets(self, guide_seq: str,
-                                   genome_regions: List[str],
-                                   max_mismatches: int = 4) -> List[Dict[str, Any]]:
+    def scan_genome_for_offtargets(
+        self, guide_seq: str, genome_regions: List[str], max_mismatches: int = 4
+    ) -> List[Dict[str, Any]]:
         """
         Scan genome regions for potential off-targets
 
@@ -213,8 +214,8 @@ class OffTargetPredictor:
         for region_idx, region_seq in enumerate(genome_regions):
             # Slide window across region
             for i in range(len(region_seq) - 23):  # 20nt + 3nt PAM
-                target_seq = region_seq[i:i+20]
-                pam_seq = region_seq[i+20:i+23]
+                target_seq = region_seq[i : i + 20]
+                pam_seq = region_seq[i + 20 : i + 23]
 
                 # Check if PAM is valid
                 if not self._validate_pam(pam_seq):
@@ -225,20 +226,20 @@ class OffTargetPredictor:
 
                 if mismatches <= max_mismatches:
                     # Calculate off-target score
-                    score_result = self.calculate_offtarget_score(
-                        guide_seq, target_seq, pam_seq
+                    score_result = self.calculate_offtarget_score(guide_seq, target_seq, pam_seq)
+
+                    offtargets.append(
+                        {
+                            "region_index": region_idx,
+                            "position": i,
+                            "target_sequence": target_seq,
+                            "pam_sequence": pam_seq,
+                            **score_result,
+                        }
                     )
 
-                    offtargets.append({
-                        'region_index': region_idx,
-                        'position': i,
-                        'target_sequence': target_seq,
-                        'pam_sequence': pam_seq,
-                        **score_result
-                    })
-
         # Sort by risk (highest CFD score = highest risk)
-        offtargets.sort(key=lambda x: x['cfd_score'], reverse=True)
+        offtargets.sort(key=lambda x: x["cfd_score"], reverse=True)
 
         return offtargets
 
@@ -253,12 +254,12 @@ class OffTargetPredictor:
             Specificity analysis
         """
         # GC content (optimal: 40-60%)
-        gc_count = guide_seq.count('G') + guide_seq.count('C')
+        gc_count = guide_seq.count("G") + guide_seq.count("C")
         gc_content = gc_count / len(guide_seq) * 100
 
         # Homopolymer runs (bad for specificity)
         max_homopolymer = 0
-        for base in ['A', 'T', 'G', 'C']:
+        for base in ["A", "T", "G", "C"]:
             for length in range(5, 0, -1):
                 if base * length in guide_seq:
                     max_homopolymer = max(max_homopolymer, length)
@@ -266,14 +267,14 @@ class OffTargetPredictor:
 
         # Dinucleotide repeats
         max_dinuc_repeat = 0
-        for dinuc in ['AT', 'TA', 'GC', 'CG', 'AA', 'TT', 'GG', 'CC']:
+        for dinuc in ["AT", "TA", "GC", "CG", "AA", "TT", "GG", "CC"]:
             for length in range(4, 0, -1):
                 if (dinuc * length) in guide_seq:
                     max_dinuc_repeat = max(max_dinuc_repeat, length)
                     break
 
         # Seed region GC content (last 8nt, closer to PAM)
-        seed_gc = (guide_seq[-8:].count('G') + guide_seq[-8:].count('C')) / 8 * 100
+        seed_gc = (guide_seq[-8:].count("G") + guide_seq[-8:].count("C")) / 8 * 100
 
         # Calculate composite specificity score
         specificity = 100.0
@@ -297,18 +298,17 @@ class OffTargetPredictor:
         specificity = max(0, min(100, specificity))
 
         return {
-            'specificity_score': specificity,
-            'gc_content': gc_content,
-            'seed_gc_content': seed_gc,
-            'max_homopolymer': max_homopolymer,
-            'max_dinuc_repeat': max_dinuc_repeat,
-            'recommendations': self._get_specificity_recommendations(
+            "specificity_score": specificity,
+            "gc_content": gc_content,
+            "seed_gc_content": seed_gc,
+            "max_homopolymer": max_homopolymer,
+            "max_dinuc_repeat": max_dinuc_repeat,
+            "recommendations": self._get_specificity_recommendations(
                 gc_content, max_homopolymer, max_dinuc_repeat
-            )
+            ),
         }
 
-    def _get_specificity_recommendations(self, gc: float, homopoly: int,
-                                        dinuc: int) -> List[str]:
+    def _get_specificity_recommendations(self, gc: float, homopoly: int, dinuc: int) -> List[str]:
         """Generate recommendations for improving specificity"""
         recs = []
 
@@ -344,45 +344,45 @@ def get_precision_limits() -> Dict[str, Any]:
         IN-SILICO COMPUTATIONAL PREDICTION ONLY
     """
     return {
-        'summary': 'IN-SILICO COMPUTATIONAL PREDICTION ONLY',
-        'computational_methods': {
-            'genomic_scan': 'Sliding window with PAM motif detection (NGG for SpCas9)',
-            'mismatch_scoring': 'Hamming distance for substitutions, Graph Edit Distance for indels',
-            'position_weighting': 'PAM-proximal positions weighted higher (seed region)',
-            'scoring_model': 'CFD-inspired computational scores (not experimentally validated)'
+        "summary": "IN-SILICO COMPUTATIONAL PREDICTION ONLY",
+        "computational_methods": {
+            "genomic_scan": "Sliding window with PAM motif detection (NGG for SpCas9)",
+            "mismatch_scoring": "Hamming distance for substitutions, Graph Edit Distance for indels",
+            "position_weighting": "PAM-proximal positions weighted higher (seed region)",
+            "scoring_model": "CFD-inspired computational scores (not experimentally validated)",
         },
-        'known_limitations': [
-            'Sequence-based only: no chromatin accessibility data',
-            'No epigenetic context (methylation, histone marks)',
-            'No cell-type or tissue-specific factors',
-            'No RNA structure predictions',
-            'No protein-DNA interaction dynamics',
-            'Cannot detect all possible off-targets (false negatives possible)',
-            'May predict sites with no actual cutting (false positives possible)'
+        "known_limitations": [
+            "Sequence-based only: no chromatin accessibility data",
+            "No epigenetic context (methylation, histone marks)",
+            "No cell-type or tissue-specific factors",
+            "No RNA structure predictions",
+            "No protein-DNA interaction dynamics",
+            "Cannot detect all possible off-targets (false negatives possible)",
+            "May predict sites with no actual cutting (false positives possible)",
         ],
-        'precision_estimates': {
-            'sensitivity': 'Unknown - depends on mismatch tolerance and genome coverage',
-            'specificity': 'Unknown - requires experimental validation',
-            'false_positive_rate': 'Not quantified - computational predictions only',
-            'false_negative_rate': 'Not quantified - may miss non-canonical sites'
+        "precision_estimates": {
+            "sensitivity": "Unknown - depends on mismatch tolerance and genome coverage",
+            "specificity": "Unknown - requires experimental validation",
+            "false_positive_rate": "Not quantified - computational predictions only",
+            "false_negative_rate": "Not quantified - may miss non-canonical sites",
         },
-        'recommended_experimental_validation': [
-            'GUIDE-seq: genome-wide double-strand break mapping',
-            'CIRCLE-seq: circularization for in vitro enzymatic enrichment',
-            'CHANGE-seq: competitive hybridization and NGS',
-            'Digenome-seq: whole-genome sequencing after Cas9 digestion',
-            'SITE-seq: selective enrichment and identification of tagged genomic DNA ends'
+        "recommended_experimental_validation": [
+            "GUIDE-seq: genome-wide double-strand break mapping",
+            "CIRCLE-seq: circularization for in vitro enzymatic enrichment",
+            "CHANGE-seq: competitive hybridization and NGS",
+            "Digenome-seq: whole-genome sequencing after Cas9 digestion",
+            "SITE-seq: selective enrichment and identification of tagged genomic DNA ends",
         ],
-        'citation_note': (
-            'This computational method is inspired by published algorithms '
-            '(Doench et al. 2016, Hsu et al. 2013) but is NOT a direct implementation '
-            'of their experimental methods. All predictions require experimental validation.'
+        "citation_note": (
+            "This computational method is inspired by published algorithms "
+            "(Doench et al. 2016, Hsu et al. 2013) but is NOT a direct implementation "
+            "of their experimental methods. All predictions require experimental validation."
         ),
-        'disclaimer': (
-            '⚠️  IMPORTANT: This is a predictive computational tool for research purposes. '
-            'Off-target effects MUST be validated experimentally using genome-wide methods '
-            'before any clinical or therapeutic applications.'
-        )
+        "disclaimer": (
+            "⚠️  IMPORTANT: This is a predictive computational tool for research purposes. "
+            "Off-target effects MUST be validated experimentally using genome-wide methods "
+            "before any clinical or therapeutic applications."
+        ),
     }
 
 
@@ -390,9 +390,9 @@ if __name__ == "__main__":
     # Test the predictor
     predictor = OffTargetPredictor()
 
-    print("="*80)
+    print("=" * 80)
     print("CRISPR Off-Target Predictor - Tests")
-    print("="*80)
+    print("=" * 80)
     print()
 
     # Test 1: Perfect match
@@ -430,5 +430,5 @@ if __name__ == "__main__":
     print(f"Seed GC: {spec_result['seed_gc_content']:.1f}%")
     print(f"Max Homopolymer: {spec_result['max_homopolymer']}")
     print("Recommendations:")
-    for rec in spec_result['recommendations']:
+    for rec in spec_result["recommendations"]:
         print(f"  {rec}")

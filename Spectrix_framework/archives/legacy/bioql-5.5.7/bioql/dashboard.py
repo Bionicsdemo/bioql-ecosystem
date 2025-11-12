@@ -5,12 +5,12 @@ Creates interactive HTML dashboards for performance profiling and cost analysis.
 Generates standalone, mobile-responsive HTML with embedded charts and analytics.
 """
 
-import json
-import html
-from datetime import datetime
-from typing import Dict, List, Any, Optional
 import base64
+import html
+import json
+from datetime import datetime
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 
 def escape_html(text: Any) -> str:
@@ -40,7 +40,7 @@ def sanitize_json(data: Any) -> str:
     """
     json_str = json.dumps(data)
     # Escape < and > to prevent script injection
-    return json_str.replace('<', '\\u003c').replace('>', '\\u003e')
+    return json_str.replace("<", "\\u003c").replace(">", "\\u003e")
 
 
 class ProfilingDashboard:
@@ -86,16 +86,12 @@ class ProfilingDashboard:
         metadata = profiler_context.get("metadata", {})
 
         # Generate components
-        summary_html = self._create_performance_summary(
-            performance_data, cost_data, circuit_data
-        )
+        summary_html = self._create_performance_summary(performance_data, cost_data, circuit_data)
         timeline_chart = self._create_timeline_chart(stages)
         circuit_charts = self._create_circuit_metrics_charts(circuit_data)
         cost_charts = self._create_cost_breakdown(cost_data)
         bottleneck_viz = self._create_bottleneck_visualization(stages)
-        recommendations = self._create_optimization_recommendations(
-            profiler_context
-        )
+        recommendations = self._create_optimization_recommendations(profiler_context)
         comparison_table = self._create_comparison_table(profiler_context)
 
         # Embed raw JSON data (sanitized for XSS protection)
@@ -103,7 +99,7 @@ class ProfilingDashboard:
         raw_data_b64 = base64.b64encode(raw_data.encode()).decode()
 
         # Escape metadata for safe HTML embedding
-        safe_timestamp = escape_html(metadata.get('timestamp', 'N/A'))
+        safe_timestamp = escape_html(metadata.get("timestamp", "N/A"))
 
         # Build complete HTML
         html_content = f"""<!DOCTYPE html>
@@ -265,10 +261,7 @@ class ProfilingDashboard:
         return html
 
     def _create_performance_summary(
-        self,
-        performance: Dict[str, Any],
-        costs: Dict[str, Any],
-        circuit: Dict[str, Any]
+        self, performance: Dict[str, Any], costs: Dict[str, Any], circuit: Dict[str, Any]
     ) -> str:
         """Create executive summary cards."""
         total_time = performance.get("total_time", 0)
@@ -348,27 +341,29 @@ class ProfilingDashboard:
             stage_percentages = [0] * len(stage_times)
 
         chart_data = {
-            "data": [{
-                "type": "bar",
-                "x": stage_names,
-                "y": stage_times,
-                "text": [f"{p:.1f}%" for p in stage_percentages],
-                "textposition": "auto",
-                "hovertemplate": "<b>%{x}</b><br>Time: %{y:.3f}s<br>Percentage: %{text}<extra></extra>",
-                "marker": {
-                    "color": stage_times,
-                    "colorscale": "Viridis",
-                    "showscale": True,
-                    "colorbar": {"title": "Time (s)"}
+            "data": [
+                {
+                    "type": "bar",
+                    "x": stage_names,
+                    "y": stage_times,
+                    "text": [f"{p:.1f}%" for p in stage_percentages],
+                    "textposition": "auto",
+                    "hovertemplate": "<b>%{x}</b><br>Time: %{y:.3f}s<br>Percentage: %{text}<extra></extra>",
+                    "marker": {
+                        "color": stage_times,
+                        "colorscale": "Viridis",
+                        "showscale": True,
+                        "colorbar": {"title": "Time (s)"},
+                    },
                 }
-            }],
+            ],
             "layout": {
                 "title": "Stage Execution Timeline",
                 "xaxis": {"title": "Stage"},
                 "yaxis": {"title": "Time (seconds)"},
                 "hovermode": "closest",
-                "height": 400
-            }
+                "height": 400,
+            },
         }
 
         return json.dumps(chart_data)
@@ -383,65 +378,62 @@ class ProfilingDashboard:
         max_depth = max(depth * 1.5, 100)  # Set reasonable max
 
         depth_chart = {
-            "data": [{
-                "type": "indicator",
-                "mode": "gauge+number+delta",
-                "value": depth,
-                "title": {"text": "Circuit Depth"},
-                "gauge": {
-                    "axis": {"range": [0, max_depth]},
-                    "bar": {"color": "darkblue"},
-                    "steps": [
-                        {"range": [0, max_depth * 0.33], "color": "lightgreen"},
-                        {"range": [max_depth * 0.33, max_depth * 0.66], "color": "yellow"},
-                        {"range": [max_depth * 0.66, max_depth], "color": "lightcoral"}
-                    ],
-                    "threshold": {
-                        "line": {"color": "red", "width": 4},
-                        "thickness": 0.75,
-                        "value": max_depth * 0.8
-                    }
+            "data": [
+                {
+                    "type": "indicator",
+                    "mode": "gauge+number+delta",
+                    "value": depth,
+                    "title": {"text": "Circuit Depth"},
+                    "gauge": {
+                        "axis": {"range": [0, max_depth]},
+                        "bar": {"color": "darkblue"},
+                        "steps": [
+                            {"range": [0, max_depth * 0.33], "color": "lightgreen"},
+                            {"range": [max_depth * 0.33, max_depth * 0.66], "color": "yellow"},
+                            {"range": [max_depth * 0.66, max_depth], "color": "lightcoral"},
+                        ],
+                        "threshold": {
+                            "line": {"color": "red", "width": 4},
+                            "thickness": 0.75,
+                            "value": max_depth * 0.8,
+                        },
+                    },
                 }
-            }],
-            "layout": {"height": 350}
+            ],
+            "layout": {"height": 350},
         }
 
         # Gates breakdown (pie chart)
         gate_counts = circuit.get("gate_counts", {})
         if gate_counts:
             gates_chart = {
-                "data": [{
-                    "type": "pie",
-                    "labels": list(gate_counts.keys()),
-                    "values": list(gate_counts.values()),
-                    "textinfo": "label+percent",
-                    "hovertemplate": "<b>%{label}</b><br>Count: %{value}<br>Percentage: %{percent}<extra></extra>"
-                }],
-                "layout": {
-                    "title": "Gate Distribution",
-                    "height": 350
-                }
+                "data": [
+                    {
+                        "type": "pie",
+                        "labels": list(gate_counts.keys()),
+                        "values": list(gate_counts.values()),
+                        "textinfo": "label+percent",
+                        "hovertemplate": "<b>%{label}</b><br>Count: %{value}<br>Percentage: %{percent}<extra></extra>",
+                    }
+                ],
+                "layout": {"title": "Gate Distribution", "height": 350},
             }
         else:
             # Fallback if no gate counts
             num_gates = circuit.get("num_gates", 0)
             gates_chart = {
-                "data": [{
-                    "type": "pie",
-                    "labels": ["Total Gates"],
-                    "values": [num_gates],
-                    "textinfo": "label+value"
-                }],
-                "layout": {
-                    "title": "Gate Distribution",
-                    "height": 350
-                }
+                "data": [
+                    {
+                        "type": "pie",
+                        "labels": ["Total Gates"],
+                        "values": [num_gates],
+                        "textinfo": "label+value",
+                    }
+                ],
+                "layout": {"title": "Gate Distribution", "height": 350},
             }
 
-        return {
-            "depth": json.dumps(depth_chart),
-            "gates": json.dumps(gates_chart)
-        }
+        return {"depth": json.dumps(depth_chart), "gates": json.dumps(gates_chart)}
 
     def _create_cost_breakdown(self, costs: Dict[str, Any]) -> Dict[str, str]:
         """Create cost analysis visualizations."""
@@ -452,34 +444,32 @@ class ProfilingDashboard:
         cost_categories = costs.get("breakdown", {})
         if cost_categories:
             breakdown_chart = {
-                "data": [{
-                    "type": "pie",
-                    "labels": list(cost_categories.keys()),
-                    "values": list(cost_categories.values()),
-                    "textinfo": "label+percent",
-                    "hovertemplate": "<b>%{label}</b><br>Cost: $%{value:.4f}<br>Percentage: %{percent}<extra></extra>",
-                    "marker": {
-                        "colors": ["#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A", "#98D8C8"]
+                "data": [
+                    {
+                        "type": "pie",
+                        "labels": list(cost_categories.keys()),
+                        "values": list(cost_categories.values()),
+                        "textinfo": "label+percent",
+                        "hovertemplate": "<b>%{label}</b><br>Cost: $%{value:.4f}<br>Percentage: %{percent}<extra></extra>",
+                        "marker": {
+                            "colors": ["#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A", "#98D8C8"]
+                        },
                     }
-                }],
-                "layout": {
-                    "title": "Cost Breakdown by Category",
-                    "height": 350
-                }
+                ],
+                "layout": {"title": "Cost Breakdown by Category", "height": 350},
             }
         else:
             total_cost = costs.get("total_cost", 0)
             breakdown_chart = {
-                "data": [{
-                    "type": "pie",
-                    "labels": ["Total Cost"],
-                    "values": [total_cost],
-                    "textinfo": "label+value"
-                }],
-                "layout": {
-                    "title": "Total Cost",
-                    "height": 350
-                }
+                "data": [
+                    {
+                        "type": "pie",
+                        "labels": ["Total Cost"],
+                        "values": [total_cost],
+                        "textinfo": "label+value",
+                    }
+                ],
+                "layout": {"title": "Total Cost", "height": 350},
             }
 
         # Cost projections (bar chart for different scales)
@@ -488,33 +478,30 @@ class ProfilingDashboard:
             "Current": total_cost,
             "10x Scale": total_cost * 10,
             "100x Scale": total_cost * 100,
-            "1000x Scale": total_cost * 1000
+            "1000x Scale": total_cost * 1000,
         }
 
         projection_chart = {
-            "data": [{
-                "type": "bar",
-                "x": list(projections.keys()),
-                "y": list(projections.values()),
-                "text": [f"${v:.4f}" for v in projections.values()],
-                "textposition": "auto",
-                "marker": {
-                    "color": ["#4ECDC4", "#45B7D1", "#FFA07A", "#FF6B6B"]
+            "data": [
+                {
+                    "type": "bar",
+                    "x": list(projections.keys()),
+                    "y": list(projections.values()),
+                    "text": [f"${v:.4f}" for v in projections.values()],
+                    "textposition": "auto",
+                    "marker": {"color": ["#4ECDC4", "#45B7D1", "#FFA07A", "#FF6B6B"]},
                 }
-            }],
+            ],
             "layout": {
                 "title": "Cost Projections at Scale",
-                "yaxis": {
-                    "title": "Cost ($)",
-                    "type": "log"
-                },
-                "height": 350
-            }
+                "yaxis": {"title": "Cost ($)", "type": "log"},
+                "height": 350,
+            },
         }
 
         return {
             "breakdown": json.dumps(breakdown_chart),
-            "projection": json.dumps(projection_chart)
+            "projection": json.dumps(projection_chart),
         }
 
     def _create_bottleneck_visualization(self, stages: Dict[str, Any]) -> str:
@@ -527,62 +514,59 @@ class ProfilingDashboard:
 
         # Create heatmap data
         total_time = sum(stage_times)
-        stage_percentages = [(t / total_time) * 100 if total_time > 0 else 0
-                            for t in stage_times]
+        stage_percentages = [(t / total_time) * 100 if total_time > 0 else 0 for t in stage_times]
 
         # Sort by time (descending)
         sorted_data = sorted(
-            zip(stage_names, stage_times, stage_percentages),
-            key=lambda x: x[1],
-            reverse=True
+            zip(stage_names, stage_times, stage_percentages), key=lambda x: x[1], reverse=True
         )
 
         names, times, percentages = zip(*sorted_data) if sorted_data else ([], [], [])
 
         heatmap_chart = {
-            "data": [{
-                "type": "heatmap",
-                "x": ["Time Consumption"],
-                "y": list(names),
-                "z": [[t] for t in times],
-                "colorscale": "RdYlGn_r",
-                "hovertemplate": "<b>%{y}</b><br>Time: %{z:.3f}s<extra></extra>",
-                "showscale": True,
-                "colorbar": {"title": "Time (s)"}
-            }],
+            "data": [
+                {
+                    "type": "heatmap",
+                    "x": ["Time Consumption"],
+                    "y": list(names),
+                    "z": [[t] for t in times],
+                    "colorscale": "RdYlGn_r",
+                    "hovertemplate": "<b>%{y}</b><br>Time: %{z:.3f}s<extra></extra>",
+                    "showscale": True,
+                    "colorbar": {"title": "Time (s)"},
+                }
+            ],
             "layout": {
                 "title": "Stage Performance Heatmap (Sorted by Time)",
                 "height": max(400, len(names) * 40),
-                "yaxis": {"tickmode": "linear"}
-            }
+                "yaxis": {"tickmode": "linear"},
+            },
         }
 
         return json.dumps(heatmap_chart)
 
-    def _create_optimization_recommendations(
-        self,
-        profiler_context: Dict[str, Any]
-    ) -> str:
+    def _create_optimization_recommendations(self, profiler_context: Dict[str, Any]) -> str:
         """Generate optimization recommendations based on profiling data."""
         recommendations = []
 
         # Analyze stages
         stages = profiler_context.get("stages", {})
         if stages:
-            stage_times = {name: data.get("duration", 0)
-                          for name, data in stages.items()}
+            stage_times = {name: data.get("duration", 0) for name, data in stages.items()}
             total_time = sum(stage_times.values())
 
             # Find slowest stage
             if total_time > 0:
                 slowest_stage = max(stage_times.items(), key=lambda x: x[1])
                 if slowest_stage[1] / total_time > 0.5:
-                    recommendations.append({
-                        "severity": "high",
-                        "title": f"Bottleneck: {slowest_stage[0]}",
-                        "description": f"Stage '{slowest_stage[0]}' consumes {(slowest_stage[1]/total_time)*100:.1f}% of total execution time.",
-                        "suggestion": "Consider optimizing this stage with caching, parallelization, or algorithm improvements."
-                    })
+                    recommendations.append(
+                        {
+                            "severity": "high",
+                            "title": f"Bottleneck: {slowest_stage[0]}",
+                            "description": f"Stage '{slowest_stage[0]}' consumes {(slowest_stage[1]/total_time)*100:.1f}% of total execution time.",
+                            "suggestion": "Consider optimizing this stage with caching, parallelization, or algorithm improvements.",
+                        }
+                    )
 
         # Analyze circuit metrics
         circuit = profiler_context.get("circuit_metrics", {})
@@ -591,20 +575,24 @@ class ProfilingDashboard:
             num_gates = circuit.get("num_gates", 0)
 
             if depth > 100:
-                recommendations.append({
-                    "severity": "medium",
-                    "title": "High Circuit Depth",
-                    "description": f"Circuit depth of {depth} may lead to increased noise and errors.",
-                    "suggestion": "Consider circuit optimization techniques like gate synthesis or decomposition strategies."
-                })
+                recommendations.append(
+                    {
+                        "severity": "medium",
+                        "title": "High Circuit Depth",
+                        "description": f"Circuit depth of {depth} may lead to increased noise and errors.",
+                        "suggestion": "Consider circuit optimization techniques like gate synthesis or decomposition strategies.",
+                    }
+                )
 
             if num_gates > 1000:
-                recommendations.append({
-                    "severity": "medium",
-                    "title": "Large Gate Count",
-                    "description": f"Circuit contains {num_gates} gates, which may be expensive to execute.",
-                    "suggestion": "Explore gate reduction techniques or consider approximate methods."
-                })
+                recommendations.append(
+                    {
+                        "severity": "medium",
+                        "title": "Large Gate Count",
+                        "description": f"Circuit contains {num_gates} gates, which may be expensive to execute.",
+                        "suggestion": "Explore gate reduction techniques or consider approximate methods.",
+                    }
+                )
 
         # Analyze costs
         costs = profiler_context.get("costs", {})
@@ -612,28 +600,34 @@ class ProfilingDashboard:
             total_cost = costs.get("total_cost", 0)
 
             if total_cost > 1.0:
-                recommendations.append({
-                    "severity": "high",
-                    "title": "High Execution Cost",
-                    "description": f"Total cost of ${total_cost:.4f} is significant.",
-                    "suggestion": "Consider using simulators for development, or optimize circuit before running on hardware."
-                })
+                recommendations.append(
+                    {
+                        "severity": "high",
+                        "title": "High Execution Cost",
+                        "description": f"Total cost of ${total_cost:.4f} is significant.",
+                        "suggestion": "Consider using simulators for development, or optimize circuit before running on hardware.",
+                    }
+                )
             elif total_cost > 0.1:
-                recommendations.append({
-                    "severity": "low",
-                    "title": "Moderate Cost",
-                    "description": f"Cost of ${total_cost:.4f} is reasonable but could be optimized.",
-                    "suggestion": "Monitor costs at scale and consider budget limits."
-                })
+                recommendations.append(
+                    {
+                        "severity": "low",
+                        "title": "Moderate Cost",
+                        "description": f"Cost of ${total_cost:.4f} is reasonable but could be optimized.",
+                        "suggestion": "Monitor costs at scale and consider budget limits.",
+                    }
+                )
 
         # Default recommendation if none found
         if not recommendations:
-            recommendations.append({
-                "severity": "success",
-                "title": "Performance Looks Good",
-                "description": "No major bottlenecks or issues detected.",
-                "suggestion": "Continue monitoring performance as workload scales."
-            })
+            recommendations.append(
+                {
+                    "severity": "success",
+                    "title": "Performance Looks Good",
+                    "description": "No major bottlenecks or issues detected.",
+                    "suggestion": "Continue monitoring performance as workload scales.",
+                }
+            )
 
         # Generate HTML
         html_parts = []
@@ -641,13 +635,13 @@ class ProfilingDashboard:
             "high": "danger",
             "medium": "warning",
             "low": "info",
-            "success": "success"
+            "success": "success",
         }
         severity_icons = {
             "high": "exclamation-circle",
             "medium": "exclamation-triangle",
             "low": "info-circle",
-            "success": "check-circle"
+            "success": "check-circle",
         }
 
         for rec in recommendations:
@@ -655,7 +649,8 @@ class ProfilingDashboard:
             color = severity_colors.get(severity, "secondary")
             icon = severity_icons.get(severity, "info-circle")
 
-            html_parts.append(f"""
+            html_parts.append(
+                f"""
             <div class="alert alert-{color} recommendation-card">
                 <h5>
                     <i class="fas fa-{icon}"></i> {rec['title']}
@@ -663,7 +658,8 @@ class ProfilingDashboard:
                 <p><strong>Issue:</strong> {rec['description']}</p>
                 <p><strong>Recommendation:</strong> {rec['suggestion']}</p>
             </div>
-            """)
+            """
+            )
 
         return "\n".join(html_parts)
 
@@ -680,9 +676,7 @@ class ProfilingDashboard:
         # Build table rows
         rows = []
         for stage_name, stage_data in sorted(
-            stages.items(),
-            key=lambda x: x[1].get("duration", 0),
-            reverse=True
+            stages.items(), key=lambda x: x[1].get("duration", 0), reverse=True
         ):
             duration = stage_data.get("duration", 0)
             cost = stage_data.get("cost", 0)
@@ -698,7 +692,8 @@ class ProfilingDashboard:
             </span>
             """
 
-            rows.append(f"""
+            rows.append(
+                f"""
             <tr>
                 <td><strong>{stage_name}</strong></td>
                 <td>{duration:.3f}s</td>
@@ -717,7 +712,8 @@ class ProfilingDashboard:
                 <td>{memory if isinstance(memory, str) else f"{memory:.2f} MB"}</td>
                 <td>{status_badge}</td>
             </tr>
-            """)
+            """
+            )
 
         return f"""
         <div class="table-responsive">
@@ -910,7 +906,7 @@ class ProfilingDashboard:
         timeline_data: str,
         circuit_charts: Dict[str, str],
         cost_charts: Dict[str, str],
-        bottleneck_data: str
+        bottleneck_data: str,
     ) -> str:
         """Get embedded JavaScript."""
         return f"""
@@ -1030,11 +1026,7 @@ class ProfilingDashboard:
         }});
         """
 
-    def save_dashboard(
-        self,
-        profiler_context: Dict[str, Any],
-        output_path: str
-    ) -> str:
+    def save_dashboard(self, profiler_context: Dict[str, Any], output_path: str) -> str:
         """
         Generate and save dashboard to file.
 
@@ -1050,7 +1042,7 @@ class ProfilingDashboard:
         output_path = Path(output_path).resolve()
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(output_path, 'w', encoding='utf-8') as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             f.write(html_content)
 
         return str(output_path)
@@ -1076,7 +1068,7 @@ def create_interactive_charts(profiler_context: Dict[str, Any]) -> Dict[str, Any
         "timeline": dashboard._create_timeline_chart(stages),
         "circuit": dashboard._create_circuit_metrics_charts(circuit),
         "costs": dashboard._create_cost_breakdown(costs),
-        "bottleneck": dashboard._create_bottleneck_visualization(stages)
+        "bottleneck": dashboard._create_bottleneck_visualization(stages),
     }
 
     return charts
@@ -1090,7 +1082,7 @@ if __name__ == "__main__":
             "query": "docking ligand.pdb to protein.pdb",
             "backend": "qiskit_aer",
             "timestamp": datetime.now().isoformat(),
-            "version": "3.0.0"
+            "version": "3.0.0",
         },
         "performance": {
             "total_time": 45.234,
@@ -1099,35 +1091,51 @@ if __name__ == "__main__":
                 "compilation": 2.456,
                 "optimization": 15.234,
                 "execution": 25.123,
-                "post_processing": 2.298
-            }
+                "post_processing": 2.298,
+            },
         },
         "costs": {
             "total_cost": 0.0234,
-            "breakdown": {
-                "compilation": 0.001,
-                "execution": 0.020,
-                "storage": 0.0024
-            }
+            "breakdown": {"compilation": 0.001, "execution": 0.020, "storage": 0.0024},
         },
         "circuit_metrics": {
             "depth": 145,
             "num_qubits": 12,
             "num_gates": 456,
-            "gate_counts": {
-                "CNOT": 120,
-                "H": 45,
-                "RZ": 234,
-                "RX": 57
-            }
+            "gate_counts": {"CNOT": 120, "H": 45, "RZ": 234, "RX": 57},
         },
         "stages": {
-            "parsing": {"duration": 0.123, "cost": 0.0001, "memory_mb": 12.3, "status": "completed"},
-            "compilation": {"duration": 2.456, "cost": 0.001, "memory_mb": 45.6, "status": "completed"},
-            "optimization": {"duration": 15.234, "cost": 0.002, "memory_mb": 123.4, "status": "completed"},
-            "execution": {"duration": 25.123, "cost": 0.020, "memory_mb": 234.5, "status": "completed"},
-            "post_processing": {"duration": 2.298, "cost": 0.0003, "memory_mb": 34.2, "status": "completed"}
-        }
+            "parsing": {
+                "duration": 0.123,
+                "cost": 0.0001,
+                "memory_mb": 12.3,
+                "status": "completed",
+            },
+            "compilation": {
+                "duration": 2.456,
+                "cost": 0.001,
+                "memory_mb": 45.6,
+                "status": "completed",
+            },
+            "optimization": {
+                "duration": 15.234,
+                "cost": 0.002,
+                "memory_mb": 123.4,
+                "status": "completed",
+            },
+            "execution": {
+                "duration": 25.123,
+                "cost": 0.020,
+                "memory_mb": 234.5,
+                "status": "completed",
+            },
+            "post_processing": {
+                "duration": 2.298,
+                "cost": 0.0003,
+                "memory_mb": 34.2,
+                "status": "completed",
+            },
+        },
     }
 
     # Generate dashboard
@@ -1135,8 +1143,5 @@ if __name__ == "__main__":
     html_output = dashboard.generate_html(sample_data)
 
     # Save to file
-    output_file = dashboard.save_dashboard(
-        sample_data,
-        "bioql_profiling_dashboard.html"
-    )
+    output_file = dashboard.save_dashboard(sample_data, "bioql_profiling_dashboard.html")
     print(f"Dashboard saved to: {output_file}")

@@ -4,14 +4,16 @@ BioQL Quantum Error Correction with Qualtran
 Implements QEC codes and factorization algorithms
 """
 
-import sympy
-from typing import Optional, Dict, Any, Tuple
 from dataclasses import dataclass
+from typing import Any, Dict, Optional, Tuple
+
+import sympy
 
 try:
     from qualtran.bloqs.cryptography.rsa import ModExp
-    from qualtran.resource_counting import get_cost_value, QECGatesCost
     from qualtran.drawing import show_bloq
+    from qualtran.resource_counting import QECGatesCost, get_cost_value
+
     QUALTRAN_AVAILABLE = True
 except ImportError:
     QUALTRAN_AVAILABLE = False
@@ -20,7 +22,8 @@ except ImportError:
 
 try:
     import qiskit
-    from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+    from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+
     QISKIT_AVAILABLE = True
 except ImportError:
     QISKIT_AVAILABLE = False
@@ -78,30 +81,30 @@ class QuantumErrorCorrection:
 
     # QEC Code parameters
     QEC_CODES = {
-        'repetition_3': {
-            'logical_qubits': 1,
-            'physical_qubits': 3,
-            'code_distance': 3,
-            'error_correction': 0.1  # Can correct 10% error rate
+        "repetition_3": {
+            "logical_qubits": 1,
+            "physical_qubits": 3,
+            "code_distance": 3,
+            "error_correction": 0.1,  # Can correct 10% error rate
         },
-        'steane_7_1_3': {
-            'logical_qubits': 1,
-            'physical_qubits': 7,
-            'code_distance': 3,
-            'error_correction': 0.01  # Can correct 1% error rate
+        "steane_7_1_3": {
+            "logical_qubits": 1,
+            "physical_qubits": 7,
+            "code_distance": 3,
+            "error_correction": 0.01,  # Can correct 1% error rate
         },
-        'surface_15_1_3': {
-            'logical_qubits': 1,
-            'physical_qubits': 15,
-            'code_distance': 3,
-            'error_correction': 0.001  # Can correct 0.1% error rate
+        "surface_15_1_3": {
+            "logical_qubits": 1,
+            "physical_qubits": 15,
+            "code_distance": 3,
+            "error_correction": 0.001,  # Can correct 0.1% error rate
         },
-        'surface_49_1_7': {
-            'logical_qubits': 1,
-            'physical_qubits': 49,
-            'code_distance': 7,
-            'error_correction': 0.0001  # Can correct 0.01% error rate
-        }
+        "surface_49_1_7": {
+            "logical_qubits": 1,
+            "physical_qubits": 49,
+            "code_distance": 7,
+            "error_correction": 0.0001,  # Can correct 0.01% error rate
+        },
     }
 
     def __init__(self):
@@ -115,8 +118,8 @@ class QuantumErrorCorrection:
         self,
         algorithm: str,
         num_logical_qubits: int,
-        qec_code: str = 'surface_15_1_3',
-        physical_error_rate: float = 0.001
+        qec_code: str = "surface_15_1_3",
+        physical_error_rate: float = 0.001,
     ) -> QECResult:
         """
         Analyze QEC requirements for an algorithm.
@@ -137,14 +140,13 @@ class QuantumErrorCorrection:
             code_params = self.QEC_CODES[qec_code]
 
             # Calculate physical qubit overhead
-            physical_qubits_per_logical = code_params['physical_qubits']
+            physical_qubits_per_logical = code_params["physical_qubits"]
             total_physical_qubits = num_logical_qubits * physical_qubits_per_logical
 
             # Calculate logical error rate after QEC
-            code_distance = code_params['code_distance']
+            code_distance = code_params["code_distance"]
             logical_error_rate = self._calculate_logical_error_rate(
-                physical_error_rate,
-                code_distance
+                physical_error_rate, code_distance
             )
 
             # Calculate accuracy improvement
@@ -169,10 +171,7 @@ class QuantumErrorCorrection:
                 error_rate_physical=physical_error_rate,
                 error_rate_logical=logical_error_rate,
                 accuracy_improvement=improvement,
-                metadata={
-                    'qec_code': qec_code,
-                    'overhead_factor': physical_qubits_per_logical
-                }
+                metadata={"qec_code": qec_code, "overhead_factor": physical_qubits_per_logical},
             )
 
         except Exception as e:
@@ -187,14 +186,10 @@ class QuantumErrorCorrection:
                 error_rate_physical=physical_error_rate,
                 error_rate_logical=1.0,
                 accuracy_improvement=0.0,
-                error_message=str(e)
+                error_message=str(e),
             )
 
-    def _calculate_logical_error_rate(
-        self,
-        physical_error: float,
-        code_distance: int
-    ) -> float:
+    def _calculate_logical_error_rate(self, physical_error: float, code_distance: int) -> float:
         """
         Calculate logical error rate after QEC.
 
@@ -214,7 +209,7 @@ class QuantumErrorCorrection:
         base: int = 4,
         modulus: int = 15,
         exp_bitsize: int = 3,
-        x_bitsize_symbolic: bool = True
+        x_bitsize_symbolic: bool = True,
     ) -> RSAFactorizationResult:
         """
         Analyze RSA ModExp QEC gates cost.
@@ -242,28 +237,23 @@ class QuantumErrorCorrection:
 
             # Create ModExp bloq
             if x_bitsize_symbolic:
-                n = sympy.Symbol('n')
+                n = sympy.Symbol("n")
                 x_bitsize = n
             else:
                 x_bitsize = modulus.bit_length()
 
-            modexp = ModExp(
-                base=base,
-                mod=modulus,
-                exp_bitsize=exp_bitsize,
-                x_bitsize=x_bitsize
-            )
+            modexp = ModExp(base=base, mod=modulus, exp_bitsize=exp_bitsize, x_bitsize=x_bitsize)
 
             # Get QEC gates cost
             cost = get_cost_value(modexp, QECGatesCost())
 
             # Extract cost breakdown
             cost_dict = {}
-            if hasattr(cost, '__dict__'):
+            if hasattr(cost, "__dict__"):
                 cost_dict = {
                     str(k): int(v) if isinstance(v, (int, sympy.Integer)) else str(v)
                     for k, v in cost.__dict__.items()
-                    if not k.startswith('_')
+                    if not k.startswith("_")
                 }
 
             logger.info(f"QEC Gates Cost: {cost}")
@@ -294,7 +284,7 @@ class QuantumErrorCorrection:
                 qec_gates_cost=cost_dict,
                 estimated_time_hours=estimated_hours,
                 num_logical_qubits=num_logical_qubits,
-                num_physical_qubits=num_physical_qubits
+                num_physical_qubits=num_physical_qubits,
             )
 
         except Exception as e:
@@ -310,7 +300,7 @@ class QuantumErrorCorrection:
                 estimated_time_hours=None,
                 num_logical_qubits=0,
                 num_physical_qubits=0,
-                error_message=str(e)
+                error_message=str(e),
             )
 
     def create_repetition_code_circuit(self, num_qubits: int = 3) -> Optional[Any]:
@@ -332,9 +322,9 @@ class QuantumErrorCorrection:
 
         try:
             # Create circuit: encoding + noise + decoding
-            qr = QuantumRegister(num_qubits, 'q')
-            ar = QuantumRegister(num_qubits - 1, 'ancilla')  # Syndrome qubits
-            cr = ClassicalRegister(1, 'c')
+            qr = QuantumRegister(num_qubits, "q")
+            ar = QuantumRegister(num_qubits - 1, "ancilla")  # Syndrome qubits
+            cr = ClassicalRegister(1, "c")
             circuit = QuantumCircuit(qr, ar, cr)
 
             # Encoding: spread logical |ψ⟩ across physical qubits
@@ -347,7 +337,7 @@ class QuantumErrorCorrection:
             # Syndrome measurement (detect errors)
             for i in range(num_qubits - 1):
                 circuit.cx(qr[i], ar[i])
-                circuit.cx(qr[i+1], ar[i])
+                circuit.cx(qr[i + 1], ar[i])
                 circuit.measure(ar[i], cr[0])  # Simplified - would need more classical bits
 
             circuit.barrier()
@@ -379,18 +369,15 @@ def quick_qec_demo() -> Tuple[QECResult, RSAFactorizationResult]:
 
     # Analyze QEC for VQE algorithm
     qec_result = qec.analyze_qec_cost(
-        algorithm='VQE_H2',
+        algorithm="VQE_H2",
         num_logical_qubits=4,
-        qec_code='surface_15_1_3',
-        physical_error_rate=0.001
+        qec_code="surface_15_1_3",
+        physical_error_rate=0.001,
     )
 
     # Analyze RSA factorization
     rsa_result = qec.rsa_modexp_cost_analysis(
-        base=4,
-        modulus=15,
-        exp_bitsize=3,
-        x_bitsize_symbolic=True
+        base=4, modulus=15, exp_bitsize=3, x_bitsize_symbolic=True
     )
 
     return qec_result, rsa_result

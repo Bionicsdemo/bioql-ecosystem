@@ -34,6 +34,7 @@ try:
         LLMParsingError,
         parse_natural_language,
     )
+
     _llm_parser_available = True
 except ImportError:
     _llm_parser_available = False
@@ -63,10 +64,12 @@ __all__ = [
 
 # Add LLM parser exports if available
 if _llm_parser_available:
-    __all__.extend([
-        "LLMConfig",
-        "LLMParser",
-        "LLMParsingError",
-        "HybridParser",
-        "parse_natural_language",
-    ])
+    __all__.extend(
+        [
+            "LLMConfig",
+            "LLMParser",
+            "LLMParsingError",
+            "HybridParser",
+            "parse_natural_language",
+        ]
+    )

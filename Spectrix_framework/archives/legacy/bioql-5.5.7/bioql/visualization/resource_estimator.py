@@ -6,20 +6,22 @@ using Qualtran's resource counting framework. It estimates physical qubits,
 magic states (T-gates), circuit depth with QEC, and time to solution.
 """
 
-from typing import Dict, Any, Optional, List, Tuple
 from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, Tuple
+
 import numpy as np
 
 try:
     from qualtran import Bloq, BloqBuilder
-    from qualtran.resource_counting import get_bloq_counts, SympySymbolAllocator
-    from qualtran.bloqs.basic_gates import TGate, CNOT, Hadamard, ToffiliGate
+    from qualtran.bloqs.basic_gates import CNOT, Hadamard, TGate, ToffiliGate
+    from qualtran.resource_counting import SympySymbolAllocator, get_bloq_counts
+
     QUALTRAN_AVAILABLE = True
 except ImportError:
     QUALTRAN_AVAILABLE = False
     # Silent fallback - warning only shown when actually using Qualtran visualizations
 
-from ..qec import SurfaceCodeQEC, SteaneCodeQEC, ShorCodeQEC
+from ..qec import ShorCodeQEC, SteaneCodeQEC, SurfaceCodeQEC
 
 
 @dataclass
@@ -43,6 +45,7 @@ class ResourceEstimation:
         rotations: Number of rotation gates
         measurements: Number of measurements
     """
+
     physical_qubits: int
     logical_qubits: int
     magic_states: int
@@ -82,17 +85,13 @@ class ResourceEstimator:
 
         # Gate timing parameters (in microseconds)
         self.gate_times = {
-            'single_qubit': 0.05,  # 50 ns
-            'two_qubit': 0.3,      # 300 ns
-            't_gate': 0.1,         # 100 ns
-            'measurement': 1.0     # 1 us
+            "single_qubit": 0.05,  # 50 ns
+            "two_qubit": 0.3,  # 300 ns
+            "t_gate": 0.1,  # 100 ns
+            "measurement": 1.0,  # 1 us
         }
 
-    def estimate_resources(
-        self,
-        circuit: Any,
-        qec_config: Dict[str, Any]
-    ) -> ResourceEstimation:
+    def estimate_resources(self, circuit: Any, qec_config: Dict[str, Any]) -> ResourceEstimation:
         """
         Estimate quantum resources for a circuit with QEC
 
@@ -104,9 +103,9 @@ class ResourceEstimator:
             ResourceEstimation object with comprehensive metrics
         """
         # Extract QEC parameters
-        qec_type = qec_config.get('type', 'surface')
-        code_distance = qec_config.get('distance', 5)
-        error_rate = qec_config.get('error_rate', 0.001)
+        qec_type = qec_config.get("type", "surface")
+        code_distance = qec_config.get("distance", 5)
+        error_rate = qec_config.get("error_rate", 0.001)
 
         # Get logical qubit count
         logical_qubits = self._get_logical_qubits(circuit)
@@ -115,17 +114,23 @@ class ResourceEstimator:
         gate_counts = self._count_gates(circuit)
 
         # Calculate T-gates and magic states
-        t_gates = gate_counts.get('t', 0) + gate_counts.get('tdg', 0)
+        t_gates = gate_counts.get("t", 0) + gate_counts.get("tdg", 0)
         magic_states = self._estimate_magic_states(t_gates)
 
         # Get circuit depth
         circuit_depth = self._get_circuit_depth(circuit)
 
         # Calculate Clifford gates
-        clifford_gates = (gate_counts.get('cx', 0) + gate_counts.get('cnot', 0) +
-                         gate_counts.get('h', 0) + gate_counts.get('s', 0) +
-                         gate_counts.get('sdg', 0) + gate_counts.get('x', 0) +
-                         gate_counts.get('y', 0) + gate_counts.get('z', 0))
+        clifford_gates = (
+            gate_counts.get("cx", 0)
+            + gate_counts.get("cnot", 0)
+            + gate_counts.get("h", 0)
+            + gate_counts.get("s", 0)
+            + gate_counts.get("sdg", 0)
+            + gate_counts.get("x", 0)
+            + gate_counts.get("y", 0)
+            + gate_counts.get("z", 0)
+        )
 
         # Get QEC instance and calculate overhead
         qec = self._create_qec_instance(qec_type, code_distance, error_rate)
@@ -133,12 +138,12 @@ class ResourceEstimator:
 
         # Calculate physical qubits
         physical_qubits = self._calculate_physical_qubits(
-            logical_qubits, overhead['qubit_overhead']
+            logical_qubits, overhead["qubit_overhead"]
         )
 
         # Calculate time to solution
         time_to_solution_ms = self._estimate_time_to_solution(
-            circuit_depth, gate_counts, overhead['time_overhead']
+            circuit_depth, gate_counts, overhead["time_overhead"]
         )
 
         return ResourceEstimation(
@@ -148,22 +153,20 @@ class ResourceEstimator:
             t_gates=t_gates,
             circuit_depth=circuit_depth,
             time_to_solution_ms=time_to_solution_ms,
-            overhead_factor=overhead['qubit_overhead'],
-            error_rate=overhead['logical_error_rate'],
+            overhead_factor=overhead["qubit_overhead"],
+            error_rate=overhead["logical_error_rate"],
             code_distance=code_distance,
             qec_type=qec_type,
             gate_counts=gate_counts,
             clifford_gates=clifford_gates,
-            rotations=gate_counts.get('rx', 0) + gate_counts.get('ry', 0) +
-                     gate_counts.get('rz', 0),
-            measurements=gate_counts.get('measure', 0)
+            rotations=gate_counts.get("rx", 0)
+            + gate_counts.get("ry", 0)
+            + gate_counts.get("rz", 0),
+            measurements=gate_counts.get("measure", 0),
         )
 
     def estimate_physical_qubits(
-        self,
-        logical_qubits: int,
-        qec_type: str = 'surface',
-        code_distance: int = 5
+        self, logical_qubits: int, qec_type: str = "surface", code_distance: int = 5
     ) -> int:
         """
         Estimate physical qubits needed for given logical qubits
@@ -178,7 +181,7 @@ class ResourceEstimator:
         """
         qec = self._create_qec_instance(qec_type, code_distance, 0.001)
         overhead = qec.calculate_overhead()
-        return int(logical_qubits * overhead['qubit_overhead'])
+        return int(logical_qubits * overhead["qubit_overhead"])
 
     def estimate_magic_states_qualtran(self, circuit: Any) -> int:
         """
@@ -193,7 +196,7 @@ class ResourceEstimator:
         if not self.qualtran_available:
             # Fallback to counting T-gates
             gate_counts = self._count_gates(circuit)
-            t_gates = gate_counts.get('t', 0) + gate_counts.get('tdg', 0)
+            t_gates = gate_counts.get("t", 0) + gate_counts.get("tdg", 0)
             return t_gates
 
         # Use Qualtran's resource counting
@@ -202,20 +205,17 @@ class ResourceEstimator:
             # In practice, you'd convert the Qiskit circuit to Qualtran format
             t_count = 0
             gate_counts = self._count_gates(circuit)
-            t_count = gate_counts.get('t', 0) + gate_counts.get('tdg', 0)
+            t_count = gate_counts.get("t", 0) + gate_counts.get("tdg", 0)
 
             # Each T-gate requires one magic state
             return t_count
         except Exception as e:
             print(f"Qualtran counting failed: {e}. Using fallback.")
             gate_counts = self._count_gates(circuit)
-            return gate_counts.get('t', 0) + gate_counts.get('tdg', 0)
+            return gate_counts.get("t", 0) + gate_counts.get("tdg", 0)
 
     def estimate_circuit_depth_with_qec(
-        self,
-        base_depth: int,
-        qec_type: str = 'surface',
-        code_distance: int = 5
+        self, base_depth: int, qec_type: str = "surface", code_distance: int = 5
     ) -> int:
         """
         Estimate circuit depth including QEC overhead
@@ -232,7 +232,7 @@ class ResourceEstimator:
         overhead = qec.calculate_overhead()
 
         # Depth increases due to syndrome extraction and correction
-        depth_overhead = overhead.get('time_overhead', 10)
+        depth_overhead = overhead.get("time_overhead", 10)
         return int(base_depth * depth_overhead)
 
     def calculate_time_to_solution(
@@ -240,7 +240,7 @@ class ResourceEstimator:
         circuit_depth: int,
         gate_counts: Dict[str, int],
         qec_overhead: float = 10.0,
-        shots: int = 1000
+        shots: int = 1000,
     ) -> float:
         """
         Calculate total time to solution including QEC
@@ -255,24 +255,29 @@ class ResourceEstimator:
             Time to solution in milliseconds
         """
         # Calculate single-shot execution time
-        single_qubit_time = gate_counts.get('h', 0) + gate_counts.get('x', 0) + \
-                          gate_counts.get('y', 0) + gate_counts.get('z', 0) + \
-                          gate_counts.get('s', 0) + gate_counts.get('t', 0)
-        single_qubit_time *= self.gate_times['single_qubit']
+        single_qubit_time = (
+            gate_counts.get("h", 0)
+            + gate_counts.get("x", 0)
+            + gate_counts.get("y", 0)
+            + gate_counts.get("z", 0)
+            + gate_counts.get("s", 0)
+            + gate_counts.get("t", 0)
+        )
+        single_qubit_time *= self.gate_times["single_qubit"]
 
-        two_qubit_time = gate_counts.get('cx', 0) + gate_counts.get('cnot', 0) + \
-                        gate_counts.get('cz', 0)
-        two_qubit_time *= self.gate_times['two_qubit']
+        two_qubit_time = (
+            gate_counts.get("cx", 0) + gate_counts.get("cnot", 0) + gate_counts.get("cz", 0)
+        )
+        two_qubit_time *= self.gate_times["two_qubit"]
 
-        t_gate_time = (gate_counts.get('t', 0) + gate_counts.get('tdg', 0)) * \
-                     self.gate_times['t_gate']
+        t_gate_time = (gate_counts.get("t", 0) + gate_counts.get("tdg", 0)) * self.gate_times[
+            "t_gate"
+        ]
 
-        measurement_time = gate_counts.get('measure', 0) * \
-                          self.gate_times['measurement']
+        measurement_time = gate_counts.get("measure", 0) * self.gate_times["measurement"]
 
         # Total time per shot
-        time_per_shot_us = (single_qubit_time + two_qubit_time +
-                           t_gate_time + measurement_time)
+        time_per_shot_us = single_qubit_time + two_qubit_time + t_gate_time + measurement_time
 
         # Apply QEC overhead
         time_per_shot_us *= qec_overhead
@@ -286,8 +291,8 @@ class ResourceEstimator:
     def compare_qec_schemes(
         self,
         circuit: Any,
-        qec_types: List[str] = ['surface', 'steane', 'shor'],
-        code_distances: List[int] = [3, 5, 7]
+        qec_types: List[str] = ["surface", "steane", "shor"],
+        code_distances: List[int] = [3, 5, 7],
     ) -> List[ResourceEstimation]:
         """
         Compare resource requirements across different QEC schemes
@@ -304,11 +309,7 @@ class ResourceEstimator:
 
         for qec_type in qec_types:
             for distance in code_distances:
-                config = {
-                    'type': qec_type,
-                    'distance': distance,
-                    'error_rate': 0.001
-                }
+                config = {"type": qec_type, "distance": distance, "error_rate": 0.001}
 
                 try:
                     estimation = self.estimate_resources(circuit, config)
@@ -320,9 +321,9 @@ class ResourceEstimator:
 
     def _get_logical_qubits(self, circuit: Any) -> int:
         """Get number of logical qubits from circuit"""
-        if hasattr(circuit, 'num_qubits'):
+        if hasattr(circuit, "num_qubits"):
             return circuit.num_qubits
-        elif hasattr(circuit, 'qubits'):
+        elif hasattr(circuit, "qubits"):
             return len(circuit.qubits)
         else:
             return 10  # Default fallback
@@ -331,34 +332,36 @@ class ResourceEstimator:
         """Count gates in circuit"""
         gate_counts = {}
 
-        if hasattr(circuit, 'count_ops'):
+        if hasattr(circuit, "count_ops"):
             # Qiskit circuit
             gate_counts = dict(circuit.count_ops())
-        elif hasattr(circuit, 'data'):
+        elif hasattr(circuit, "data"):
             # Manual counting from circuit data
             for instruction in circuit.data:
-                gate_name = instruction[0].name if hasattr(instruction[0], 'name') else str(instruction[0])
+                gate_name = (
+                    instruction[0].name if hasattr(instruction[0], "name") else str(instruction[0])
+                )
                 gate_counts[gate_name] = gate_counts.get(gate_name, 0) + 1
         else:
             # Fallback: estimate based on circuit depth
             depth = self._get_circuit_depth(circuit)
             gate_counts = {
-                'h': int(depth * 0.1),
-                'cx': int(depth * 0.3),
-                't': int(depth * 0.15),
-                'measure': self._get_logical_qubits(circuit)
+                "h": int(depth * 0.1),
+                "cx": int(depth * 0.3),
+                "t": int(depth * 0.15),
+                "measure": self._get_logical_qubits(circuit),
             }
 
         return gate_counts
 
     def _get_circuit_depth(self, circuit: Any) -> int:
         """Get circuit depth"""
-        if hasattr(circuit, 'depth'):
+        if hasattr(circuit, "depth"):
             if callable(circuit.depth):
                 return circuit.depth()
             else:
                 return circuit.depth
-        elif hasattr(circuit, 'data'):
+        elif hasattr(circuit, "data"):
             return len(circuit.data)
         else:
             return 100  # Default fallback
@@ -375,11 +378,7 @@ class ResourceEstimator:
         distillation_overhead = 1.2  # 20% overhead for distillation
         return int(t_gates * distillation_overhead)
 
-    def _calculate_physical_qubits(
-        self,
-        logical_qubits: int,
-        overhead_factor: float
-    ) -> int:
+    def _calculate_physical_qubits(self, logical_qubits: int, overhead_factor: float) -> int:
         """Calculate total physical qubits needed"""
         # Physical qubits = logical qubits × overhead factor
         physical = int(logical_qubits * overhead_factor)
@@ -390,10 +389,7 @@ class ResourceEstimator:
         return physical + magic_factory_qubits
 
     def _estimate_time_to_solution(
-        self,
-        circuit_depth: int,
-        gate_counts: Dict[str, int],
-        time_overhead: float
+        self, circuit_depth: int, gate_counts: Dict[str, int], time_overhead: float
     ) -> float:
         """Estimate time to solution in milliseconds"""
         # Base execution time
@@ -408,18 +404,13 @@ class ResourceEstimator:
         # Convert to milliseconds
         return total_time_us / 1000.0
 
-    def _create_qec_instance(
-        self,
-        qec_type: str,
-        code_distance: int,
-        error_rate: float
-    ):
+    def _create_qec_instance(self, qec_type: str, code_distance: int, error_rate: float):
         """Create appropriate QEC instance"""
-        if qec_type == 'surface':
+        if qec_type == "surface":
             return SurfaceCodeQEC(code_distance=code_distance, error_rate=error_rate)
-        elif qec_type == 'steane':
+        elif qec_type == "steane":
             return SteaneCodeQEC(error_rate=error_rate)
-        elif qec_type == 'shor':
+        elif qec_type == "shor":
             return ShorCodeQEC(error_rate=error_rate)
         else:
             return SurfaceCodeQEC(code_distance=code_distance, error_rate=error_rate)

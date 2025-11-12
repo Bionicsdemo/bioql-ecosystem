@@ -7,9 +7,9 @@ Handles cleaning, hydrogen addition, and format conversion.
 
 import os
 import tempfile
-from pathlib import Path
-from typing import Optional, Union, Dict, Any, List, Tuple
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from ..logger import get_logger
 
@@ -107,7 +107,9 @@ def prepare_receptor(
             num_atoms = sum(1 for _ in structure.get_atoms())
             chain_ids = [chain.id for chain in structure.get_chains()]
 
-            logger.debug(f"Loaded structure: {num_atoms} atoms, {num_residues} residues, chains: {chain_ids}")
+            logger.debug(
+                f"Loaded structure: {num_atoms} atoms, {num_residues} residues, chains: {chain_ids}"
+            )
 
             # Generate output path if not provided
             if output_path is None:
@@ -132,7 +134,9 @@ def prepare_receptor(
                     from meeko import PDBQTWriterLegacy
 
                     # This is a placeholder - actual implementation depends on meeko API
-                    logger.warning("PDBQT conversion requires external tools like prepare_receptor4.py from AutoDock Tools")
+                    logger.warning(
+                        "PDBQT conversion requires external tools like prepare_receptor4.py from AutoDock Tools"
+                    )
                     logger.info("Saving as PDB format instead")
                     output_path = temp_pdb.with_suffix(".pdb")
                     temp_pdb.rename(output_path)
@@ -150,7 +154,9 @@ def prepare_receptor(
 
             # Add hydrogens if requested (requires external tool)
             if add_hydrogens:
-                logger.info("Hydrogen addition recommended using external tools like reduce or pdb2pqr")
+                logger.info(
+                    "Hydrogen addition recommended using external tools like reduce or pdb2pqr"
+                )
                 # This would typically call an external tool
 
             logger.info(f"Receptor prepared successfully: {output_path}")
@@ -263,8 +269,8 @@ def get_binding_site_residues(
     logger.info(f"Identifying binding site residues within {distance}Å")
 
     try:
-        from Bio import PDB
         import numpy as np
+        from Bio import PDB
 
         parser = PDB.PDBParser(QUIET=True)
         protein = parser.get_structure("protein", str(pdb_path))
@@ -277,9 +283,7 @@ def get_binding_site_residues(
                 for lig_atom in ligand.get_atoms():
                     dist = np.linalg.norm(atom.coord - lig_atom.coord)
                     if dist <= distance:
-                        binding_site.append(
-                            (residue.parent.id, residue.id[1], residue.resname)
-                        )
+                        binding_site.append((residue.parent.id, residue.id[1], residue.resname))
                         break
 
         logger.info(f"Found {len(binding_site)} binding site residues")

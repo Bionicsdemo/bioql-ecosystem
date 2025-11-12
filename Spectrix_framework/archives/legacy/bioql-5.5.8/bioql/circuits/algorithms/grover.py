@@ -13,13 +13,14 @@ try:
     from loguru import logger
 except ImportError:
     import logging
+
     logger = logging.getLogger(__name__)
 
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.circuit.library import GroverOperator
 import numpy as np
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit.circuit.library import GroverOperator
 
-from ..templates.base import CircuitTemplate, CircuitBackend
+from ..templates.base import CircuitBackend, CircuitTemplate
 
 
 class GroverCircuit(CircuitTemplate):
@@ -59,7 +60,7 @@ class GroverCircuit(CircuitTemplate):
         num_qubits: int,
         target_states: List[int],
         num_iterations: Optional[int] = None,
-        backend: CircuitBackend = CircuitBackend.SIMULATOR
+        backend: CircuitBackend = CircuitBackend.SIMULATOR,
     ):
         """
         Initialize Grover's algorithm circuit.
@@ -82,7 +83,7 @@ class GroverCircuit(CircuitTemplate):
         if not target_states:
             raise ValueError("target_states cannot be empty")
 
-        max_state = 2 ** num_qubits
+        max_state = 2**num_qubits
         if any(state < 0 or state >= max_state for state in target_states):
             raise ValueError(f"target_states must be in range [0, {max_state-1}]")
 
@@ -90,7 +91,7 @@ class GroverCircuit(CircuitTemplate):
             name=f"Grover Search ({num_qubits} qubits)",
             description=f"Grover's algorithm searching for states {target_states}",
             num_qubits=num_qubits,
-            backend=backend
+            backend=backend,
         )
 
         self.target_states = sorted(target_states)
@@ -119,8 +120,8 @@ class GroverCircuit(CircuitTemplate):
             >>> print(circuit)
         """
         # Create quantum and classical registers
-        qreg = QuantumRegister(self.num_qubits, 'q')
-        creg = ClassicalRegister(self.num_qubits, 'c')
+        qreg = QuantumRegister(self.num_qubits, "q")
+        creg = ClassicalRegister(self.num_qubits, "c")
         circuit = QuantumCircuit(qreg, creg)
 
         # Step 1: Initialize superposition
@@ -138,8 +139,7 @@ class GroverCircuit(CircuitTemplate):
         circuit.measure(range(self.num_qubits), range(self.num_qubits))
 
         logger.debug(
-            f"Built Grover circuit: depth={circuit.depth()}, "
-            f"gates={len(circuit.data)}"
+            f"Built Grover circuit: depth={circuit.depth()}, " f"gates={len(circuit.data)}"
         )
 
         return circuit
@@ -164,17 +164,17 @@ class GroverCircuit(CircuitTemplate):
             >>> grover.add_oracle(qc)
         """
         if circuit is None:
-            qreg = QuantumRegister(self.num_qubits, 'q')
+            qreg = QuantumRegister(self.num_qubits, "q")
             circuit = QuantumCircuit(qreg)
 
         # Mark each target state with phase flip
         for target in self.target_states:
             # Convert target to binary and apply X gates to create the state
-            binary = format(target, f'0{self.num_qubits}b')
+            binary = format(target, f"0{self.num_qubits}b")
 
             # Flip qubits that should be 0 in target state
             for i, bit in enumerate(binary):
-                if bit == '0':
+                if bit == "0":
                     circuit.x(i)
 
             # Multi-controlled Z gate (marks the state)
@@ -190,7 +190,7 @@ class GroverCircuit(CircuitTemplate):
 
             # Flip qubits back
             for i, bit in enumerate(binary):
-                if bit == '0':
+                if bit == "0":
                     circuit.x(i)
 
         return circuit
@@ -214,7 +214,7 @@ class GroverCircuit(CircuitTemplate):
             >>> grover.add_diffusion(qc)
         """
         if circuit is None:
-            qreg = QuantumRegister(self.num_qubits, 'q')
+            qreg = QuantumRegister(self.num_qubits, "q")
             circuit = QuantumCircuit(qreg)
 
         # Diffusion operator: 2|s⟩⟨s| - I
@@ -258,7 +258,7 @@ class GroverCircuit(CircuitTemplate):
             >>> print(f"Optimal iterations: {optimal}")
             Optimal iterations: 4
         """
-        N = 2 ** self.num_qubits  # Total search space
+        N = 2**self.num_qubits  # Total search space
         M = len(self.target_states)  # Number of solutions
 
         # Optimal iterations: π/4 * √(N/M)
@@ -267,10 +267,7 @@ class GroverCircuit(CircuitTemplate):
         # Ensure at least 1 iteration
         optimal = max(1, optimal)
 
-        logger.debug(
-            f"Optimal iterations for {self.num_qubits} qubits, "
-            f"{M} targets: {optimal}"
-        )
+        logger.debug(f"Optimal iterations for {self.num_qubits} qubits, " f"{M} targets: {optimal}")
 
         return optimal
 
@@ -287,7 +284,7 @@ class GroverCircuit(CircuitTemplate):
             >>> print(f"Success probability: {prob:.2%}")
             Success probability: 94.53%
         """
-        N = 2 ** self.num_qubits
+        N = 2**self.num_qubits
         M = len(self.target_states)
         k = self.num_iterations
 
@@ -327,15 +324,15 @@ class GroverCircuit(CircuitTemplate):
         theoretical_prob = self.get_success_probability()
 
         return {
-            'success_rate': success_rate,
-            'theoretical_probability': theoretical_prob,
-            'total_shots': total_shots,
-            'target_counts': target_counts,
-            'target_distribution': {
-                state: counts.get(format(state, f'0{self.num_qubits}b'), 0)
+            "success_rate": success_rate,
+            "theoretical_probability": theoretical_prob,
+            "total_shots": total_shots,
+            "target_counts": target_counts,
+            "target_distribution": {
+                state: counts.get(format(state, f"0{self.num_qubits}b"), 0)
                 for state in self.target_states
-            }
+            },
         }
 
 
-__all__ = ['GroverCircuit']
+__all__ = ["GroverCircuit"]

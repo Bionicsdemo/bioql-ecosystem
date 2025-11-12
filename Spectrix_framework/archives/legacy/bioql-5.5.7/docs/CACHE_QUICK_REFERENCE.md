@@ -108,12 +108,12 @@ for t in threads: t.join()
 def compile_with_cache(ir_program, backend="qiskit", opt_level=1):
     cache = get_global_cache()
     key = CacheKey.from_ir(ir_program, backend, opt_level)
-    
+
     # Check cache
     cached = cache.get(key)
     if cached:
         return cached.circuit
-    
+
     # Compile and cache
     circuit = compile_circuit(ir_program, backend, opt_level)
     cache.put(key, circuit, {"backend": backend})

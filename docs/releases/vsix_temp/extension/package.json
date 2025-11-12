@@ -1,0 +1,332 @@
+{
+	"name": "bioql-assistant",
+	"displayName": "BioQL Code Assistant v7.0.4",
+	"description": "Interactive AI agent for BioQL 7.0.0 Multi-Omics Platform + QPHAROS 1.1.0 (4 Usage Schemas: Simple/Functional/OOP/Layer-by-Layer) - PROTEOMICS (Protein Analysis, PTM Prediction, PPI), METABOLOMICS (Pathway Analysis, FBA), MULTI-OMICS (Quantum Integration), GENOMICS (Variant Calling, RNA-Seq, Epigenetics) + Full Drug Discovery Pipeline with Quillow Quantum Error Correction (QEC) - Google Willow-Style Surface Codes (d=3,5,7,9), Below-Threshold Operation, Real-Time MWPM Decoding - PRODUCTION VPS: api.bioql.bio, IBM Quantum verified, Stripe billing, SSL, 24/7 uptime! [NEW v7.0.4: Complete QPHAROS integration with 4 schemas for quantum drug discovery]",
+	"version": "7.0.4",
+	"publisher": "SpectrixRD",
+	"engines": {
+		"vscode": "^1.90.0"
+	},
+	"categories": [
+		"Programming Languages",
+		"Machine Learning",
+		"Snippets",
+		"AI"
+	],
+	"keywords": [
+		"bioql",
+		"qpharos",
+		"quantum pharmaceutical",
+		"quantum drug discovery",
+		"molecular docking",
+		"vqe",
+		"qaoa",
+		"quantum scoring",
+		"binding affinity",
+		"admet prediction",
+		"drug design",
+		"lead optimization",
+		"virtual screening",
+		"conformational search",
+		"quantum entanglement",
+		"5-layer architecture",
+		"de novo design",
+		"lipinski",
+		"qed score",
+		"ki calculation",
+		"ic50",
+		"pharmacokinetics",
+		"drug-likeness",
+		"quantum",
+		"biology",
+		"genomics",
+		"proteomics",
+		"metabolomics",
+		"multi-omics",
+		"drug discovery",
+		"crispr",
+		"quillow",
+		"qec",
+		"error correction",
+		"surface code",
+		"ibm quantum",
+		"ionq",
+		"quantum computing"
+	],
+	"activationEvents": [
+		"onLanguage:python",
+		"onStartupFinished",
+		"onCommand:bioql.quillowSimulate",
+		"onCommand:bioql.quillowThreshold",
+		"onCommand:bioql.quillowProtect",
+		"onCommand:bioql.quillowBenchmark"
+	],
+	"main": "./extension.js",
+	"contributes": {
+		"commands": [
+			{
+				"command": "bioql.generateCode",
+				"title": "BioQL: Generate Code from Description"
+			},
+			{
+				"command": "bioql.fixCode",
+				"title": "BioQL: Fix Current Code"
+			},
+			{
+				"command": "bioql.explainCode",
+				"title": "BioQL: Explain Current Code"
+			},
+			{
+				"command": "bioql.optimizeCircuit",
+				"title": "BioQL: Optimize Quantum Circuit"
+			},
+			{
+				"command": "bioql.runOnQuantumComputer",
+				"title": "BioQL: Run on Quantum Computer"
+			},
+			{
+				"command": "bioql.insertCode",
+				"title": "BioQL: Insert Code"
+			},
+			{
+				"command": "bioql.designCRISPRGuide",
+				"title": "BioQL: Design CRISPR Guide"
+			},
+			{
+				"command": "bioql.designCRISPRTherapy",
+				"title": "BioQL: Design Clinical CRISPR Therapy"
+			},
+			{
+				"command": "bioql.rankCRISPRGuides",
+				"title": "BioQL: Rank CRISPR Guides"
+			},
+			{
+				"command": "bioql.analyzeCRISPROfftargets",
+				"title": "BioQL: Analyze CRISPR Off-Targets"
+			},
+			{
+				"command": "bioql.predictADMETox",
+				"title": "BioQL: Predict ADME/Toxicity"
+			},
+			{
+				"command": "bioql.suggestBioisosteres",
+				"title": "BioQL: Suggest Bioisosteric Replacements"
+			},
+			{
+				"command": "bioql.runCompletePipeline",
+				"title": "BioQL: Run Complete Pipeline"
+			},
+			{
+				"command": "bioql.screenOffTargets",
+				"title": "BioQL: Screen Off-Targets"
+			},
+			{
+				"command": "bioql.searchSimilarCompounds",
+				"title": "BioQL: Search Similar Compounds"
+			},
+			{
+				"command": "bioql.profileResistance",
+				"title": "BioQL: Profile Resistance"
+			},
+			{
+				"command": "bioql.designBioHNET",
+				"title": "BioQL: Design Bio-HNET"
+			},
+			{
+				"command": "bioql.optimizeBioHNET",
+				"title": "BioQL: Optimize Bio-HNET"
+			},
+			{
+				"command": "bioql.analyzeProteinSequence",
+				"title": "BioQL: Analyze Protein Sequence"
+			},
+			{
+				"command": "bioql.predictPTM",
+				"title": "BioQL: Predict PTM Sites"
+			},
+			{
+				"command": "bioql.predictPPI",
+				"title": "BioQL: Predict Protein-Protein Interaction"
+			},
+			{
+				"command": "bioql.identifyMetabolite",
+				"title": "BioQL: Identify Metabolite"
+			},
+			{
+				"command": "bioql.analyzePathway",
+				"title": "BioQL: Analyze Metabolic Pathway"
+			},
+			{
+				"command": "bioql.fluxAnalysis",
+				"title": "BioQL: Metabolic Flux Analysis (FBA)"
+			},
+			{
+				"command": "bioql.integrateOmics",
+				"title": "BioQL: Integrate Multi-Omics Data"
+			},
+			{
+				"command": "bioql.buildNetwork",
+				"title": "BioQL: Build Regulatory Network"
+			},
+			{
+				"command": "bioql.callVariants",
+				"title": "BioQL: Call Genetic Variants"
+			},
+			{
+				"command": "bioql.analyzeMethylation",
+				"title": "BioQL: Analyze DNA Methylation"
+			},
+			{
+				"command": "bioql.analyzeRNASeq",
+				"title": "BioQL: Analyze RNA-Seq Data"
+			},
+			{
+				"command": "bioql.quillowSimulate",
+				"title": "BioQL: Run Quillow QEC Simulation"
+			},
+			{
+				"command": "bioql.quillowThreshold",
+				"title": "BioQL: Quillow Threshold Analysis"
+			},
+			{
+				"command": "bioql.quillowProtect",
+				"title": "BioQL: Protect with Quillow QEC"
+			},
+			{
+				"command": "bioql.quillowBenchmark",
+				"title": "BioQL: Benchmark Quillow Decoders"
+			}
+		],
+		"chatParticipants": [
+			{
+				"id": "bioql.assistant",
+				"name": "bioql",
+				"description": "BioQL quantum programming assistant with trained model",
+				"isSticky": true
+			}
+		],
+		"snippets": [
+			{
+				"language": "python",
+				"path": "./snippets/bioql.json"
+			}
+		],
+		"keybindings": [
+			{
+				"command": "bioql.generateCode",
+				"key": "ctrl+shift+g",
+				"mac": "cmd+shift+g",
+				"when": "editorTextFocus"
+			},
+			{
+				"command": "bioql.fixCode",
+				"key": "ctrl+shift+f",
+				"mac": "cmd+shift+f",
+				"when": "editorTextFocus"
+			}
+		],
+		"configuration": {
+			"title": "BioQL Assistant",
+			"properties": {
+				"bioql.mode": {
+					"type": "string",
+					"enum": [
+						"template",
+						"modal",
+						"local",
+						"ollama"
+					],
+					"default": "modal",
+					"description": "Inference mode: modal (cloud GPU with fine-tuned DeepSeek-Coder), template (instant, no setup), local (needs 16GB RAM), ollama (local optimized)"
+				},
+				"bioql.enableChat": {
+					"type": "boolean",
+					"default": true,
+					"description": "Enable BioQL chat interface in VS Code"
+				},
+				"bioql.modalUrl": {
+					"type": "string",
+					"default": "https://spectrix--bioql-agent-create-fastapi-app.modal.run",
+					"description": "Modal API URL (for modal mode) - Unified endpoint with DeepSeek fine-tuned model + billing"
+				},
+				"bioql.apiKey": {
+					"type": "string",
+					"default": "",
+					"description": "BioQL API key for inference and quantum computer access"
+				},
+				"bioql.defaultBackend": {
+					"type": "string",
+					"enum": [
+						"simulator",
+						"ibm",
+						"ionq",
+						"aws",
+						"aws_braket"
+					],
+					"default": "simulator",
+					"description": "Default quantum backend (simulator, IBM Quantum, IonQ, AWS Braket)"
+				},
+				"bioql.enableQEC": {
+					"type": "boolean",
+					"default": false,
+					"description": "Enable Quantum Error Correction (QEC) by default"
+				},
+				"bioql.qecType": {
+					"type": "string",
+					"enum": [
+						"surface_code",
+						"steane",
+						"shor"
+					],
+					"default": "surface_code",
+					"description": "Default QEC code type (Surface Code, Steane, or Shor)"
+				},
+				"bioql.defaultShots": {
+					"type": "number",
+					"default": 1000,
+					"description": "Default number of measurement shots"
+				},
+				"bioql.enableVisualizations": {
+					"type": "boolean",
+					"default": true,
+					"description": "Enable automatic Qualtran visualizations in generated code"
+				},
+				"bioql.quillowEnabled": {
+					"type": "boolean",
+					"default": true,
+					"description": "Enable Quillow quantum error correction features"
+				},
+				"bioql.quillowDefaultDistance": {
+					"type": "number",
+					"default": 5,
+					"enum": [3, 5, 7, 9],
+					"description": "Default QEC code distance (higher = more protection)"
+				},
+				"bioql.quillowDefaultDecoder": {
+					"type": "string",
+					"default": "pymatching",
+					"enum": ["pymatching", "unionfind", "gpu"],
+					"description": "Default syndrome decoder algorithm"
+				},
+				"bioql.quillowAutoProtect": {
+					"type": "boolean",
+					"default": false,
+					"description": "Automatically add QEC protection to quantum circuits"
+				},
+				"bioql.quillowMinCircuitDepth": {
+					"type": "number",
+					"default": 50,
+					"description": "Minimum circuit depth to trigger auto-protection"
+				}
+			}
+		}
+	},
+	"dependencies": {
+		"axios": "^1.6.0"
+	},
+	"__metadata": {
+		"installedTimestamp": 1759506615319,
+		"targetPlatform": "undefined",
+		"size": 2962025
+	}
+}

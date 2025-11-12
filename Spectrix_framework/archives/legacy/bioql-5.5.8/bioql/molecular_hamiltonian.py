@@ -11,13 +11,13 @@ Physical Models Implemented:
 - Quantum mechanical Hamiltonian mapping (Jordan-Wigner/Bravyi-Kitaev transformations)
 """
 
-import numpy as np
-from typing import Tuple, Dict, List, Optional
-from dataclasses import dataclass
-from rdkit import Chem
-from rdkit.Chem import AllChem, Descriptors
-from rdkit.Chem import rdPartialCharges
 import re
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Tuple
+
+import numpy as np
+from rdkit import Chem
+from rdkit.Chem import AllChem, Descriptors, rdPartialCharges
 
 # Physical constants
 COULOMB_CONSTANT = 332.0636  # kcal·Å/(mol·e²) - conversion for electrostatics
@@ -26,15 +26,15 @@ DIELECTRIC_CONSTANT = 4.0  # Typical protein interior dielectric constant
 
 # Lennard-Jones parameters (kcal/mol and Å)
 LJ_PARAMS = {
-    'C': {'epsilon': 0.086, 'sigma': 3.4},
-    'N': {'epsilon': 0.170, 'sigma': 3.25},
-    'O': {'epsilon': 0.210, 'sigma': 2.96},
-    'S': {'epsilon': 0.250, 'sigma': 3.5},
-    'H': {'epsilon': 0.015, 'sigma': 2.5},
-    'P': {'epsilon': 0.200, 'sigma': 3.74},
-    'F': {'epsilon': 0.061, 'sigma': 2.94},
-    'Cl': {'epsilon': 0.265, 'sigma': 3.47},
-    'Br': {'epsilon': 0.320, 'sigma': 3.73},
+    "C": {"epsilon": 0.086, "sigma": 3.4},
+    "N": {"epsilon": 0.170, "sigma": 3.25},
+    "O": {"epsilon": 0.210, "sigma": 2.96},
+    "S": {"epsilon": 0.250, "sigma": 3.5},
+    "H": {"epsilon": 0.015, "sigma": 2.5},
+    "P": {"epsilon": 0.200, "sigma": 3.74},
+    "F": {"epsilon": 0.061, "sigma": 2.94},
+    "Cl": {"epsilon": 0.265, "sigma": 3.47},
+    "Br": {"epsilon": 0.320, "sigma": 3.73},
 }
 
 # Hydrogen bond parameters
@@ -46,6 +46,7 @@ H_BOND_ENERGY = -3.0  # kcal/mol (typical H-bond strength)
 @dataclass
 class MolecularSystem:
     """Represents a molecular system with coordinates and atomic properties"""
+
     coords: np.ndarray  # Nx3 array of coordinates
     atomic_numbers: np.ndarray  # N array of atomic numbers
     partial_charges: np.ndarray  # N array of partial charges
@@ -109,11 +110,12 @@ def compute_partial_charges(smiles: str) -> np.ndarray:
     # Compute Gasteiger charges
     rdPartialCharges.ComputeGasteigerCharges(mol)
 
-    partial_charges = np.array([
-        float(atom.GetProp('_GasteigerCharge')) if atom.HasProp('_GasteigerCharge')
-        else 0.0
-        for atom in mol.GetAtoms()
-    ])
+    partial_charges = np.array(
+        [
+            float(atom.GetProp("_GasteigerCharge")) if atom.HasProp("_GasteigerCharge") else 0.0
+            for atom in mol.GetAtoms()
+        ]
+    )
 
     # Replace NaN values with 0
     partial_charges = np.nan_to_num(partial_charges, nan=0.0)
@@ -121,7 +123,9 @@ def compute_partial_charges(smiles: str) -> np.ndarray:
     return partial_charges
 
 
-def parse_pdb_binding_site(pdb_data: str, center: np.ndarray = None, radius: float = 10.0) -> MolecularSystem:
+def parse_pdb_binding_site(
+    pdb_data: str, center: np.ndarray = None, radius: float = 10.0
+) -> MolecularSystem:
     """
     Extract binding site coordinates and atomic information from PDB data.
 
@@ -139,12 +143,20 @@ def parse_pdb_binding_site(pdb_data: str, center: np.ndarray = None, radius: flo
 
     # Element to atomic number mapping
     element_to_z = {
-        'H': 1, 'C': 6, 'N': 7, 'O': 8, 'S': 16, 'P': 15,
-        'F': 9, 'Cl': 17, 'Br': 35, 'I': 53
+        "H": 1,
+        "C": 6,
+        "N": 7,
+        "O": 8,
+        "S": 16,
+        "P": 15,
+        "F": 9,
+        "Cl": 17,
+        "Br": 35,
+        "I": 53,
     }
 
-    for line in pdb_data.split('\n'):
-        if line.startswith('ATOM') or line.startswith('HETATM'):
+    for line in pdb_data.split("\n"):
+        if line.startswith("ATOM") or line.startswith("HETATM"):
             # Parse PDB ATOM/HETATM record
             try:
                 x = float(line[30:38].strip())
@@ -155,8 +167,12 @@ def parse_pdb_binding_site(pdb_data: str, center: np.ndarray = None, radius: flo
                 if not element:
                     # Fallback: extract from atom name
                     atom_name = line[12:16].strip()
-                    element = ''.join([c for c in atom_name if c.isalpha()])[:2]
-                    element = element[0].upper() + element[1:].lower() if len(element) > 1 else element.upper()
+                    element = "".join([c for c in atom_name if c.isalpha()])[:2]
+                    element = (
+                        element[0].upper() + element[1:].lower()
+                        if len(element) > 1
+                        else element.upper()
+                    )
 
                 coord = np.array([x, y, z])
 
@@ -179,20 +195,24 @@ def parse_pdb_binding_site(pdb_data: str, center: np.ndarray = None, radius: flo
     atomic_numbers = np.array(atomic_numbers_list)
 
     # Estimate partial charges for receptor (simplified - use atom type based charges)
-    charge_map = {'C': 0.1, 'N': -0.3, 'O': -0.4, 'S': -0.2, 'H': 0.1, 'P': 0.3}
+    charge_map = {"C": 0.1, "N": -0.3, "O": -0.4, "S": -0.2, "H": 0.1, "P": 0.3}
     partial_charges = np.array([charge_map.get(at, 0.0) for at in atom_types_list])
 
     return MolecularSystem(
         coords=coords,
         atomic_numbers=atomic_numbers,
         partial_charges=partial_charges,
-        atom_types=atom_types_list
+        atom_types=atom_types_list,
     )
 
 
-def compute_coulombic_energy(coords1: np.ndarray, charges1: np.ndarray,
-                             coords2: np.ndarray, charges2: np.ndarray,
-                             dielectric: float = DIELECTRIC_CONSTANT) -> float:
+def compute_coulombic_energy(
+    coords1: np.ndarray,
+    charges1: np.ndarray,
+    coords2: np.ndarray,
+    charges2: np.ndarray,
+    dielectric: float = DIELECTRIC_CONSTANT,
+) -> float:
     """
     Compute Coulombic (electrostatic) interaction energy between two sets of atoms.
 
@@ -224,8 +244,9 @@ def compute_coulombic_energy(coords1: np.ndarray, charges1: np.ndarray,
     return energy
 
 
-def compute_vdw_energy(coords1: np.ndarray, types1: List[str],
-                       coords2: np.ndarray, types2: List[str]) -> float:
+def compute_vdw_energy(
+    coords1: np.ndarray, types1: List[str], coords2: np.ndarray, types2: List[str]
+) -> float:
     """
     Compute Van der Waals interaction energy using Lennard-Jones potential.
 
@@ -254,11 +275,11 @@ def compute_vdw_energy(coords1: np.ndarray, types1: List[str],
             atom1 = types1[i]
             atom2 = types2[j]
 
-            params1 = LJ_PARAMS.get(atom1, LJ_PARAMS['C'])
-            params2 = LJ_PARAMS.get(atom2, LJ_PARAMS['C'])
+            params1 = LJ_PARAMS.get(atom1, LJ_PARAMS["C"])
+            params2 = LJ_PARAMS.get(atom2, LJ_PARAMS["C"])
 
-            epsilon_ij = np.sqrt(params1['epsilon'] * params2['epsilon'])
-            sigma_ij = (params1['sigma'] + params2['sigma']) / 2.0
+            epsilon_ij = np.sqrt(params1["epsilon"] * params2["epsilon"])
+            sigma_ij = (params1["sigma"] + params2["sigma"]) / 2.0
 
             # Lennard-Jones 12-6 potential
             sigma_over_r = sigma_ij / r_ij
@@ -271,7 +292,9 @@ def compute_vdw_energy(coords1: np.ndarray, types1: List[str],
     return energy
 
 
-def identify_hbond_donors_acceptors(coords: np.ndarray, types: List[str]) -> Tuple[List[int], List[int]]:
+def identify_hbond_donors_acceptors(
+    coords: np.ndarray, types: List[str]
+) -> Tuple[List[int], List[int]]:
     """
     Identify potential hydrogen bond donors and acceptors.
 
@@ -287,16 +310,17 @@ def identify_hbond_donors_acceptors(coords: np.ndarray, types: List[str]) -> Tup
     acceptors = []
 
     for i, atom_type in enumerate(types):
-        if atom_type in ['N', 'O']:
+        if atom_type in ["N", "O"]:
             acceptors.append(i)
-        if atom_type == 'H':
+        if atom_type == "H":
             donors.append(i)
 
     return donors, acceptors
 
 
-def compute_hbond_energy(coords1: np.ndarray, types1: List[str],
-                         coords2: np.ndarray, types2: List[str]) -> float:
+def compute_hbond_energy(
+    coords1: np.ndarray, types1: List[str], coords2: np.ndarray, types2: List[str]
+) -> float:
     """
     Compute hydrogen bonding energy (simplified distance-based model).
 
@@ -334,9 +358,14 @@ def compute_hbond_energy(coords1: np.ndarray, types1: List[str],
     return energy
 
 
-def compute_interaction_energy(ligand_coords: np.ndarray, receptor_coords: np.ndarray,
-                               ligand_charges: np.ndarray = None, receptor_charges: np.ndarray = None,
-                               ligand_types: List[str] = None, receptor_types: List[str] = None) -> Dict[str, float]:
+def compute_interaction_energy(
+    ligand_coords: np.ndarray,
+    receptor_coords: np.ndarray,
+    ligand_charges: np.ndarray = None,
+    receptor_charges: np.ndarray = None,
+    ligand_types: List[str] = None,
+    receptor_types: List[str] = None,
+) -> Dict[str, float]:
     """
     Compute total interaction energy between ligand and receptor.
 
@@ -360,40 +389,40 @@ def compute_interaction_energy(ligand_coords: np.ndarray, receptor_coords: np.nd
 
     # Coulombic energy
     if ligand_charges is not None and receptor_charges is not None:
-        energy_components['coulombic'] = compute_coulombic_energy(
-            ligand_coords, ligand_charges,
-            receptor_coords, receptor_charges
+        energy_components["coulombic"] = compute_coulombic_energy(
+            ligand_coords, ligand_charges, receptor_coords, receptor_charges
         )
     else:
-        energy_components['coulombic'] = 0.0
+        energy_components["coulombic"] = 0.0
 
     # Van der Waals energy
     if ligand_types is not None and receptor_types is not None:
-        energy_components['vdw'] = compute_vdw_energy(
-            ligand_coords, ligand_types,
-            receptor_coords, receptor_types
+        energy_components["vdw"] = compute_vdw_energy(
+            ligand_coords, ligand_types, receptor_coords, receptor_types
         )
     else:
-        energy_components['vdw'] = 0.0
+        energy_components["vdw"] = 0.0
 
     # Hydrogen bonding energy
     if ligand_types is not None and receptor_types is not None:
-        energy_components['hbond'] = compute_hbond_energy(
-            ligand_coords, ligand_types,
-            receptor_coords, receptor_types
+        energy_components["hbond"] = compute_hbond_energy(
+            ligand_coords, ligand_types, receptor_coords, receptor_types
         )
     else:
-        energy_components['hbond'] = 0.0
+        energy_components["hbond"] = 0.0
 
     # Total energy
-    energy_components['total'] = sum(energy_components.values())
+    energy_components["total"] = sum(energy_components.values())
 
     return energy_components
 
 
-def build_molecular_hamiltonian(smiles: str, pdb_data: str,
-                                binding_site_center: np.ndarray = None,
-                                binding_site_radius: float = 10.0) -> np.ndarray:
+def build_molecular_hamiltonian(
+    smiles: str,
+    pdb_data: str,
+    binding_site_center: np.ndarray = None,
+    binding_site_radius: float = 10.0,
+) -> np.ndarray:
     """
     Build molecular interaction Hamiltonian matrix for ligand-receptor system.
 
@@ -438,13 +467,18 @@ def build_molecular_hamiltonian(smiles: str, pdb_data: str,
                 r_ij = np.linalg.norm(ligand_coords[i] - ligand_coords[j])
                 if r_ij > 0.5:
                     # Coulombic term
-                    coulomb = COULOMB_CONSTANT * ligand_charges[i] * ligand_charges[j] / (DIELECTRIC_CONSTANT * r_ij)
+                    coulomb = (
+                        COULOMB_CONSTANT
+                        * ligand_charges[i]
+                        * ligand_charges[j]
+                        / (DIELECTRIC_CONSTANT * r_ij)
+                    )
 
                     # VDW term
-                    params_i = LJ_PARAMS.get(ligand_types[i], LJ_PARAMS['C'])
-                    params_j = LJ_PARAMS.get(ligand_types[j], LJ_PARAMS['C'])
-                    epsilon_ij = np.sqrt(params_i['epsilon'] * params_j['epsilon'])
-                    sigma_ij = (params_i['sigma'] + params_j['sigma']) / 2.0
+                    params_i = LJ_PARAMS.get(ligand_types[i], LJ_PARAMS["C"])
+                    params_j = LJ_PARAMS.get(ligand_types[j], LJ_PARAMS["C"])
+                    epsilon_ij = np.sqrt(params_i["epsilon"] * params_j["epsilon"])
+                    sigma_ij = (params_i["sigma"] + params_j["sigma"]) / 2.0
                     sigma_over_r = sigma_ij / r_ij
                     vdw = 4.0 * epsilon_ij * (sigma_over_r**12 - sigma_over_r**6)
 
@@ -463,13 +497,18 @@ def build_molecular_hamiltonian(smiles: str, pdb_data: str,
                 r_ij = np.linalg.norm(receptor.coords[i] - receptor.coords[j])
                 if r_ij > 0.5:
                     # Coulombic term
-                    coulomb = COULOMB_CONSTANT * receptor.partial_charges[i] * receptor.partial_charges[j] / (DIELECTRIC_CONSTANT * r_ij)
+                    coulomb = (
+                        COULOMB_CONSTANT
+                        * receptor.partial_charges[i]
+                        * receptor.partial_charges[j]
+                        / (DIELECTRIC_CONSTANT * r_ij)
+                    )
 
                     # VDW term
-                    params_i = LJ_PARAMS.get(receptor.atom_types[i], LJ_PARAMS['C'])
-                    params_j = LJ_PARAMS.get(receptor.atom_types[j], LJ_PARAMS['C'])
-                    epsilon_ij = np.sqrt(params_i['epsilon'] * params_j['epsilon'])
-                    sigma_ij = (params_i['sigma'] + params_j['sigma']) / 2.0
+                    params_i = LJ_PARAMS.get(receptor.atom_types[i], LJ_PARAMS["C"])
+                    params_j = LJ_PARAMS.get(receptor.atom_types[j], LJ_PARAMS["C"])
+                    epsilon_ij = np.sqrt(params_i["epsilon"] * params_j["epsilon"])
+                    sigma_ij = (params_i["sigma"] + params_j["sigma"]) / 2.0
                     sigma_over_r = sigma_ij / r_ij
                     vdw = 4.0 * epsilon_ij * (sigma_over_r**12 - sigma_over_r**6)
 
@@ -484,22 +523,27 @@ def build_molecular_hamiltonian(smiles: str, pdb_data: str,
             r_ij = np.linalg.norm(ligand_coords[i] - receptor.coords[j])
             if r_ij > 0.5:
                 # Coulombic term
-                coulomb = COULOMB_CONSTANT * ligand_charges[i] * receptor.partial_charges[j] / (DIELECTRIC_CONSTANT * r_ij)
+                coulomb = (
+                    COULOMB_CONSTANT
+                    * ligand_charges[i]
+                    * receptor.partial_charges[j]
+                    / (DIELECTRIC_CONSTANT * r_ij)
+                )
 
                 # VDW term
-                params_lig = LJ_PARAMS.get(ligand_types[i], LJ_PARAMS['C'])
-                params_rec = LJ_PARAMS.get(receptor.atom_types[j], LJ_PARAMS['C'])
-                epsilon_ij = np.sqrt(params_lig['epsilon'] * params_rec['epsilon'])
-                sigma_ij = (params_lig['sigma'] + params_rec['sigma']) / 2.0
+                params_lig = LJ_PARAMS.get(ligand_types[i], LJ_PARAMS["C"])
+                params_rec = LJ_PARAMS.get(receptor.atom_types[j], LJ_PARAMS["C"])
+                epsilon_ij = np.sqrt(params_lig["epsilon"] * params_rec["epsilon"])
+                sigma_ij = (params_lig["sigma"] + params_rec["sigma"]) / 2.0
                 sigma_over_r = sigma_ij / r_ij
                 vdw = 4.0 * epsilon_ij * (sigma_over_r**12 - sigma_over_r**6)
 
                 # H-bond term
                 hbond = 0.0
-                if ligand_types[i] == 'H' and receptor.atom_types[j] in ['N', 'O']:
+                if ligand_types[i] == "H" and receptor.atom_types[j] in ["N", "O"]:
                     if r_ij <= H_BOND_DISTANCE_CUTOFF:
                         hbond = H_BOND_ENERGY * (1.0 - r_ij / H_BOND_DISTANCE_CUTOFF)
-                elif receptor.atom_types[j] == 'H' and ligand_types[i] in ['N', 'O']:
+                elif receptor.atom_types[j] == "H" and ligand_types[i] in ["N", "O"]:
                     if r_ij <= H_BOND_DISTANCE_CUTOFF:
                         hbond = H_BOND_ENERGY * (1.0 - r_ij / H_BOND_DISTANCE_CUTOFF)
 
@@ -509,7 +553,7 @@ def build_molecular_hamiltonian(smiles: str, pdb_data: str,
     return H
 
 
-def molecule_to_qubit_hamiltonian(mol: Chem.Mol, transformation: str = 'jordan_wigner') -> Dict:
+def molecule_to_qubit_hamiltonian(mol: Chem.Mol, transformation: str = "jordan_wigner") -> Dict:
     """
     Convert molecular structure to qubit Hamiltonian using fermionic-to-qubit mapping.
 
@@ -557,18 +601,18 @@ def molecule_to_qubit_hamiltonian(mol: Chem.Mol, transformation: str = 'jordan_w
                 h_pq[q, p] = h_pq[p, q]
 
     # Apply Jordan-Wigner or Bravyi-Kitaev transformation
-    if transformation.lower() == 'jordan_wigner':
+    if transformation.lower() == "jordan_wigner":
         pauli_terms = jordan_wigner_transform(h_pq, num_qubits)
-    elif transformation.lower() == 'bravyi_kitaev':
+    elif transformation.lower() == "bravyi_kitaev":
         pauli_terms = bravyi_kitaev_transform(h_pq, num_qubits)
     else:
         raise ValueError(f"Unknown transformation: {transformation}")
 
     return {
-        'pauli_terms': pauli_terms,
-        'num_qubits': num_qubits,
-        'num_electrons': num_electrons,
-        'transformation': transformation
+        "pauli_terms": pauli_terms,
+        "num_qubits": num_qubits,
+        "num_electrons": num_electrons,
+        "transformation": transformation,
     }
 
 
@@ -600,34 +644,34 @@ def jordan_wigner_transform(h_pq: np.ndarray, num_qubits: int) -> Dict[str, floa
 
             if p == q:
                 # Number operator: a†_p a_p = (I - Z_p)/2
-                pauli_str = 'I' * p + 'Z' + 'I' * (num_qubits - p - 1)
+                pauli_str = "I" * p + "Z" + "I" * (num_qubits - p - 1)
                 pauli_terms[pauli_str] = pauli_terms.get(pauli_str, 0.0) - coeff
 
-                pauli_str = 'I' * num_qubits
+                pauli_str = "I" * num_qubits
                 pauli_terms[pauli_str] = pauli_terms.get(pauli_str, 0.0) + coeff
             else:
                 # Hopping terms: a†_p a_q
                 # Results in X_pX_q + Y_pY_q terms (with Z string between)
                 if p < q:
-                    z_string = ''.join(['Z' if p < i < q else 'I' for i in range(num_qubits)])
+                    z_string = "".join(["Z" if p < i < q else "I" for i in range(num_qubits)])
                 else:
-                    z_string = ''.join(['Z' if q < i < p else 'I' for i in range(num_qubits)])
+                    z_string = "".join(["Z" if q < i < p else "I" for i in range(num_qubits)])
 
                 # XX term
-                pauli_str = list('I' * num_qubits)
-                pauli_str[p] = 'X'
-                pauli_str[q] = 'X'
+                pauli_str = list("I" * num_qubits)
+                pauli_str[p] = "X"
+                pauli_str[q] = "X"
                 for i in range(min(p, q) + 1, max(p, q)):
-                    pauli_str[i] = 'Z'
-                pauli_terms[''.join(pauli_str)] = pauli_terms.get(''.join(pauli_str), 0.0) + coeff
+                    pauli_str[i] = "Z"
+                pauli_terms["".join(pauli_str)] = pauli_terms.get("".join(pauli_str), 0.0) + coeff
 
                 # YY term
-                pauli_str = list('I' * num_qubits)
-                pauli_str[p] = 'Y'
-                pauli_str[q] = 'Y'
+                pauli_str = list("I" * num_qubits)
+                pauli_str[p] = "Y"
+                pauli_str[q] = "Y"
                 for i in range(min(p, q) + 1, max(p, q)):
-                    pauli_str[i] = 'Z'
-                pauli_terms[''.join(pauli_str)] = pauli_terms.get(''.join(pauli_str), 0.0) + coeff
+                    pauli_str[i] = "Z"
+                pauli_terms["".join(pauli_str)] = pauli_terms.get("".join(pauli_str), 0.0) + coeff
 
     return pauli_terms
 
@@ -683,16 +727,16 @@ def bravyi_kitaev_transform(h_pq: np.ndarray, num_qubits: int) -> Dict[str, floa
             if p == q:
                 # Number operator in BK basis
                 update_set = get_update_set(p, num_qubits)
-                pauli_str = list('I' * num_qubits)
+                pauli_str = list("I" * num_qubits)
                 for idx in update_set:
-                    pauli_str[idx] = 'Z'
-                pauli_terms[''.join(pauli_str)] = pauli_terms.get(''.join(pauli_str), 0.0) - coeff
+                    pauli_str[idx] = "Z"
+                pauli_terms["".join(pauli_str)] = pauli_terms.get("".join(pauli_str), 0.0) - coeff
 
-                pauli_str = 'I' * num_qubits
+                pauli_str = "I" * num_qubits
                 pauli_terms[pauli_str] = pauli_terms.get(pauli_str, 0.0) + coeff
             else:
                 # Excitation operators in BK basis (simplified)
-                pauli_str = list('I' * num_qubits)
+                pauli_str = list("I" * num_qubits)
 
                 # X and Y components with parity strings
                 parity_p = get_parity_set(p)
@@ -701,20 +745,20 @@ def bravyi_kitaev_transform(h_pq: np.ndarray, num_qubits: int) -> Dict[str, floa
                 update_q = get_update_set(q, num_qubits)
 
                 # XX term
-                pauli_str = list('I' * num_qubits)
-                pauli_str[p] = 'X'
-                pauli_str[q] = 'X'
+                pauli_str = list("I" * num_qubits)
+                pauli_str[p] = "X"
+                pauli_str[q] = "X"
                 for idx in set(parity_p) ^ set(parity_q):
-                    pauli_str[idx] = 'Z'
-                pauli_terms[''.join(pauli_str)] = pauli_terms.get(''.join(pauli_str), 0.0) + coeff
+                    pauli_str[idx] = "Z"
+                pauli_terms["".join(pauli_str)] = pauli_terms.get("".join(pauli_str), 0.0) + coeff
 
                 # YY term
-                pauli_str = list('I' * num_qubits)
-                pauli_str[p] = 'Y'
-                pauli_str[q] = 'Y'
+                pauli_str = list("I" * num_qubits)
+                pauli_str[p] = "Y"
+                pauli_str[q] = "Y"
                 for idx in set(parity_p) ^ set(parity_q):
-                    pauli_str[idx] = 'Z'
-                pauli_terms[''.join(pauli_str)] = pauli_terms.get(''.join(pauli_str), 0.0) + coeff
+                    pauli_str[idx] = "Z"
+                pauli_terms["".join(pauli_str)] = pauli_terms.get("".join(pauli_str), 0.0) + coeff
 
     return pauli_terms
 
@@ -773,7 +817,7 @@ ATOM      5  CB  ALA A   1      11.500   9.000  10.000  1.00  0.00           C
             test_smiles,
             test_pdb,
             binding_site_center=np.array([10.5, 10.0, 10.0]),
-            binding_site_radius=5.0
+            binding_site_radius=5.0,
         )
         print(f"Hamiltonian matrix shape: {H_matrix.shape}")
         print(f"Hamiltonian eigenvalues (first 5): {np.linalg.eigvalsh(H_matrix)[:5]}")
@@ -792,12 +836,15 @@ ATOM      5  CB  ALA A   1      11.500   9.000  10.000  1.00  0.00           C
 
     receptor_coords = np.array([[0, 0, 0], [1.5, 0, 0], [3.0, 0, 0]])
     receptor_charges = np.array([-0.5, 0.1, -0.5])
-    receptor_types = ['O', 'C', 'O']
+    receptor_types = ["O", "C", "O"]
 
     energies = compute_interaction_energy(
-        ligand_coords, receptor_coords,
-        ligand_charges, receptor_charges,
-        ligand_types, receptor_types
+        ligand_coords,
+        receptor_coords,
+        ligand_charges,
+        receptor_charges,
+        ligand_types,
+        receptor_types,
     )
 
     print(f"Energy components:")
@@ -813,12 +860,12 @@ ATOM      5  CB  ALA A   1      11.500   9.000  10.000  1.00  0.00           C
     mol = Chem.MolFromSmiles("C=C")  # Ethylene
     mol = Chem.AddHs(mol)
 
-    qubit_ham_jw = molecule_to_qubit_hamiltonian(mol, transformation='jordan_wigner')
+    qubit_ham_jw = molecule_to_qubit_hamiltonian(mol, transformation="jordan_wigner")
     print(f"Number of qubits: {qubit_ham_jw['num_qubits']}")
     print(f"Number of electrons: {qubit_ham_jw['num_electrons']}")
     print(f"Number of Pauli terms: {len(qubit_ham_jw['pauli_terms'])}")
     print(f"Sample Pauli terms (first 3):")
-    for i, (pauli_str, coeff) in enumerate(list(qubit_ham_jw['pauli_terms'].items())[:3]):
+    for i, (pauli_str, coeff) in enumerate(list(qubit_ham_jw["pauli_terms"].items())[:3]):
         print(f"  {pauli_str}: {coeff:.6f}")
     print()
 
@@ -827,11 +874,11 @@ ATOM      5  CB  ALA A   1      11.500   9.000  10.000  1.00  0.00           C
     print("Test 4: Molecule to qubit Hamiltonian (Bravyi-Kitaev)")
     print("=" * 80)
 
-    qubit_ham_bk = molecule_to_qubit_hamiltonian(mol, transformation='bravyi_kitaev')
+    qubit_ham_bk = molecule_to_qubit_hamiltonian(mol, transformation="bravyi_kitaev")
     print(f"Number of qubits: {qubit_ham_bk['num_qubits']}")
     print(f"Number of Pauli terms: {len(qubit_ham_bk['pauli_terms'])}")
     print(f"Sample Pauli terms (first 3):")
-    for i, (pauli_str, coeff) in enumerate(list(qubit_ham_bk['pauli_terms'].items())[:3]):
+    for i, (pauli_str, coeff) in enumerate(list(qubit_ham_bk["pauli_terms"].items())[:3]):
         print(f"  {pauli_str}: {coeff:.6f}")
     print()
 

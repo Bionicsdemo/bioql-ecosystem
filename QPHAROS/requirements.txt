@@ -1,0 +1,25 @@
+# QPHAROS Requirements
+
+# BioQL - Core quantum platform
+bioql>=1.0.0
+
+# Quantum computing libraries
+# qiskit>=0.44.0  # Optional: for direct Qiskit integration
+# pennylane>=0.32.0  # Optional: for PennyLane integration
+
+# Chemistry and molecular modeling
+rdkit>=2023.3.1  # Molecular structure handling
+numpy>=1.24.0
+scipy>=1.10.0
+
+# Graph and network analysis
+networkx>=3.0
+
+# Visualization
+matplotlib>=3.7.0
+
+# Data handling
+pandas>=2.0.0
+
+# Progress bars
+tqdm>=4.65.0

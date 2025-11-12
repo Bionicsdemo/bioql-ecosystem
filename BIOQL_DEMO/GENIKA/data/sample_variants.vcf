@@ -1,0 +1,13 @@
+##fileformat=VCFv4.2
+##source=BioQL_Demo_v6.0.0
+##reference=GRCh38
+##INFO=<ID=GENE,Number=1,Type=String,Description="Gene symbol">
+##INFO=<ID=CONSEQUENCE,Number=1,Type=String,Description="Variant consequence">
+##INFO=<ID=DISEASE_RISK,Number=1,Type=String,Description="Disease association">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	GENIKA-PT-2025-001
+10	114758349	rs7903146	C	T	100	PASS	GENE=TCF7L2;CONSEQUENCE=intron_variant;DISEASE_RISK=T2D_risk_1.37x	GT	0/1
+3	12393125	rs1801282	C	G	100	PASS	GENE=PPARG;CONSEQUENCE=Pro12Ala;DISEASE_RISK=T2D_protective_0.86x	GT	0/1
+16	53820527	rs9939609	T	A	100	PASS	GENE=FTO;CONSEQUENCE=intron_variant;DISEASE_RISK=Obesity_T2D_risk_1.25x	GT	1/1
+11	2820763	rs5219	C	T	100	PASS	GENE=KCNJ11;CONSEQUENCE=Lys23Glu;DISEASE_RISK=T2D_risk_1.14x	GT	0/1
+1	219652105	rs1801133	C	T	100	PASS	GENE=MTHFR;CONSEQUENCE=Ala222Val;DISEASE_RISK=Homocysteine_elevated	GT	0/1

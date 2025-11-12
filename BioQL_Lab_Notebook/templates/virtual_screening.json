@@ -1,0 +1,153 @@
+{
+  "metadata": {
+    "title": "Virtual Screening Campaign",
+    "description": "High-throughput virtual screening of 1000+ molecules against a protein target using molecular docking and ML-based scoring",
+    "category": "Drug Discovery",
+    "difficulty": "Intermediate",
+    "estimated_runtime": "2-4 hours",
+    "estimated_cost": "$15-30 (depends on library size and scoring method)",
+    "tags": ["virtual-screening", "docking", "hit-identification", "drug-discovery"],
+    "version": "1.0",
+    "created": "2025-10-25"
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "source": "# Virtual Screening Campaign\n\n## Objective\nScreen a large compound library against a target protein to identify potential hit compounds for further optimization.\n\n## Scientific Background\nVirtual screening is a computational approach to identify bioactive compounds from large chemical libraries. This template combines:\n- **Molecular Docking**: Predicts binding modes and affinities\n- **ADME Filtering**: Removes compounds with poor drug-like properties\n- **ML-based Scoring**: Re-ranks hits using machine learning models trained on experimental data\n\n## Workflow Overview\n1. Prepare target protein structure\n2. Load and filter compound library\n3. Perform molecular docking\n4. Score and rank compounds\n5. Analyze top hits\n\n## Expected Outcomes\n- Ranked list of potential hit compounds\n- Binding mode predictions for top candidates\n- ADME/physicochemical property analysis\n- Visualization of protein-ligand interactions"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Step 1: Target Protein Preparation\n\nLoad and prepare the target protein structure. This example uses PDB ID 1HSG (HIV-1 protease).\n\n**Customize**: Replace with your target PDB ID or upload custom structure."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql load_protein --pdb 1HSG --chain A --prepare --add_hydrogens --assign_charges",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Protein structure loaded, cleaned, and prepared for docking (hydrogens added, charges assigned)"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Step 2: Define Binding Site\n\nSpecify the binding site for docking. You can use:\n- Known ligand position (co-crystallized)\n- Residue selection\n- Grid box coordinates\n\n**Customize**: Adjust coordinates or use reference ligand."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql define_binding_site --method reference_ligand --expand 5.0 --visualize",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Binding site defined with grid box visualization showing docking space"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Step 3: Load Compound Library\n\nLoad screening library and apply drug-likeness filters.\n\n**Customize**: \n- Replace ZINC15 with your library (SDF, SMILES, or database)\n- Adjust Lipinski filters as needed\n- Change library size (1000-100000+)"
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql load_library --source ZINC15 --subset drug-like --limit 1000 --filter lipinski",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Compound library loaded (~1000 molecules passing Lipinski's Rule of Five)"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Step 4: ADME Pre-filtering\n\nRemove compounds with poor ADME properties before docking to save computational time.\n\n**Customize**: Adjust thresholds based on target product profile."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql calculate_properties --properties logP,MW,TPSA,HBD,HBA,RotBonds --filter \"MW<500 AND logP<5 AND TPSA<140\"",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Filtered library with physicochemical properties table, ~70-80% compounds retained"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Step 5: Molecular Docking\n\nPerform molecular docking of filtered library against target.\n\n**Methods**:\n- `autodock_vina`: Fast, good for large libraries\n- `gnina`: Deep learning-based scoring\n- `glide`: High accuracy (requires Schrodinger license)\n\n**Customize**: Choose docking method, exhaustiveness, and number of poses."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql dock --method autodock_vina --exhaustiveness 8 --num_poses 3 --energy_range 3.0 --parallel 8",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Docking complete with binding affinity scores (kcal/mol) for each compound\n\nRuntime: ~1-3 hours for 1000 compounds"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Step 6: Consensus Scoring\n\nRe-score docked poses using multiple scoring functions for better accuracy.\n\n**Customize**: Choose scoring functions based on target type."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql rescore --methods vina,smina,vinardo,dkoes_scoring --consensus median --weights equal",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Consensus scores combining multiple functions, typically more reliable than single scores"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Step 7: ML-based Re-ranking\n\nUse machine learning model to predict binding affinity and re-rank compounds.\n\n**Customize**: Choose pre-trained model or use custom model."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql ml_score --model rtmscore --features structural,electrostatic,hydrophobic --rerank",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: ML-predicted binding affinities, often more accurate than classical scoring"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Step 8: Select Top Hits\n\nExtract top-scoring compounds for detailed analysis.\n\n**Customize**: Adjust number of hits and selection criteria."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql select_hits --top 50 --criteria ml_score --diversity_filter 0.7 --export hits_table.csv",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Table of top 50 hits with diversity filtering to ensure chemical diversity"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Step 9: Interaction Analysis\n\nAnalyze protein-ligand interactions for top hits.\n\n**Customize**: Focus on specific interaction types relevant to your target."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql analyze_interactions --top 10 --interaction_types hbond,pi_stacking,hydrophobic,salt_bridge --visualize",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: 2D interaction diagrams and 3D visualizations showing key binding interactions"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Step 10: Generate Report\n\nCreate comprehensive screening report with visualizations.\n\n**Customize**: Choose which analyses to include in final report."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql generate_report --format html --include docking_scores,interactions,adme_properties,structures --top 20",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: HTML report with:\n- Score distribution plots\n- Top hit structures and binding modes\n- ADME property radar charts\n- Interaction fingerprints\n- Downloadable results table"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Next Steps\n\n### Immediate Follow-up:\n1. **Visual Inspection**: Manually inspect top 10-20 binding modes\n2. **Literature Search**: Check if hits are known actives or have prior IP\n3. **SAR Analysis**: Identify common scaffolds and pharmacophores\n\n### Experimental Validation:\n1. **Hit Confirmation**: Test top 20-50 compounds in biochemical assay\n2. **Counter-screening**: Test against related targets for selectivity\n3. **Cell-based Assays**: Evaluate compounds in relevant cellular model\n\n### Computational Follow-up:\n1. **MD Simulations**: Run molecular dynamics on top 5 hits to validate binding\n2. **Free Energy Calculations**: More accurate binding affinity predictions\n3. **Analog Search**: Find similar compounds to confirmed hits\n\n## References\n- Trott & Olson (2010). AutoDock Vina: improving the speed and accuracy of docking. J Comput Chem.\n- McNutt et al. (2021). GNINA 1.0: molecular docking with deep learning. J Cheminform.\n- Lipinski et al. (2001). Experimental and computational approaches to estimate solubility. Adv Drug Deliv Rev."
+    }
+  ]
+}

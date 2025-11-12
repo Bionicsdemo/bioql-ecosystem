@@ -37,7 +37,7 @@ LIGAND_SMILES = {
     "lipitor": "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CC[C@@H](O)C[C@@H](O)CC(=O)O",
     "semaglutide": "CCCCCCCCCCCCCCCCCC(=O)N[C@@H](CO)C(=O)N[C@@H](CC(C)C)C(=O)N[C@@H](CC1=CC=CC=C1)C(=O)N[C@@H](CC(=O)O)C(=O)N[C@@H](CCC(=O)O)C(=O)N",
     "liraglutide": "CCCCCCCCCCCCCCCCC(=O)N[C@@H](CCCCN)C(=O)N[C@@H](CO)C(=O)N[C@@H](CC(C)C)C(=O)N[C@@H](CC1=CC=CC=C1)C(=O)N",
-    "ozempic": "CCCCCCCCCCCCCCCCCC(=O)N[C@@H](CO)C(=O)N[C@@H](CC(C)C)C(=O)N[C@@H](CC1=CC=CC=C1)C(=O)N[C@@H](CC(=O)O)C(=O)N[C@@H](CCC(=O)O)C(=O)N"
+    "ozempic": "CCCCCCCCCCCCCCCCCC(=O)N[C@@H](CO)C(=O)N[C@@H](CC(C)C)C(=O)N[C@@H](CC1=CC=CC=C1)C(=O)N[C@@H](CC(=O)O)C(=O)N[C@@H](CCC(=O)O)C(=O)N",
 }
 
 RECEPTOR_PDB = {
@@ -58,14 +58,14 @@ RECEPTOR_PDB = {
     "gip": "7DTY",  # GIP Receptor (obesity/diabetes)
     "gipr": "7DTY",  # GIP Receptor (alternative name)
     "dpp4": "1X70",  # DPP-4 (diabetes)
-    "sglt2": "5CGD"  # SGLT2 (diabetes)
+    "sglt2": "5CGD",  # SGLT2 (diabetes)
 }
 
 # ==============================================================================
 # TEMPLATE 1: MOLECULAR DOCKING
 # ==============================================================================
 
-DOCKING_TEMPLATE = '''from bioql import quantum
+DOCKING_TEMPLATE = """from bioql import quantum
 import os
 import matplotlib.pyplot as plt
 from pathlib import Path
@@ -224,13 +224,13 @@ except Exception as e:
     print(f"\\n❌ Error: {{e}}")
     import traceback
     traceback.print_exc()
-'''
+"""
 
 # ==============================================================================
 # TEMPLATE 2: BINDING AFFINITY
 # ==============================================================================
 
-BINDING_AFFINITY_TEMPLATE = '''from bioql import quantum
+BINDING_AFFINITY_TEMPLATE = """from bioql import quantum
 import os
 import matplotlib.pyplot as plt
 from pathlib import Path
@@ -383,13 +383,13 @@ except Exception as e:
     print(f"\\n❌ Error: {{e}}")
     import traceback
     traceback.print_exc()
-'''
+"""
 
 # ==============================================================================
 # TEMPLATE 3: ADME PREDICTION
 # ==============================================================================
 
-ADME_TEMPLATE = '''from bioql import quantum
+ADME_TEMPLATE = """from bioql import quantum
 import os
 import matplotlib.pyplot as plt
 from pathlib import Path
@@ -575,13 +575,13 @@ except Exception as e:
     print(f"\\n❌ Error: {{e}}")
     import traceback
     traceback.print_exc()
-'''
+"""
 
 # ==============================================================================
 # TEMPLATE 4: TOXICITY PREDICTION
 # ==============================================================================
 
-TOXICITY_TEMPLATE = '''from bioql import quantum
+TOXICITY_TEMPLATE = """from bioql import quantum
 import os
 import matplotlib.pyplot as plt
 from pathlib import Path
@@ -792,13 +792,13 @@ except Exception as e:
     print(f"\\n❌ Error: {{e}}")
     import traceback
     traceback.print_exc()
-'''
+"""
 
 # ==============================================================================
 # TEMPLATE 5: PHARMACOPHORE MODELING
 # ==============================================================================
 
-PHARMACOPHORE_TEMPLATE = '''from bioql import quantum
+PHARMACOPHORE_TEMPLATE = """from bioql import quantum
 import os
 import matplotlib.pyplot as plt
 from pathlib import Path
@@ -989,13 +989,13 @@ except Exception as e:
     print(f"\\n❌ Error: {{e}}")
     import traceback
     traceback.print_exc()
-'''
+"""
 
 # ==============================================================================
 # TEMPLATE 6: PROTEIN FOLDING
 # ==============================================================================
 
-PROTEIN_FOLDING_TEMPLATE = '''from bioql import quantum
+PROTEIN_FOLDING_TEMPLATE = """from bioql import quantum
 import os
 import matplotlib.pyplot as plt
 from pathlib import Path
@@ -1152,11 +1152,12 @@ except Exception as e:
     print(f"\\n❌ Error: {{e}}")
     import traceback
     traceback.print_exc()
-'''
+"""
 
 # ==============================================================================
 # TEMPLATE SELECTOR FUNCTION
 # ==============================================================================
+
 
 def get_template(task_type, params):
     """
@@ -1171,12 +1172,12 @@ def get_template(task_type, params):
         Formatted Python code string ready to execute
     """
     templates = {
-        'docking': DOCKING_TEMPLATE,
-        'binding_affinity': BINDING_AFFINITY_TEMPLATE,
-        'adme': ADME_TEMPLATE,
-        'toxicity': TOXICITY_TEMPLATE,
-        'pharmacophore': PHARMACOPHORE_TEMPLATE,
-        'protein_folding': PROTEIN_FOLDING_TEMPLATE
+        "docking": DOCKING_TEMPLATE,
+        "binding_affinity": BINDING_AFFINITY_TEMPLATE,
+        "adme": ADME_TEMPLATE,
+        "toxicity": TOXICITY_TEMPLATE,
+        "pharmacophore": PHARMACOPHORE_TEMPLATE,
+        "protein_folding": PROTEIN_FOLDING_TEMPLATE,
     }
 
     template = templates.get(task_type)
@@ -1194,15 +1195,15 @@ def get_template(task_type, params):
 if __name__ == "__main__":
     # Example 1: Docking
     docking_params = {
-        'ligand': 'Aspirin',
-        'smiles': LIGAND_SMILES['aspirin'],
-        'receptor': 'COX-1',
-        'pdb_id': RECEPTOR_PDB['cox-1'],
-        'backend': 'ibm_torino',
-        'shots': 1000
+        "ligand": "Aspirin",
+        "smiles": LIGAND_SMILES["aspirin"],
+        "receptor": "COX-1",
+        "pdb_id": RECEPTOR_PDB["cox-1"],
+        "backend": "ibm_torino",
+        "shots": 1000,
     }
 
-    docking_code = get_template('docking', docking_params)
+    docking_code = get_template("docking", docking_params)
     print("=" * 80)
     print("DOCKING TEMPLATE EXAMPLE")
     print("=" * 80)
@@ -1211,13 +1212,13 @@ if __name__ == "__main__":
 
     # Example 2: ADME
     adme_params = {
-        'molecule': 'Metformin',
-        'smiles': LIGAND_SMILES['metformin'],
-        'backend': 'ibm_torino',
-        'shots': 1000
+        "molecule": "Metformin",
+        "smiles": LIGAND_SMILES["metformin"],
+        "backend": "ibm_torino",
+        "shots": 1000,
     }
 
-    adme_code = get_template('adme', adme_params)
+    adme_code = get_template("adme", adme_params)
     print("\n" + "=" * 80)
     print("ADME TEMPLATE EXAMPLE")
     print("=" * 80)

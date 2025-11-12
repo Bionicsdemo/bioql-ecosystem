@@ -4,13 +4,15 @@ BioQL Quantum Chemistry with Error Correction
 OpenFermion integration for high-accuracy molecular simulations
 """
 
-import numpy as np
-from typing import Optional, Dict, Any, List, Tuple
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
 
 try:
     import openfermion as of
-    from openfermion import QubitOperator, FermionOperator
+    from openfermion import FermionOperator, QubitOperator
+
     OPENFERMION_AVAILABLE = True
 except ImportError:
     OPENFERMION_AVAILABLE = False
@@ -20,6 +22,7 @@ except ImportError:
 try:
     from qiskit import QuantumCircuit
     from qiskit.circuit import Parameter
+
     QISKIT_AVAILABLE = True
 except ImportError:
     QISKIT_AVAILABLE = False
@@ -63,13 +66,13 @@ class QuantumChemistry:
 
     # Literature reference values (Hartrees)
     REFERENCE_ENERGIES = {
-        'H2': -1.137,      # H-H bond at 0.74 Angstrom
-        'LiH': -7.882,     # Li-H at 1.60 Angstrom
-        'BeH2': -15.77,    # Linear BeH2
-        'H2O': -76.02,     # Water (equilibrium)
-        'N2': -109.54,     # N≡N triple bond
-        'CH4': -40.52,     # Methane
-        'NH3': -56.56,     # Ammonia
+        "H2": -1.137,  # H-H bond at 0.74 Angstrom
+        "LiH": -7.882,  # Li-H at 1.60 Angstrom
+        "BeH2": -15.77,  # Linear BeH2
+        "H2O": -76.02,  # Water (equilibrium)
+        "N2": -109.54,  # N≡N triple bond
+        "CH4": -40.52,  # Methane
+        "NH3": -56.56,  # Ammonia
     }
 
     def __init__(self):
@@ -84,10 +87,10 @@ class QuantumChemistry:
         molecule_name: str,
         geometry: Optional[List[Tuple[str, Tuple[float, float, float]]]] = None,
         distance: Optional[float] = None,
-        basis: str = 'sto-3g',
+        basis: str = "sto-3g",
         multiplicity: int = 1,
         charge: int = 0,
-        error_mitigation: str = 'full'  # 'none', 'basic', 'full'
+        error_mitigation: str = "full",  # 'none', 'basic', 'full'
     ) -> MoleculeResult:
         """
         Calculate molecular properties with error correction.
@@ -118,7 +121,7 @@ class QuantumChemistry:
                 basis=basis,
                 multiplicity=multiplicity,
                 charge=charge,
-                description=molecule_name
+                description=molecule_name,
             )
 
             # Get molecular Hamiltonian
@@ -134,12 +137,14 @@ class QuantumChemistry:
                     hamiltonian=None,
                     num_qubits=0,
                     num_orbitals=0,
-                    error_message="Failed to generate Hamiltonian"
+                    error_message="Failed to generate Hamiltonian",
                 )
 
             # Count qubits needed
             num_qubits = of.count_qubits(hamiltonian)
-            num_orbitals = molecule.n_orbitals if hasattr(molecule, 'n_orbitals') else num_qubits // 2
+            num_orbitals = (
+                molecule.n_orbitals if hasattr(molecule, "n_orbitals") else num_qubits // 2
+            )
 
             logger.info(f"Hamiltonian requires {num_qubits} qubits")
             logger.info(f"Number of molecular orbitals: {num_orbitals}")
@@ -156,10 +161,9 @@ class QuantumChemistry:
             accuracy = self._calculate_accuracy(molecule_name, energy_ground_state)
 
             # Apply error mitigation
-            if error_mitigation != 'none':
+            if error_mitigation != "none":
                 energy_ground_state = self._apply_error_mitigation(
-                    energy_ground_state,
-                    error_mitigation
+                    energy_ground_state, error_mitigation
                 )
 
             logger.info(f"Ground state energy: {energy_ground_state:.6f} Hartrees")
@@ -178,11 +182,13 @@ class QuantumChemistry:
                 error_mitigation=error_mitigation,
                 accuracy_percent=accuracy,
                 metadata={
-                    'basis': basis,
-                    'multiplicity': multiplicity,
-                    'charge': charge,
-                    'hamiltonian_terms': len(hamiltonian.terms) if hasattr(hamiltonian, 'terms') else 0
-                }
+                    "basis": basis,
+                    "multiplicity": multiplicity,
+                    "charge": charge,
+                    "hamiltonian_terms": (
+                        len(hamiltonian.terms) if hasattr(hamiltonian, "terms") else 0
+                    ),
+                },
             )
 
         except Exception as e:
@@ -196,43 +202,33 @@ class QuantumChemistry:
                 hamiltonian=None,
                 num_qubits=0,
                 num_orbitals=0,
-                error_message=str(e)
+                error_message=str(e),
             )
 
     def _get_default_geometry(
-        self,
-        molecule_name: str,
-        distance: Optional[float]
+        self, molecule_name: str, distance: Optional[float]
     ) -> List[Tuple[str, Tuple[float, float, float]]]:
         """Get default molecular geometry."""
 
-        if molecule_name == 'H2':
+        if molecule_name == "H2":
             d = distance or 0.74  # Equilibrium bond length
-            return [('H', (0, 0, 0)), ('H', (0, 0, d))]
+            return [("H", (0, 0, 0)), ("H", (0, 0, d))]
 
-        elif molecule_name == 'LiH':
+        elif molecule_name == "LiH":
             d = distance or 1.60
-            return [('Li', (0, 0, 0)), ('H', (0, 0, d))]
+            return [("Li", (0, 0, 0)), ("H", (0, 0, d))]
 
-        elif molecule_name == 'H2O':
+        elif molecule_name == "H2O":
             # Water - bent molecule, 104.5° angle
-            return [
-                ('O', (0, 0, 0)),
-                ('H', (0.757, 0.586, 0)),
-                ('H', (-0.757, 0.586, 0))
-            ]
+            return [("O", (0, 0, 0)), ("H", (0.757, 0.586, 0)), ("H", (-0.757, 0.586, 0))]
 
-        elif molecule_name == 'N2':
+        elif molecule_name == "N2":
             d = distance or 1.098  # Triple bond
-            return [('N', (0, 0, 0)), ('N', (0, 0, d))]
+            return [("N", (0, 0, 0)), ("N", (0, 0, d))]
 
-        elif molecule_name == 'BeH2':
+        elif molecule_name == "BeH2":
             # Linear BeH2
-            return [
-                ('H', (0, 0, -1.33)),
-                ('Be', (0, 0, 0)),
-                ('H', (0, 0, 1.33))
-            ]
+            return [("H", (0, 0, -1.33)), ("Be", (0, 0, 0)), ("H", (0, 0, 1.33))]
 
         else:
             raise ValueError(f"Unknown molecule: {molecule_name}")
@@ -244,12 +240,14 @@ class QuantumChemistry:
             # In production, use molecular_data.get_molecular_hamiltonian()
 
             # Simple H2 Hamiltonian (Pauli operators)
-            hamiltonian = QubitOperator('', -0.4804) + \
-                          QubitOperator('Z0', 0.3435) + \
-                          QubitOperator('Z1', -0.4347) + \
-                          QubitOperator('Z0 Z1', 0.5716) + \
-                          QubitOperator('X0 X1', 0.0910) + \
-                          QubitOperator('Y0 Y1', 0.0910)
+            hamiltonian = (
+                QubitOperator("", -0.4804)
+                + QubitOperator("Z0", 0.3435)
+                + QubitOperator("Z1", -0.4347)
+                + QubitOperator("Z0 Z1", 0.5716)
+                + QubitOperator("X0 X1", 0.0910)
+                + QubitOperator("Y0 Y1", 0.0910)
+            )
 
             return hamiltonian
 
@@ -283,12 +281,12 @@ class QuantumChemistry:
     def _apply_error_mitigation(self, energy: float, level: str) -> float:
         """Apply error mitigation/correction."""
 
-        if level == 'basic':
+        if level == "basic":
             # Simple noise reduction (5-10% improvement)
             correction_factor = 0.95
             return energy * correction_factor
 
-        elif level == 'full':
+        elif level == "full":
             # Advanced QEC (target 99%+ accuracy)
             # Would use Surface Codes, ZNE, PEC in production
             correction_factor = 0.98
@@ -297,9 +295,7 @@ class QuantumChemistry:
         return energy
 
     def to_qiskit_circuit(
-        self,
-        hamiltonian: QubitOperator,
-        method: str = 'vqe'
+        self, hamiltonian: QubitOperator, method: str = "vqe"
     ) -> Optional[QuantumCircuit]:
         """
         Convert Hamiltonian to Qiskit circuit for quantum execution.
@@ -318,19 +314,19 @@ class QuantumChemistry:
         try:
             num_qubits = of.count_qubits(hamiltonian)
 
-            if method == 'vqe':
+            if method == "vqe":
                 # Variational Quantum Eigensolver ansatz
                 circuit = QuantumCircuit(num_qubits, num_qubits)
 
                 # Hardware-efficient ansatz
                 for i in range(num_qubits):
-                    circuit.ry(Parameter(f'θ_{i}'), i)
+                    circuit.ry(Parameter(f"θ_{i}"), i)
 
                 for i in range(num_qubits - 1):
-                    circuit.cx(i, i+1)
+                    circuit.cx(i, i + 1)
 
                 for i in range(num_qubits):
-                    circuit.ry(Parameter(f'φ_{i}'), i)
+                    circuit.ry(Parameter(f"φ_{i}"), i)
 
                 circuit.measure_all()
 
@@ -341,7 +337,7 @@ class QuantumChemistry:
             return None
 
 
-def quick_chemistry_test(molecule: str = 'H2') -> MoleculeResult:
+def quick_chemistry_test(molecule: str = "H2") -> MoleculeResult:
     """
     Quick test of quantum chemistry calculation.
 
@@ -357,4 +353,4 @@ def quick_chemistry_test(molecule: str = 'H2') -> MoleculeResult:
         >>> print(f"Accuracy: {result.accuracy_percent}%")
     """
     chem = QuantumChemistry()
-    return chem.calculate_molecule(molecule, error_mitigation='full')
+    return chem.calculate_molecule(molecule, error_mitigation="full")

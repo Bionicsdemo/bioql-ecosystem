@@ -7,13 +7,24 @@ Supports multiple output formats (PDB, PDBQT, MOL2, SDF).
 
 import os
 import tempfile
-from pathlib import Path
-from typing import Optional, Union, Dict, Any
+import warnings
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, Optional, Union
 
 from ..logger import get_logger
 
 logger = get_logger(__name__)
+
+# Conditional OpenBabel import
+try:
+    from openbabel import openbabel as ob
+
+    HAS_OPENBABEL = True
+except ImportError:
+    HAS_OPENBABEL = False
+    ob = None
+    warnings.warn("OpenBabel not installed. Ligand preparation will use RDKit as fallback.")
 
 
 @dataclass
@@ -158,9 +169,20 @@ def prepare_ligand(
             logger.warning("RDKit not available, trying OpenBabel...")
 
             # Fallback to OpenBabel
-            try:
-                from openbabel import openbabel as ob
+            if not HAS_OPENBABEL:
+                error_msg = (
+                    "Neither RDKit nor OpenBabel available. Install with: pip install bioql[vina]"
+                )
+                logger.error(error_msg)
+                return LigandResult(
+                    smiles=smiles,
+                    output_path=None,
+                    format=output_format,
+                    success=False,
+                    error_message=error_msg,
+                )
 
+            try:
                 # Create molecule from SMILES
                 mol = ob.OBMol()
                 conv = ob.OBConversion()
@@ -206,8 +228,8 @@ def prepare_ligand(
                     metadata={"method": "openbabel"},
                 )
 
-            except ImportError:
-                error_msg = "Neither RDKit nor OpenBabel available. Install with: pip install bioql[vina]"
+            except Exception as ob_error:
+                error_msg = f"OpenBabel failed: {ob_error}"
                 logger.error(error_msg)
                 return LigandResult(
                     smiles=smiles,

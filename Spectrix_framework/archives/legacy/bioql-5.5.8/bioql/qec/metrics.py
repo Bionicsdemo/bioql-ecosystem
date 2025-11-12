@@ -16,9 +16,9 @@ Example:
     >>> print(metrics)
 """
 
-from typing import Optional
-from dataclasses import dataclass, field
 import math
+from dataclasses import dataclass, field
+from typing import Optional
 
 from ..logger import get_logger
 
@@ -100,14 +100,10 @@ class QECMetrics:
         """
         # Validate qubit counts
         if self.physical_qubits < 1:
-            raise ValueError(
-                f"physical_qubits must be positive, got {self.physical_qubits}"
-            )
+            raise ValueError(f"physical_qubits must be positive, got {self.physical_qubits}")
 
         if self.logical_qubits < 1:
-            raise ValueError(
-                f"logical_qubits must be positive, got {self.logical_qubits}"
-            )
+            raise ValueError(f"logical_qubits must be positive, got {self.logical_qubits}")
 
         if self.physical_qubits < self.logical_qubits:
             raise ValueError(
@@ -117,27 +113,20 @@ class QECMetrics:
 
         # Validate error rates
         if not (0 < self.raw_error_rate < 1):
-            raise ValueError(
-                f"raw_error_rate must be between 0 and 1, got {self.raw_error_rate}"
-            )
+            raise ValueError(f"raw_error_rate must be between 0 and 1, got {self.raw_error_rate}")
 
         if not (0 < self.corrected_error_rate < 1):
             raise ValueError(
-                f"corrected_error_rate must be between 0 and 1, "
-                f"got {self.corrected_error_rate}"
+                f"corrected_error_rate must be between 0 and 1, " f"got {self.corrected_error_rate}"
             )
 
         # Validate fidelity
         if not (0 < self.fidelity <= 1):
-            raise ValueError(
-                f"fidelity must be between 0 and 1, got {self.fidelity}"
-            )
+            raise ValueError(f"fidelity must be between 0 and 1, got {self.fidelity}")
 
         # Validate success rate
         if not (0 < self.success_rate <= 1):
-            raise ValueError(
-                f"success_rate must be between 0 and 1, got {self.success_rate}"
-            )
+            raise ValueError(f"success_rate must be between 0 and 1, got {self.success_rate}")
 
         return True
 
@@ -160,7 +149,7 @@ class QECMetrics:
             Error suppression: 100.0x
         """
         if self.corrected_error_rate == 0:
-            return float('inf')
+            return float("inf")
         return self.raw_error_rate / self.corrected_error_rate
 
     @property
@@ -296,17 +285,17 @@ class QECMetrics:
             >>> print(data.keys())
         """
         return {
-            'physical_qubits': self.physical_qubits,
-            'logical_qubits': self.logical_qubits,
-            'raw_error_rate': self.raw_error_rate,
-            'corrected_error_rate': self.corrected_error_rate,
-            'fidelity': self.fidelity,
-            'success_rate': self.success_rate,
-            'overhead_ratio': self.overhead_ratio,
-            'error_suppression_factor': self.error_suppression_factor,
-            'effective_fidelity': self.effective_fidelity,
-            'qubit_efficiency': self.qubit_efficiency,
-            'estimated_code_distance': self.code_distance,
+            "physical_qubits": self.physical_qubits,
+            "logical_qubits": self.logical_qubits,
+            "raw_error_rate": self.raw_error_rate,
+            "corrected_error_rate": self.corrected_error_rate,
+            "fidelity": self.fidelity,
+            "success_rate": self.success_rate,
+            "overhead_ratio": self.overhead_ratio,
+            "error_suppression_factor": self.error_suppression_factor,
+            "effective_fidelity": self.effective_fidelity,
+            "qubit_efficiency": self.qubit_efficiency,
+            "estimated_code_distance": self.code_distance,
         }
 
     def __repr__(self) -> str:
@@ -353,7 +342,7 @@ class QECMetrics:
             f"({self.error_suppression_factor:.1f}x suppression)"
         )
 
-    def compare(self, other: 'QECMetrics') -> dict:
+    def compare(self, other: "QECMetrics") -> dict:
         """
         Compare this metrics with another QEC configuration.
 
@@ -376,15 +365,15 @@ class QECMetrics:
             >>> print(comparison['better_error_suppression'])
         """
         return {
-            'overhead_diff': self.overhead_ratio - other.overhead_ratio,
-            'error_suppression_ratio': (
+            "overhead_diff": self.overhead_ratio - other.overhead_ratio,
+            "error_suppression_ratio": (
                 self.error_suppression_factor / other.error_suppression_factor
             ),
-            'fidelity_diff': self.effective_fidelity - other.effective_fidelity,
-            'efficiency_diff': self.qubit_efficiency - other.qubit_efficiency,
-            'better_error_suppression': (
+            "fidelity_diff": self.effective_fidelity - other.effective_fidelity,
+            "efficiency_diff": self.qubit_efficiency - other.qubit_efficiency,
+            "better_error_suppression": (
                 self.error_suppression_factor > other.error_suppression_factor
             ),
-            'better_fidelity': self.effective_fidelity > other.effective_fidelity,
-            'more_efficient': self.qubit_efficiency > other.qubit_efficiency,
+            "better_fidelity": self.effective_fidelity > other.effective_fidelity,
+            "more_efficient": self.qubit_efficiency > other.qubit_efficiency,
         }

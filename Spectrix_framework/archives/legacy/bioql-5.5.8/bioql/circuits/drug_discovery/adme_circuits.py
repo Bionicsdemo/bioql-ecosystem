@@ -12,24 +12,26 @@ ADME properties are critical for drug development:
 """
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Any
-import numpy as np
 from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+import numpy as np
 
 try:
-    from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+    from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
     from qiskit.circuit import Parameter
-    from qiskit.circuit.library import ZZFeatureMap, RealAmplitudes
+    from qiskit.circuit.library import RealAmplitudes, ZZFeatureMap
+
     QISKIT_AVAILABLE = True
 except ImportError:
     QISKIT_AVAILABLE = False
 
 from ..base import (
-    CircuitTemplate,
     CircuitCategory,
+    CircuitTemplate,
     ComplexityRating,
     ParameterSpec,
-    ResourceEstimate
+    ResourceEstimate,
 )
 
 
@@ -49,6 +51,7 @@ class ADMEResult:
         properties: Dictionary of all predicted properties
         metadata: Additional metadata
     """
+
     absorption_score: Optional[float] = None
     distribution_score: Optional[float] = None
     metabolism_score: Optional[float] = None
@@ -98,7 +101,7 @@ class ADMECircuit(CircuitTemplate):
         molecule_smiles: str,
         properties: List[str] = None,
         n_qubits: int = 8,
-        feature_dim: int = 16
+        feature_dim: int = 16,
     ):
         """
         Initialize ADME circuit.
@@ -119,20 +122,20 @@ class ADMECircuit(CircuitTemplate):
                     name="molecule_smiles",
                     type="str",
                     description="SMILES string of molecule",
-                    required=True
+                    required=True,
                 ),
                 ParameterSpec(
                     name="properties",
                     type="list",
                     description="ADME properties to predict",
-                    default=["absorption", "distribution", "metabolism", "excretion"]
+                    default=["absorption", "distribution", "metabolism", "excretion"],
                 ),
                 ParameterSpec(
                     name="n_qubits",
                     type="int",
                     description="Number of qubits",
                     default=8,
-                    range=(4, 20)
+                    range=(4, 20),
                 ),
             ],
             tags=["adme", "drug-discovery", "prediction", "qnn", "pharmacokinetics"],
@@ -140,12 +143,12 @@ class ADMECircuit(CircuitTemplate):
                 "Predict drug absorption",
                 "Estimate bioavailability",
                 "Screen drug candidates",
-                "Optimize pharmacokinetics"
+                "Optimize pharmacokinetics",
             ],
             references=[
                 "Quantum Machine Learning for Drug Discovery (Nature, 2021)",
-                "ADME Prediction with Quantum Neural Networks (J. Chem. Inf. Model., 2022)"
-            ]
+                "ADME Prediction with Quantum Neural Networks (J. Chem. Inf. Model., 2022)",
+            ],
         )
 
         self.molecule_smiles = molecule_smiles
@@ -165,8 +168,8 @@ class ADMECircuit(CircuitTemplate):
             raise ImportError("Qiskit is required for ADME circuits")
 
         # Create quantum and classical registers
-        qr = QuantumRegister(self.n_qubits, 'q')
-        cr = ClassicalRegister(self.n_qubits, 'c')
+        qr = QuantumRegister(self.n_qubits, "q")
+        cr = ClassicalRegister(self.n_qubits, "c")
         circuit = QuantumCircuit(qr, cr)
 
         # Build feature encoding
@@ -200,9 +203,7 @@ class ADMECircuit(CircuitTemplate):
 
         # Use ZZ feature map for molecular encoding
         feature_map = ZZFeatureMap(
-            feature_dimension=min(self.n_qubits, len(features)),
-            reps=2,
-            entanglement='linear'
+            feature_dimension=min(self.n_qubits, len(features)), reps=2, entanglement="linear"
         )
 
         return feature_map
@@ -221,11 +222,7 @@ class ADMECircuit(CircuitTemplate):
             raise ImportError("Qiskit is required for classifier")
 
         # Use RealAmplitudes ansatz for classification
-        classifier = RealAmplitudes(
-            num_qubits=self.n_qubits,
-            reps=3,
-            entanglement='full'
-        )
+        classifier = RealAmplitudes(num_qubits=self.n_qubits, reps=3, entanglement="full")
 
         return classifier
 
@@ -245,7 +242,9 @@ class ADMECircuit(CircuitTemplate):
         """
         valid_properties = ["absorption", "distribution", "metabolism", "excretion"]
         if property_name not in valid_properties:
-            raise ValueError(f"Invalid property: {property_name}. Must be one of {valid_properties}")
+            raise ValueError(
+                f"Invalid property: {property_name}. Must be one of {valid_properties}"
+            )
 
         # Build and execute circuit
         circuit = self.build()
@@ -290,8 +289,8 @@ class ADMECircuit(CircuitTemplate):
             metadata={
                 "molecule": self.molecule_smiles,
                 "n_qubits": self.n_qubits,
-                "feature_dim": self.feature_dim
-            }
+                "feature_dim": self.feature_dim,
+            },
         )
 
     def estimate_resources(self, **kwargs) -> ResourceEstimate:
@@ -324,7 +323,7 @@ class ADMECircuit(CircuitTemplate):
             measurement_count=self.n_qubits,
             classical_memory=self.n_qubits,
             execution_time_estimate=2.0,
-            error_budget=0.05
+            error_budget=0.05,
         )
 
     def _extract_molecular_features(self) -> np.ndarray:
@@ -347,16 +346,18 @@ class ADMECircuit(CircuitTemplate):
                 raise ValueError(f"Invalid SMILES: {self.molecule_smiles}")
 
             # Extract key descriptors
-            features = np.array([
-                Descriptors.MolWt(mol),
-                Descriptors.MolLogP(mol),
-                Descriptors.NumHDonors(mol),
-                Descriptors.NumHAcceptors(mol),
-                Descriptors.TPSA(mol),
-                Descriptors.NumRotatableBonds(mol),
-                Descriptors.NumAromaticRings(mol),
-                mol.GetNumHeavyAtoms(),
-            ])
+            features = np.array(
+                [
+                    Descriptors.MolWt(mol),
+                    Descriptors.MolLogP(mol),
+                    Descriptors.NumHDonors(mol),
+                    Descriptors.NumHAcceptors(mol),
+                    Descriptors.TPSA(mol),
+                    Descriptors.NumRotatableBonds(mol),
+                    Descriptors.NumAromaticRings(mol),
+                    mol.GetNumHeavyAtoms(),
+                ]
+            )
 
             # Normalize features
             features = (features - np.mean(features)) / (np.std(features) + 1e-10)
@@ -369,7 +370,7 @@ class ADMECircuit(CircuitTemplate):
         if len(features) < self.feature_dim:
             features = np.pad(features, (0, self.feature_dim - len(features)))
         else:
-            features = features[:self.feature_dim]
+            features = features[: self.feature_dim]
 
         self._molecular_features = features
         return features
@@ -384,12 +385,12 @@ class ADMECircuit(CircuitTemplate):
         smiles = self.molecule_smiles
         features = [
             len(smiles),  # Length
-            smiles.count('C'),  # Carbon count
-            smiles.count('N'),  # Nitrogen count
-            smiles.count('O'),  # Oxygen count
-            smiles.count('='),  # Double bonds
-            smiles.count('#'),  # Triple bonds
-            smiles.count('('),  # Branching
+            smiles.count("C"),  # Carbon count
+            smiles.count("N"),  # Nitrogen count
+            smiles.count("O"),  # Oxygen count
+            smiles.count("="),  # Double bonds
+            smiles.count("#"),  # Triple bonds
+            smiles.count("("),  # Branching
             1.0,  # Placeholder
         ]
         return np.array(features, dtype=float)

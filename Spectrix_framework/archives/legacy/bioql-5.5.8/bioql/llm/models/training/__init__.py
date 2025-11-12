@@ -7,13 +7,14 @@ Training pipeline for BioQL foundational model.
 
 try:
     from .dataset import (
-        BioQLDatasetGenerator,
         BioQLDataset,
-        TrainingExample,
+        BioQLDatasetGenerator,
         TaskType,
-        create_training_dataset
+        TrainingExample,
+        create_training_dataset,
     )
     from .trainer import BioQLTrainer, TrainingConfig
+
     _available = True
 except ImportError:
     _available = False

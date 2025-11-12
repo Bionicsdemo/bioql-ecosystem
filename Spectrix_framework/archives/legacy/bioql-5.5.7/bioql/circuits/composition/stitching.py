@@ -5,15 +5,15 @@ This module provides the CircuitStitcher class for stitching quantum circuits
 together with automatic and manual qubit mapping strategies.
 """
 
-from typing import Dict, List, Optional, Tuple, Set
+import logging
 from dataclasses import dataclass
 from enum import Enum
-import logging
+from typing import Dict, List, Optional, Set, Tuple
 
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.dagcircuit import DAGCircuit
-from qiskit.converters import circuit_to_dag, dag_to_circuit
 import numpy as np
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.dagcircuit import DAGCircuit
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +28,7 @@ class StitchingStrategy(Enum):
         MINIMIZE_SWAPS: Minimize SWAP gates needed
         TOPOLOGICAL: Use topological analysis
     """
+
     AUTO = "auto"
     PRESERVE_ORDER = "preserve_order"
     MINIMIZE_SWAPS = "minimize_swaps"
@@ -46,6 +47,7 @@ class ValidationResult:
         qubit_conflicts: Qubits with conflicts
         suggestions: Suggested fixes
     """
+
     valid: bool
     issues: List[str]
     warnings: List[str]
@@ -65,6 +67,7 @@ class StitchingResult:
         validation: Validation result
         metadata: Additional metadata
     """
+
     circuit: QuantumCircuit
     qubit_mapping: Dict[str, Dict[int, int]]
     classical_mapping: Dict[str, Dict[int, int]]
@@ -112,7 +115,7 @@ class CircuitStitcher:
         circuit2: QuantumCircuit,
         mapping: Dict[int, int],
         name1: str = "circuit1",
-        name2: str = "circuit2"
+        name2: str = "circuit2",
     ) -> StitchingResult:
         """
         Stitch two circuits together with explicit qubit mapping.
@@ -155,8 +158,8 @@ class CircuitStitcher:
         total_clbits = max(circuit1.num_clbits, circuit2.num_clbits)
 
         # Create registers
-        qreg = QuantumRegister(total_qubits, 'q')
-        creg = ClassicalRegister(total_clbits, 'c') if total_clbits > 0 else None
+        qreg = QuantumRegister(total_qubits, "q")
+        creg = ClassicalRegister(total_clbits, "c") if total_clbits > 0 else None
 
         # Create stitched circuit
         if creg:
@@ -188,10 +191,7 @@ class CircuitStitcher:
         stitched = stitched.compose(circuit2, qubits=qubits_for_c2)
 
         # Build mappings for result
-        qubit_mapping = {
-            name1: {q: q for q in range(circuit1.num_qubits)},
-            name2: qubit_map_c2
-        }
+        qubit_mapping = {name1: {q: q for q in range(circuit1.num_qubits)}, name2: qubit_map_c2}
 
         classical_mapping = {}
         if circuit1.num_clbits > 0:
@@ -203,11 +203,11 @@ class CircuitStitcher:
         validation = self.validate_stitching(stitched, circuit1, circuit2, mapping)
 
         metadata = {
-            'stitching_type': 'explicit_mapping',
-            'total_qubits': total_qubits,
-            'total_clbits': total_clbits,
-            'mapping_used': mapping,
-            'unmapped_qubits': unmapped_qubits_c2
+            "stitching_type": "explicit_mapping",
+            "total_qubits": total_qubits,
+            "total_clbits": total_clbits,
+            "mapping_used": mapping,
+            "unmapped_qubits": unmapped_qubits_c2,
         }
 
         logger.debug(f"Stitching complete: {total_qubits} qubits, depth={stitched.depth()}")
@@ -217,14 +217,14 @@ class CircuitStitcher:
             qubit_mapping=qubit_mapping,
             classical_mapping=classical_mapping,
             validation=validation,
-            metadata=metadata
+            metadata=metadata,
         )
 
     def auto_stitch(
         self,
         *circuits: QuantumCircuit,
         strategy: Optional[StitchingStrategy] = None,
-        names: Optional[List[str]] = None
+        names: Optional[List[str]] = None,
     ) -> StitchingResult:
         """
         Automatically stitch multiple circuits with optimal qubit mapping.
@@ -274,7 +274,7 @@ class CircuitStitcher:
         stitched_circuit: QuantumCircuit,
         circuit1: QuantumCircuit,
         circuit2: QuantumCircuit,
-        mapping: Dict[int, int]
+        mapping: Dict[int, int],
     ) -> ValidationResult:
         """
         Validate a stitched circuit.
@@ -303,7 +303,9 @@ class CircuitStitcher:
         # Check qubit count
         min_qubits = max(circuit1.num_qubits, circuit2.num_qubits)
         if stitched_circuit.num_qubits < min_qubits:
-            issues.append(f"Stitched circuit has insufficient qubits: {stitched_circuit.num_qubits} < {min_qubits}")
+            issues.append(
+                f"Stitched circuit has insufficient qubits: {stitched_circuit.num_qubits} < {min_qubits}"
+            )
 
         # Check for qubit conflicts in mapping
         mapped_values = list(mapping.values())
@@ -340,21 +342,20 @@ class CircuitStitcher:
 
         valid = len(issues) == 0
 
-        logger.debug(f"Validation complete: valid={valid}, issues={len(issues)}, warnings={len(warnings)}")
+        logger.debug(
+            f"Validation complete: valid={valid}, issues={len(issues)}, warnings={len(warnings)}"
+        )
 
         return ValidationResult(
             valid=valid,
             issues=issues,
             warnings=warnings,
             qubit_conflicts=qubit_conflicts,
-            suggestions=suggestions
+            suggestions=suggestions,
         )
 
     def _validate_mapping(
-        self,
-        circuit1: QuantumCircuit,
-        circuit2: QuantumCircuit,
-        mapping: Dict[int, int]
+        self, circuit1: QuantumCircuit, circuit2: QuantumCircuit, mapping: Dict[int, int]
     ) -> bool:
         """Validate that a mapping is valid."""
         # Check all keys are valid circuit1 qubits
@@ -371,11 +372,7 @@ class CircuitStitcher:
 
         return True
 
-    def _auto_stitch_optimal(
-        self,
-        circuits: tuple,
-        names: List[str]
-    ) -> StitchingResult:
+    def _auto_stitch_optimal(self, circuits: tuple, names: List[str]) -> StitchingResult:
         """
         Auto-stitch with optimal strategy selection.
 
@@ -408,11 +405,13 @@ class CircuitStitcher:
                 qubits_for_circuit = list(range(total_qubits, total_qubits + circuit.num_qubits))
 
                 # Expand result circuit
-                new_qreg = QuantumRegister(total_qubits + circuit.num_qubits - result.num_qubits, 'q')
+                new_qreg = QuantumRegister(
+                    total_qubits + circuit.num_qubits - result.num_qubits, "q"
+                )
                 new_clbits = max(total_clbits, circuit.num_clbits)
 
                 if new_clbits > 0:
-                    new_creg = ClassicalRegister(new_clbits, 'c')
+                    new_creg = ClassicalRegister(new_clbits, "c")
                     expanded = QuantumCircuit(new_qreg, new_creg)
                 else:
                     expanded = QuantumCircuit(new_qreg)
@@ -430,18 +429,14 @@ class CircuitStitcher:
 
         # Create validation
         validation = ValidationResult(
-            valid=True,
-            issues=[],
-            warnings=[],
-            qubit_conflicts=set(),
-            suggestions=[]
+            valid=True, issues=[], warnings=[], qubit_conflicts=set(), suggestions=[]
         )
 
         metadata = {
-            'stitching_type': 'auto_optimal',
-            'total_qubits': total_qubits,
-            'total_clbits': total_clbits,
-            'num_circuits': len(circuits)
+            "stitching_type": "auto_optimal",
+            "total_qubits": total_qubits,
+            "total_clbits": total_clbits,
+            "num_circuits": len(circuits),
         }
 
         return StitchingResult(
@@ -449,45 +444,29 @@ class CircuitStitcher:
             qubit_mapping=qubit_mapping,
             classical_mapping=classical_mapping,
             validation=validation,
-            metadata=metadata
+            metadata=metadata,
         )
 
-    def _auto_stitch_preserve_order(
-        self,
-        circuits: tuple,
-        names: List[str]
-    ) -> StitchingResult:
+    def _auto_stitch_preserve_order(self, circuits: tuple, names: List[str]) -> StitchingResult:
         """Auto-stitch preserving original qubit ordering."""
         logger.debug("Using preserve_order stitching")
         # Similar to optimal but stricter about qubit ordering
         return self._auto_stitch_optimal(circuits, names)
 
-    def _auto_stitch_minimize_swaps(
-        self,
-        circuits: tuple,
-        names: List[str]
-    ) -> StitchingResult:
+    def _auto_stitch_minimize_swaps(self, circuits: tuple, names: List[str]) -> StitchingResult:
         """Auto-stitch minimizing SWAP gates needed."""
         logger.debug("Using minimize_swaps stitching")
         # For now, use optimal strategy
         # Future: implement SWAP minimization algorithm
         return self._auto_stitch_optimal(circuits, names)
 
-    def _auto_stitch_topological(
-        self,
-        circuits: tuple,
-        names: List[str]
-    ) -> StitchingResult:
+    def _auto_stitch_topological(self, circuits: tuple, names: List[str]) -> StitchingResult:
         """Auto-stitch using topological analysis."""
         logger.debug("Using topological stitching")
         # Future: analyze circuit DAGs for optimal stitching
         return self._auto_stitch_optimal(circuits, names)
 
-    def _single_circuit_result(
-        self,
-        circuit: QuantumCircuit,
-        name: str
-    ) -> StitchingResult:
+    def _single_circuit_result(self, circuit: QuantumCircuit, name: str) -> StitchingResult:
         """Create result for single circuit."""
         qubit_mapping = {name: {q: q for q in range(circuit.num_qubits)}}
         classical_mapping = {}
@@ -495,17 +474,13 @@ class CircuitStitcher:
             classical_mapping[name] = {c: c for c in range(circuit.num_clbits)}
 
         validation = ValidationResult(
-            valid=True,
-            issues=[],
-            warnings=[],
-            qubit_conflicts=set(),
-            suggestions=[]
+            valid=True, issues=[], warnings=[], qubit_conflicts=set(), suggestions=[]
         )
 
         metadata = {
-            'stitching_type': 'single_circuit',
-            'total_qubits': circuit.num_qubits,
-            'total_clbits': circuit.num_clbits
+            "stitching_type": "single_circuit",
+            "total_qubits": circuit.num_qubits,
+            "total_clbits": circuit.num_clbits,
         }
 
         return StitchingResult(
@@ -513,13 +488,8 @@ class CircuitStitcher:
             qubit_mapping=qubit_mapping,
             classical_mapping=classical_mapping,
             validation=validation,
-            metadata=metadata
+            metadata=metadata,
         )
 
 
-__all__ = [
-    'StitchingStrategy',
-    'ValidationResult',
-    'StitchingResult',
-    'CircuitStitcher'
-]
+__all__ = ["StitchingStrategy", "ValidationResult", "StitchingResult", "CircuitStitcher"]

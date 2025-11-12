@@ -28,16 +28,19 @@ __all__ = [
     "QuantumRunner",
 ]
 
-from .pipeline import dock, DockingResult
+from .pipeline import DockingResult, dock
+
 
 # Lazy imports for backends
 def get_vina_runner():
     from .vina_runner import VinaRunner
+
     return VinaRunner
 
 
 def get_quantum_runner():
     from .quantum_runner import QuantumRunner
+
     return QuantumRunner
 
 

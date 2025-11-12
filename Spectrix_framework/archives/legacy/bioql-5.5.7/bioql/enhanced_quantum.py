@@ -6,25 +6,28 @@ to provide natural language processing, IR compilation, and quantum execution
 with mandatory API key authentication.
 """
 
-from typing import Dict, List, Optional, Union, Any
 import logging
+from typing import Any, Dict, List, Optional, Union
+
 # Optional loguru import
 try:
     from loguru import logger
 except ImportError:
     import logging
+
     logger = logging.getLogger(__name__)
 
-from .quantum_connector import quantum as original_quantum, QuantumResult
-from .parser.nl_parser import NaturalLanguageParser, ParseError
 from .compilers.factory import create_compiler
 from .ir import BioQLProgram, QuantumBackend
+from .parser.nl_parser import NaturalLanguageParser, ParseError
+from .quantum_connector import QuantumResult
+from .quantum_connector import quantum as original_quantum
 
 
 def enhanced_quantum(
     program: str,
     api_key: str,  # REQUIRED - Maintained from original
-    backend: str = 'simulator',
+    backend: str = "simulator",
     shots: int = 1024,
     debug: bool = False,
     token: Optional[str] = None,
@@ -33,7 +36,7 @@ def enhanced_quantum(
     auto_select: bool = False,
     use_nlp: bool = True,  # NEW: Enable NL→IR processing
     use_ir_compiler: bool = True,  # NEW: Use DevKit compilers
-    return_ir: bool = False  # NEW: Also return the IR
+    return_ir: bool = False,  # NEW: Also return the IR
 ) -> Union[QuantumResult, Dict[str, Any]]:
     """
     Enhanced quantum function with Natural Language → IR → Quantum pipeline.
@@ -81,7 +84,9 @@ def enhanced_quantum(
 
     # Configure debug logging
     if debug:
-        logger.debug(f"Enhanced quantum execution: use_nlp={use_nlp}, use_ir_compiler={use_ir_compiler}")
+        logger.debug(
+            f"Enhanced quantum execution: use_nlp={use_nlp}, use_ir_compiler={use_ir_compiler}"
+        )
 
     # Check if we should use NL processing
     if use_nlp and _should_use_nlp(program):
@@ -94,7 +99,9 @@ def enhanced_quantum(
             if debug:
                 logger.debug(f"Generated IR: {bioql_program.name}")
                 logger.debug(f"Operations: {len(bioql_program.operations)}")
-                logger.debug(f"Domain: {bioql_program.operations[0].domain if bioql_program.operations else 'none'}")
+                logger.debug(
+                    f"Domain: {bioql_program.operations[0].domain if bioql_program.operations else 'none'}"
+                )
 
             # Use IR compiler if enabled and backend supports it
             if use_ir_compiler and _backend_supports_ir(backend):
@@ -109,31 +116,32 @@ def enhanced_quantum(
                     api_key=api_key,
                     backend=quantum_backend,
                     shots=shots,
-                    debug=debug
+                    debug=debug,
                 )
 
                 # Add enhanced metadata
                 result.metadata = result.metadata or {}
-                result.metadata.update({
-                    'enhanced_processing': True,
-                    'nlp_used': True,
-                    'ir_compiler_used': True,
-                    'original_program': program,
-                    'bioql_domain': bioql_program.operations[0].domain.value if bioql_program.operations else 'unknown'
-                })
+                result.metadata.update(
+                    {
+                        "enhanced_processing": True,
+                        "nlp_used": True,
+                        "ir_compiler_used": True,
+                        "original_program": program,
+                        "bioql_domain": (
+                            bioql_program.operations[0].domain.value
+                            if bioql_program.operations
+                            else "unknown"
+                        ),
+                    }
+                )
 
                 # Add biological interpretation based on IR
                 result.bio_interpretation = _enhance_bio_interpretation(
-                    result.bio_interpretation or {},
-                    bioql_program
+                    result.bio_interpretation or {}, bioql_program
                 )
 
                 if return_ir:
-                    return {
-                        'result': result,
-                        'ir': bioql_program,
-                        'enhanced': True
-                    }
+                    return {"result": result, "ir": bioql_program, "enhanced": True}
 
                 return result
 
@@ -153,24 +161,22 @@ def enhanced_quantum(
         token=token,
         instance=instance,
         timeout=timeout,
-        auto_select=auto_select
+        auto_select=auto_select,
     )
 
     # Add metadata to indicate processing type
     result.metadata = result.metadata or {}
-    result.metadata.update({
-        'enhanced_processing': False,
-        'nlp_used': False,
-        'ir_compiler_used': False,
-        'fallback_reason': 'Original processing used'
-    })
+    result.metadata.update(
+        {
+            "enhanced_processing": False,
+            "nlp_used": False,
+            "ir_compiler_used": False,
+            "fallback_reason": "Original processing used",
+        }
+    )
 
     if return_ir:
-        return {
-            'result': result,
-            'ir': None,
-            'enhanced': False
-        }
+        return {"result": result, "ir": None, "enhanced": False}
 
     return result
 
@@ -179,10 +185,26 @@ def _should_use_nlp(program: str) -> bool:
     """Determine if natural language processing should be used."""
     # Use NLP if the program contains bioinformatics keywords
     bio_keywords = [
-        'dock', 'docking', 'protein', 'ligand', 'bind', 'binding',
-        'align', 'alignment', 'sequence', 'dna', 'rna',
-        'fold', 'folding', 'structure', 'energy', 'minimize',
-        'pdb', 'smiles', 'fasta', 'poses'
+        "dock",
+        "docking",
+        "protein",
+        "ligand",
+        "bind",
+        "binding",
+        "align",
+        "alignment",
+        "sequence",
+        "dna",
+        "rna",
+        "fold",
+        "folding",
+        "structure",
+        "energy",
+        "minimize",
+        "pdb",
+        "smiles",
+        "fasta",
+        "poses",
     ]
 
     text_lower = program.lower()
@@ -191,11 +213,11 @@ def _should_use_nlp(program: str) -> bool:
 
 def _backend_supports_ir(backend: str) -> bool:
     """Check if backend supports IR compilation."""
-    supported_backends = ['simulator', 'qiskit', 'cirq', 'sim', 'aer']
+    supported_backends = ["simulator", "qiskit", "cirq", "sim", "aer"]
     backend_lower = backend.lower()
 
     # Support IBM backends through Qiskit
-    if backend_lower.startswith('ibm_'):
+    if backend_lower.startswith("ibm_"):
         return True
 
     return any(supported in backend_lower for supported in supported_backends)
@@ -204,36 +226,32 @@ def _backend_supports_ir(backend: str) -> bool:
 def _map_backend(bioql_backend: str, requested_backend: str) -> str:
     """Map BioQL IR backend to quantum backend."""
     # If user specified a backend, use that
-    if requested_backend and requested_backend != 'simulator':
+    if requested_backend and requested_backend != "simulator":
         return requested_backend
 
     # Otherwise use the IR's suggestion
     backend_mapping = {
-        'qiskit': 'simulator',  # Map to local simulator for safety
-        'cirq': 'simulator',
-        'simulator': 'simulator',
-        'pennylane': 'simulator',
-        'braket': 'simulator'
+        "qiskit": "simulator",  # Map to local simulator for safety
+        "cirq": "simulator",
+        "simulator": "simulator",
+        "pennylane": "simulator",
+        "braket": "simulator",
     }
 
-    return backend_mapping.get(bioql_backend, 'simulator')
+    return backend_mapping.get(bioql_backend, "simulator")
 
 
 def _execute_with_ir_compiler(
-    bioql_program: BioQLProgram,
-    api_key: str,
-    backend: str,
-    shots: int,
-    debug: bool
+    bioql_program: BioQLProgram, api_key: str, backend: str, shots: int, debug: bool
 ) -> QuantumResult:
     """Execute BioQL program using DevKit IR compiler."""
     from uuid import uuid4
 
     try:
         # Determine quantum backend
-        if backend == 'cirq':
+        if backend == "cirq":
             quantum_backend = QuantumBackend.CIRQ
-        elif backend == 'qiskit' or backend.startswith('ibm_'):
+        elif backend == "qiskit" or backend.startswith("ibm_"):
             quantum_backend = QuantumBackend.QISKIT
         else:
             quantum_backend = QuantumBackend.SIMULATOR
@@ -259,10 +277,11 @@ def _execute_with_ir_compiler(
         logger.error(f"IR compilation failed: {e}")
         # Return failed result compatible with original system
         from .quantum_connector import QuantumResult
+
         return QuantumResult(
             success=False,
             error_message=f"IR compilation failed: {str(e)}",
-            metadata={'ir_compilation_error': True}
+            metadata={"ir_compilation_error": True},
         )
 
 
@@ -272,31 +291,37 @@ def _convert_bioql_to_quantum_result(bioql_result, bioql_program: BioQLProgram) 
 
     # Extract counts from BioQL result
     counts = {}
-    if bioql_result.results and 'counts' in bioql_result.results:
-        counts = bioql_result.results['counts']
+    if bioql_result.results and "counts" in bioql_result.results:
+        counts = bioql_result.results["counts"]
 
     # Create compatible QuantumResult
     return QuantumResult(
         counts=counts,
-        success=bioql_result.status == 'success',
+        success=bioql_result.status == "success",
         error_message=bioql_result.error_message,
         metadata={
-            'bioql_program_id': str(bioql_result.program_id),
-            'backend_used': bioql_result.backend_used.value if bioql_result.backend_used else 'unknown',
-            'execution_time': bioql_result.execution_time,
-            'shots_executed': bioql_result.shots_executed,
-            'circuit_depth': bioql_result.results.get('circuit_depth') if bioql_result.results else None,
-            'gate_count': bioql_result.results.get('gate_count') if bioql_result.results else None,
-            'ir_enhanced': True
+            "bioql_program_id": str(bioql_result.program_id),
+            "backend_used": (
+                bioql_result.backend_used.value if bioql_result.backend_used else "unknown"
+            ),
+            "execution_time": bioql_result.execution_time,
+            "shots_executed": bioql_result.shots_executed,
+            "circuit_depth": (
+                bioql_result.results.get("circuit_depth") if bioql_result.results else None
+            ),
+            "gate_count": bioql_result.results.get("gate_count") if bioql_result.results else None,
+            "ir_enhanced": True,
         },
         execution_time=bioql_result.execution_time,
         job_id=str(bioql_result.execution_id) if bioql_result.execution_id else None,
         backend_name=bioql_result.backend_used.value if bioql_result.backend_used else None,
-        bio_interpretation={}  # Will be enhanced separately
+        bio_interpretation={},  # Will be enhanced separately
     )
 
 
-def _enhance_bio_interpretation(existing_interp: Dict[str, Any], bioql_program: BioQLProgram) -> Dict[str, Any]:
+def _enhance_bio_interpretation(
+    existing_interp: Dict[str, Any], bioql_program: BioQLProgram
+) -> Dict[str, Any]:
     """Enhance biological interpretation using BioQL IR information."""
     enhanced = existing_interp.copy()
 
@@ -304,31 +329,31 @@ def _enhance_bio_interpretation(existing_interp: Dict[str, Any], bioql_program: 
         operation = bioql_program.operations[0]
 
         # Add domain-specific interpretation
-        enhanced['bioql_domain'] = operation.domain.value
-        enhanced['operation_type'] = operation.operation_type
+        enhanced["bioql_domain"] = operation.domain.value
+        enhanced["operation_type"] = operation.operation_type
 
         # Add operation-specific details
-        if hasattr(operation, 'receptor') and hasattr(operation, 'ligand'):
-            enhanced['docking'] = {
-                'receptor': operation.receptor.name,
-                'ligand': operation.ligand.name,
-                'expected_poses': getattr(operation, 'num_poses', 'unknown'),
-                'energy_threshold': getattr(operation, 'energy_threshold', 'unknown')
+        if hasattr(operation, "receptor") and hasattr(operation, "ligand"):
+            enhanced["docking"] = {
+                "receptor": operation.receptor.name,
+                "ligand": operation.ligand.name,
+                "expected_poses": getattr(operation, "num_poses", "unknown"),
+                "energy_threshold": getattr(operation, "energy_threshold", "unknown"),
             }
-        elif hasattr(operation, 'sequences'):
-            enhanced['alignment'] = {
-                'sequence_count': len(operation.sequences),
-                'sequences': [seq.name for seq in operation.sequences[:3]]  # First 3
+        elif hasattr(operation, "sequences"):
+            enhanced["alignment"] = {
+                "sequence_count": len(operation.sequences),
+                "sequences": [seq.name for seq in operation.sequences[:3]],  # First 3
             }
-        elif hasattr(operation, 'objective_function'):
-            enhanced['optimization'] = {
-                'objective': operation.objective_function,
-                'variables': len(operation.variables) if hasattr(operation, 'variables') else 0
+        elif hasattr(operation, "objective_function"):
+            enhanced["optimization"] = {
+                "objective": operation.objective_function,
+                "variables": len(operation.variables) if hasattr(operation, "variables") else 0,
             }
 
-    enhanced['enhanced_by_ir'] = True
+    enhanced["enhanced_by_ir"] = True
     return enhanced
 
 
 # Export the enhanced function
-__all__ = ['enhanced_quantum']
+__all__ = ["enhanced_quantum"]

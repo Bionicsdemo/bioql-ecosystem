@@ -1,0 +1,205 @@
+{
+  "metadata": {
+    "title": "Lead Optimization Campaign",
+    "description": "Iterative optimization of a lead compound to improve potency, selectivity, and drug-like properties through systematic structural modifications",
+    "category": "Drug Discovery",
+    "difficulty": "Advanced",
+    "estimated_runtime": "4-8 hours per iteration",
+    "estimated_cost": "$30-60 per optimization cycle",
+    "tags": ["lead-optimization", "SAR", "medicinal-chemistry", "multi-parameter-optimization"],
+    "version": "1.0",
+    "created": "2025-10-25"
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "source": "# Lead Optimization Campaign\n\n## Objective\nSystematically improve a confirmed hit/lead compound to meet target product profile through iterative design-make-test cycles.\n\n## Scientific Background\nLead optimization is a multi-parameter optimization problem where we simultaneously improve:\n- **Potency**: Increase binding affinity and functional activity\n- **Selectivity**: Reduce off-target effects\n- **ADME Properties**: Optimize absorption, distribution, metabolism, excretion\n- **Safety**: Minimize toxicity liabilities\n- **Synthetic Accessibility**: Ensure scalable synthesis\n\n## Target Product Profile (TPP)\nDefine success criteria before starting:\n- IC50 < 10 nM (potency)\n- >100-fold selectivity vs off-targets\n- LogP 1-3 (permeability/solubility balance)\n- CLint < 50 mL/min/kg (metabolic stability)\n- hERG IC50 > 10 μM (cardiac safety)\n- No reactive metabolites or toxicophores\n\n## Workflow Strategy\n1. Analyze current lead compound\n2. Identify optimization vectors\n3. Generate focused analogs\n4. Predict properties and prioritize\n5. Analyze results and iterate"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Starting Point: Load Lead Compound\n\nInput your confirmed lead compound from hit-to-lead or screening campaign.\n\n**Customize**: Replace with your lead structure (SMILES, MOL2, SDF, or compound ID)."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql load_molecule --smiles \"CC(C)Cc1ccc(cc1)C(C)C(=O)O\" --name \"Lead-001\" --label lead",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Lead structure loaded and displayed with 2D/3D visualization"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Baseline Profiling: Current Lead Properties\n\nComprehensive profiling of starting lead to establish baseline.\n\n**Customize**: Add target-specific assays or property predictions."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql profile_compound --assays potency,selectivity,adme,tox --targets primary,offtarget_panel --save_baseline",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Complete property profile showing strengths and weaknesses\n\nTypical output:\n- Binding affinity: IC50 = 150 nM\n- Selectivity: 10-fold vs closest off-target\n- LogP: 4.2 (too high)\n- Solubility: 12 μM (poor)\n- Microsomal stability: CLint = 180 (poor)\n- hERG: 2.5 μM (concern)"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Structure-Activity Relationship (SAR) Analysis\n\nAnalyze existing SAR data if available from screening or literature.\n\n**Customize**: Upload your SAR dataset or use matched molecular pairs."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql analyze_sar --method mmp --include_literature --visualize r_groups --identify_hotspots",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: SAR analysis showing:\n- Activity cliffs (small changes → large activity changes)\n- Tolerant regions (can modify without losing activity)\n- Key pharmacophore elements\n- Structure-property relationships"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Binding Mode Analysis\n\nUnderstand how lead binds to target to guide rational modifications.\n\n**Customize**: Use experimental structure (X-ray) if available, otherwise docking."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql dock --protein target_protein.pdb --ligand Lead-001 --method induced_fit --analyze_interactions --save_complex",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: \n- Predicted binding mode with key interactions\n- Hydrogen bonds, pi-stacking, hydrophobic contacts\n- Solvent-exposed regions (good for modifications)\n- Regions buried in binding pocket (conserve)"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Identify Liabilities and Optimization Vectors\n\nSystematically identify issues to address and strategies to fix them.\n\n**Customize**: Prioritize based on your TPP and development stage."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql identify_liabilities --structural_alerts --metabolic_soft_spots --toxicophores --rank_by_priority",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Prioritized list of liabilities:\n\n**High Priority:**\n1. High LogP → poor solubility → reduce lipophilicity\n2. Metabolic soft spot at benzylic position → block or replace\n3. hERG liability from basic amine → reduce basicity\n\n**Medium Priority:**\n4. Moderate CYP3A4 inhibition → modify P450 interaction\n5. Low selectivity vs Kinase-X → introduce steric clash\n\n**Optimization Strategies:**\n- Add polar groups to reduce LogP\n- Replace metabolically labile groups\n- Rigidify structure to improve selectivity"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Design Cycle 1: Generate Focused Library\n\nCreate analogs targeting identified liabilities.\n\n**Strategies:**\n1. **Bioisosteric replacement**: Replace problematic groups with similar function\n2. **Scaffold hopping**: Core structure changes for IP or properties\n3. **Fragment growing**: Extend into new pockets for potency/selectivity\n4. **Group deletion**: Simplify to improve properties\n\n**Customize**: Choose strategies and constraints based on SAR and synthetic accessibility."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql generate_analogs --lead Lead-001 --strategies bioisostere,polar_substitution,ring_modification --constraints maintain_hbonds,synthetic_accessibility>6 --num_analogs 100",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: ~100 focused analogs addressing identified liabilities while maintaining key interactions"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## In Silico Profiling: Predict Analog Properties\n\nPredict multi-parameter properties for all analogs to prioritize synthesis.\n\n**Customize**: Add project-specific endpoints."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql predict_properties --analogs analog_library --endpoints potency,selectivity,logP,solubility,clint,herg,pgp_substrate --models ensemble",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Prediction table for all analogs with confidence intervals\n\nAllows comparison to baseline and TPP criteria"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Multi-Parameter Optimization (MPO) Scoring\n\nScore analogs on combined desirability across all parameters.\n\n**Customize**: Adjust weights based on project priorities."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql calculate_mpo --parameters potency:0.3,selectivity:0.2,logP:0.15,clint:0.15,herg:0.1,solubility:0.1 --threshold 0.6 --visualize radar",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: MPO scores (0-1) for each analog\n\nRadar charts showing multi-dimensional profile comparison\nTop 20-30 compounds with best overall profiles"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Prioritization: Select Analogs for Synthesis\n\nRank and select compounds balancing prediction confidence, diversity, and synthetic effort.\n\n**Customize**: Number to synthesize depends on chemistry capacity."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql prioritize --method pareto_optimal --diversity_filter 0.6 --synthetic_complexity_weight 0.2 --select_top 15",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: 15 prioritized compounds for synthesis with:\n- Predicted improvements over lead\n- Synthetic routes\n- Confidence scores\n- Diversity rationale"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Synthetic Route Planning\n\nGenerate synthetic routes for prioritized analogs.\n\n**Customize**: Specify available starting materials or preferred chemistry."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql plan_synthesis --compounds selected_analogs --max_steps 5 --starting_materials commercial --optimize_yield --export_protocols",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Step-by-step synthetic procedures with:\n- Reagents and conditions\n- Predicted yields\n- Purification methods\n- Estimated time and cost per analog"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Analysis: Cycle 1 Results\n\nAfter synthesis and testing, upload experimental data for analysis.\n\n**Customize**: Upload your assay results (CSV, Excel, or direct entry)."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql import_results --file cycle1_data.csv --map_columns compound_id,ic50,selectivity,clint,solubility --calculate_improvements",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Experimental results merged with predictions\n\nExample successes:\n- Compound A-05: IC50 improved 5-fold (150 nM → 30 nM)\n- Compound A-08: LogP reduced (4.2 → 2.8), solubility improved 10-fold\n- Compound A-12: Metabolic stability improved, CLint reduced 60%"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Model Performance Evaluation\n\nValidate prediction accuracy with experimental results to improve models.\n\n**Customize**: Update models with new data for better cycle 2 predictions."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql evaluate_predictions --experimental cycle1_data.csv --metrics r2,rmse,accuracy --update_models --retrain",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: \n- Correlation plots (predicted vs experimental)\n- Model accuracy metrics\n- Updated models incorporating new data\n- Improved predictions for next cycle"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Select New Lead for Cycle 2\n\nChoose best compound from cycle 1 as new lead.\n\n**Customize**: Balance properties based on which improved most."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql select_lead --from cycle1_results --criteria mpo_score --compare_to baseline --set_as_lead Lead-002",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: New lead selected (e.g., Compound A-08)\n\nProfile comparison:\n- Potency: 30 nM (5-fold better)\n- Selectivity: 45-fold (4.5-fold better)\n- LogP: 2.8 (improved)\n- Solubility: 95 μM (8-fold better)\n- CLint: 85 (modest improvement)\n- hERG: 8.5 μM (improved but still borderline)\n\n**Remaining challenges**: Further improve metabolic stability and hERG"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Design Cycle 2: Iterate on Best Lead\n\nRepeat design-make-test cycle focusing on remaining liabilities.\n\n**Customize**: Focus on specific remaining issues."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql generate_analogs --lead Lead-002 --strategies amine_replacement,rigidification,fluorination --focus metabolic_stability,herg --num_analogs 80",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: New analog library building on cycle 1 successes\n\n**Strategic focus:**\n- Metabolic stability: Introduce fluorine, deuterium, or heterocycles\n- hERG: Reduce basicity, add polar groups, increase rigidity"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Continue Optimization Cycles\n\nRepeat profiling → design → synthesize → test cycles until TPP is met.\n\n**Typical timeline:**\n- 3-5 optimization cycles\n- 50-100 analogs synthesized total\n- 6-12 months to optimized lead\n\n## Success Criteria (TPP Achievement)\n\nStop when lead meets all criteria:\n- ✓ IC50 < 10 nM\n- ✓ >100-fold selectivity\n- ✓ LogP 1-3\n- ✓ CLint < 50 mL/min/kg\n- ✓ hERG IC50 > 10 μM\n- ✓ No structural alerts\n- ✓ Scalable synthesis\n\n## Next Steps: Lead to Candidate\n\n### Advanced Profiling:\n1. **In vivo PK**: Test in rodents for oral bioavailability, half-life\n2. **Efficacy Studies**: Demonstrate target engagement and efficacy in disease models\n3. **Safety Studies**: GLP tox studies, genotoxicity, off-target profiling\n4. **Formulation**: Develop stable formulation for clinical use\n\n### Process Chemistry:\n1. **Scale-up**: Multi-kilogram synthesis for development\n2. **Impurity Profiling**: Identify and qualify impurities\n3. **Analytical Methods**: Develop and validate assays\n4. **Stability Testing**: ICH stability studies\n\n## References\n- Waring et al. (2015). An analysis of the attrition of drug candidates from four major pharmaceutical companies. Nat Rev Drug Discov.\n- Gleeson et al. (2011). Probing the links between in vitro potency, ADMET and physicochemical parameters. Nat Rev Drug Discov.\n- Meanwell (2011). Improving drug candidates by design: a focus on physicochemical properties. Chem Res Toxicol."
+    }
+  ]
+}

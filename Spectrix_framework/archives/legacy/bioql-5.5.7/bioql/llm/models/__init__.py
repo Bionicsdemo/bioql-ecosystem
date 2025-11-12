@@ -40,17 +40,18 @@ from typing import Optional
 
 # Core model components
 try:
-    from .bioql_model import BioQLFoundationalModel, BioQLConfig, create_model
-    from .training.trainer import BioQLTrainer, TrainingConfig, quick_train
+    from .bioql_model import BioQLConfig, BioQLFoundationalModel, create_model
+    from .evaluation import BioQLEvaluator, quick_evaluate
+    from .inference import BioQLInference, GenerationConfig, quick_inference
+    from .serving import BioQLServingAPI, serve_model
     from .training.dataset import (
         BioQLDataset,
         BioQLDatasetGenerator,
         TrainingExample,
-        create_training_dataset
+        create_training_dataset,
     )
-    from .inference import BioQLInference, GenerationConfig, quick_inference
-    from .evaluation import BioQLEvaluator, quick_evaluate
-    from .serving import BioQLServingAPI, serve_model
+    from .training.trainer import BioQLTrainer, TrainingConfig, quick_train
+
     _available = True
 except ImportError as e:
     _available = False
@@ -112,17 +113,15 @@ def model_info() -> dict:
             "Error correction",
             "Code explanation",
             "Framework translation (Qiskit/Cirq → BioQL)",
-            "Quantum inference"
+            "Quantum inference",
         ],
         "available": _available,
-        "error": None if _available else _import_error
+        "error": None if _available else _import_error,
     }
 
 
 def get_model(
-    model_size: str = "7B",
-    device: str = "auto",
-    quantization: Optional[str] = None
+    model_size: str = "7B", device: str = "auto", quantization: Optional[str] = None
 ) -> Optional[object]:
     """
     Load BioQL foundational model.
@@ -145,10 +144,6 @@ def get_model(
     if BioQLInference is None:
         raise ImportError("BioQLInference not available")
 
-    inference = BioQLInference(
-        model_size=model_size,
-        device=device,
-        quantization=quantization
-    )
+    inference = BioQLInference(model_size=model_size, device=device, quantization=quantization)
 
     return inference.load_model()

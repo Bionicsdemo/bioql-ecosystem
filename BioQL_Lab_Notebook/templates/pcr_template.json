@@ -1,0 +1,45 @@
+{
+  "name": "PCR Template",
+  "description": "Standard PCR amplification protocol template",
+  "fields": {
+    "objective": "Amplify target DNA sequence using polymerase chain reaction",
+    "hypothesis": "",
+    "materials": "- DNA template\n- Forward primer\n- Reverse primer\n- Taq polymerase or high-fidelity polymerase\n- dNTPs\n- PCR buffer\n- MgCl2 (if not in buffer)\n- Nuclease-free water\n- PCR tubes or plate\n- Thermal cycler",
+    "protocol": [
+      {
+        "step": 1,
+        "description": "Prepare PCR master mix on ice:\n  - PCR buffer (1x final)\n  - dNTPs (200 μM each)\n  - Forward primer (0.5 μM)\n  - Reverse primer (0.5 μM)\n  - Taq polymerase (1-2.5 units)\n  - Water to final volume"
+      },
+      {
+        "step": 2,
+        "description": "Add template DNA (10-100 ng for genomic DNA, or 1-10 ng for plasmid)"
+      },
+      {
+        "step": 3,
+        "description": "Mix gently and centrifuge briefly"
+      },
+      {
+        "step": 4,
+        "description": "Load into thermal cycler and run program:\n  - Initial denaturation: 95°C for 3-5 min\n  - 25-35 cycles:\n    * Denaturation: 95°C for 30 sec\n    * Annealing: 50-65°C for 30 sec\n    * Extension: 72°C for 1 min/kb\n  - Final extension: 72°C for 5-10 min\n  - Hold at 4°C"
+      },
+      {
+        "step": 5,
+        "description": "Run gel electrophoresis to verify PCR product:\n  - Prepare 1-2% agarose gel\n  - Load 5-10 μL PCR product with loading dye\n  - Include DNA ladder\n  - Run at 100V for 30-45 min"
+      },
+      {
+        "step": 6,
+        "description": "Image gel under UV light and document results"
+      }
+    ],
+    "dataFields": [
+      "Template DNA concentration",
+      "Annealing temperature",
+      "Extension time",
+      "Number of cycles",
+      "Expected product size",
+      "Observed band size"
+    ],
+    "observations": "- Record gel image\n- Note band intensity and specificity\n- Document any unexpected bands or smearing",
+    "tags": ["PCR", "molecular-biology", "DNA-amplification"]
+  }
+}

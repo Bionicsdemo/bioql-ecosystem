@@ -1,0 +1,23 @@
+# MANIFEST.in - Include non-Python files in PyPI distribution
+
+include README.md
+include LICENSE
+include requirements.txt
+include IMPLEMENTATION_STATUS.md
+include FINAL_DEPLOYMENT_GUIDE.md
+
+# Include all Python files
+recursive-include quillow *.py
+
+# Include docs
+recursive-include docs *.md *.rst *.txt
+
+# Include examples
+recursive-include examples *.py *.ipynb
+
+# Exclude tests and dev files
+recursive-exclude tests *
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
+recursive-exclude * .DS_Store
+recursive-exclude * .git*

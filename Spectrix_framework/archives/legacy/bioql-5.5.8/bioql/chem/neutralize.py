@@ -9,15 +9,17 @@ Author: BioQL Team
 Version: 5.5.8
 """
 
-from rdkit import Chem
-from typing import Optional, Tuple
 import logging
+from typing import Optional, Tuple
+
+from rdkit import Chem
 
 logger = logging.getLogger(__name__)
 
 # Try to import rdMolStandardize, but don't fail if not available
 try:
     from rdkit.Chem import rdMolStandardize
+
     HAS_MOL_STANDARDIZE = True
 except ImportError:
     HAS_MOL_STANDARDIZE = False
@@ -72,7 +74,7 @@ def neutralize_smiles(smiles: str, strict: bool = False) -> str:
 
         # Sanitize (but skip kekulization for now to avoid aromatic issues)
         try:
-            Chem.SanitizeMol(mol, sanitizeOps=Chem.SANITIZE_ALL^Chem.SANITIZE_KEKULIZE)
+            Chem.SanitizeMol(mol, sanitizeOps=Chem.SANITIZE_ALL ^ Chem.SANITIZE_KEKULIZE)
         except Exception as e:
             logger.warning(f"Pre-sanitization failed: {e}, attempting manual neutralization")
             return _manual_neutralize(mol, strict)
@@ -133,19 +135,19 @@ def _manual_neutralize(mol: Chem.Mol, strict: bool) -> str:
                 continue
 
             # Don't neutralize quaternary ammoniums in strict mode
-            if strict and atom.GetSymbol() == 'N' and charge == 1:
+            if strict and atom.GetSymbol() == "N" and charge == 1:
                 neighbors = [n.GetSymbol() for n in atom.GetNeighbors()]
-                if neighbors.count('C') == 4:  # Quaternary ammonium
+                if neighbors.count("C") == 4:  # Quaternary ammonium
                     continue
 
             # Neutralize carboxylates: -O^- -> -OH
-            if atom.GetSymbol() == 'O' and charge == -1:
+            if atom.GetSymbol() == "O" and charge == -1:
                 atom.SetFormalCharge(0)
                 atom.SetNumExplicitHs(atom.GetNumExplicitHs() + 1)
                 neutralized_count += 1
 
             # Neutralize ammonium: -NH3^+ -> -NH2
-            elif atom.GetSymbol() == 'N' and charge == 1:
+            elif atom.GetSymbol() == "N" and charge == 1:
                 atom.SetFormalCharge(0)
                 # Don't adjust hydrogens for aromatic nitrogens
                 if not atom.GetIsAromatic() and atom.GetNumExplicitHs() > 0:
@@ -163,7 +165,7 @@ def _manual_neutralize(mol: Chem.Mol, strict: bool) -> str:
         except Exception:
             # If full sanitization fails, try without kekulization
             try:
-                Chem.SanitizeMol(mol_copy, sanitizeOps=Chem.SANITIZE_ALL^Chem.SANITIZE_KEKULIZE)
+                Chem.SanitizeMol(mol_copy, sanitizeOps=Chem.SANITIZE_ALL ^ Chem.SANITIZE_KEKULIZE)
             except Exception as e2:
                 logger.warning(f"Sanitization after neutralization failed: {e2}")
 
@@ -211,10 +213,14 @@ def validate_neutral_smiles(smiles: str) -> Tuple[bool, str]:
         # Try 3D embedding (critical test for docking)
         try:
             from rdkit.Chem import AllChem
+
             test_mol = Chem.AddHs(mol)
             result = AllChem.EmbedMolecule(test_mol, randomSeed=42)
             if result != 0:
-                return False, "3D embedding failed - molecule may be too complex or have invalid geometry"
+                return (
+                    False,
+                    "3D embedding failed - molecule may be too complex or have invalid geometry",
+                )
         except Exception as e:
             return False, f"3D embedding error: {e}"
 

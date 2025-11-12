@@ -4,9 +4,9 @@ PyMOL-based Visualization Module
 Provides high-quality molecular visualization using PyMOL.
 """
 
-from pathlib import Path
-from typing import Optional, Union, List, Dict, Any
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
 
 from ..logger import get_logger
 
@@ -27,6 +27,7 @@ def check_pymol_available() -> bool:
     """Check if PyMOL is available."""
     try:
         import pymol
+
         return True
     except ImportError:
         return False
@@ -60,7 +61,7 @@ def show(
         from pymol import cmd
 
         # Initialize PyMOL
-        pymol.finish_launching(['pymol', '-q'])
+        pymol.finish_launching(["pymol", "-q"])
 
         # Load structure
         structure_path = Path(structure_path)
@@ -173,7 +174,7 @@ def save_image(
         from pymol import cmd
 
         # Initialize PyMOL in headless mode
-        pymol.finish_launching(['pymol', '-cq'])
+        pymol.finish_launching(["pymol", "-cq"])
 
         # Load and style structure
         structure_path = Path(structure_path)
@@ -273,7 +274,7 @@ def save_session(
         import pymol
         from pymol import cmd
 
-        pymol.finish_launching(['pymol', '-cq'])
+        pymol.finish_launching(["pymol", "-cq"])
 
         structure_path = Path(structure_path)
         output_path = Path(output_path)
@@ -360,7 +361,7 @@ def visualize_complex(
         import pymol
         from pymol import cmd
 
-        pymol.finish_launching(['pymol', '-cq'])
+        pymol.finish_launching(["pymol", "-cq"])
 
         receptor_path = Path(receptor_path)
         ligand_path = Path(ligand_path)

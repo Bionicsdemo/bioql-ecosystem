@@ -38,11 +38,11 @@ Example:
 
 from typing import List
 
-from .surface_code import SurfaceCodeQEC
-from .steane_code import SteaneCodeQEC
-from .shor_code import ShorCodeQEC
 from .error_mitigation import ErrorMitigation
 from .metrics import QECMetrics
+from .shor_code import ShorCodeQEC
+from .steane_code import SteaneCodeQEC
+from .surface_code import SurfaceCodeQEC
 
 __version__ = "5.0.0"
 

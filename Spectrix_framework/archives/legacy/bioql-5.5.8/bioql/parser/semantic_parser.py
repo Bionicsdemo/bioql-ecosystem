@@ -25,6 +25,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Union
 try:
     import spacy
     from spacy.tokens import Doc, Span, Token
+
     SPACY_AVAILABLE = True
 except ImportError:
     SPACY_AVAILABLE = False
@@ -37,9 +38,10 @@ try:
     from loguru import logger
 except ImportError:
     import logging
+
     logger = logging.getLogger(__name__)
 
-from bioql.ir import DataType, BioQLDomain
+from bioql.ir import BioQLDomain, DataType
 
 
 class EntityType(str, Enum):
@@ -220,9 +222,7 @@ class SemanticGraph:
             relations = self.get_relations_by_type(relation_type)
             lines.append(f"\n  {relation_type.value.upper()} ({len(relations)}):")
             for relation in relations:
-                lines.append(
-                    f"    - {relation.source.id} -> {relation.target.id}"
-                )
+                lines.append(f"    - {relation.source.id} -> {relation.target.id}")
 
         # Show execution order
         lines.append("\n\nEXECUTION ORDER:")
@@ -274,7 +274,6 @@ class SemanticParser:
             "pdb_id": re.compile(r"\b([1-9][A-Za-z0-9]{3})\b", re.IGNORECASE),
             "smiles": re.compile(r"\b([CONSPFHcnopsfh\[\]()@=#\-+\\\/]{5,})\b"),
             "sequence": re.compile(r"\b([ACDEFGHIKLMNPQRSTVWY]{6,})\b"),
-
             # Operations
             "dock": re.compile(r"\b(dock|docking|bind|binding)\b", re.IGNORECASE),
             "align": re.compile(r"\b(align|alignment|match)\b", re.IGNORECASE),
@@ -282,35 +281,28 @@ class SemanticParser:
             "predict": re.compile(r"\b(predict|prediction|forecast)\b", re.IGNORECASE),
             "calculate": re.compile(r"\b(calculate|compute|determine)\b", re.IGNORECASE),
             "filter": re.compile(r"\b(filter|select|choose|where)\b", re.IGNORECASE),
-
             # Properties
             "affinity": re.compile(r"\b(affinity|binding\s+affinity)\b", re.IGNORECASE),
             "toxicity": re.compile(r"\b(toxic|toxicity)\b", re.IGNORECASE),
             "solubility": re.compile(r"\b(solubility|soluble)\b", re.IGNORECASE),
             "energy": re.compile(r"\b(energy|energies)\b", re.IGNORECASE),
-
             # Parameters
             "shots": re.compile(r"(\d+)\s*shots?", re.IGNORECASE),
             "poses": re.compile(r"(\d+)\s*poses?", re.IGNORECASE),
             "temperature": re.compile(r"(\d+(?:\.\d+)?)\s*[CKF°]", re.IGNORECASE),
-
             # Values and numbers
             "number": re.compile(r"-?\d+(?:\.\d+)?"),
             "comparison": re.compile(r"([<>=]=?|(?:less|greater|more)\s+than)"),
-
             # Quantifiers
             "quantifier_all": re.compile(r"\b(all|every|each)\b", re.IGNORECASE),
             "quantifier_any": re.compile(r"\b(any|some)\b", re.IGNORECASE),
             "quantifier_top": re.compile(r"\b(top|best|highest)\s+(\d+)\b", re.IGNORECASE),
             "quantifier_bottom": re.compile(r"\b(bottom|worst|lowest)\s+(\d+)\b", re.IGNORECASE),
-
             # Negation
             "negation": re.compile(r"\b(not|no|never|without|exclude)\b", re.IGNORECASE),
-
             # Conditionals
             "if": re.compile(r"\b(if|when|where|provided)\b", re.IGNORECASE),
             "then": re.compile(r"\b(then|do|perform)\b", re.IGNORECASE),
-
             # References (for coreference)
             "pronoun": re.compile(r"\b(it|its|that|this|them|those|these)\b", re.IGNORECASE),
             "definite": re.compile(r"\bthe\s+(\w+)\b", re.IGNORECASE),
@@ -385,7 +377,7 @@ class SemanticParser:
                 text=match.group(0),
                 start_pos=match.start(),
                 end_pos=match.end(),
-                metadata={"format": "pdb", "data_type": DataType.PROTEIN}
+                metadata={"format": "pdb", "data_type": DataType.PROTEIN},
             )
             entities.append(entity)
 
@@ -397,7 +389,7 @@ class SemanticParser:
                 text=match.group(0),
                 start_pos=match.start(),
                 end_pos=match.end(),
-                metadata={"format": "smiles", "data_type": DataType.LIGAND}
+                metadata={"format": "smiles", "data_type": DataType.LIGAND},
             )
             entities.append(entity)
 
@@ -408,7 +400,7 @@ class SemanticParser:
             "optimize": BioQLDomain.OPTIMIZATION,
             "predict": "prediction",
             "calculate": "calculation",
-            "filter": "filtering"
+            "filter": "filtering",
         }
 
         for pattern_name, operation_value in operation_patterns.items():
@@ -420,7 +412,7 @@ class SemanticParser:
                     text=match.group(0),
                     start_pos=match.start(),
                     end_pos=match.end(),
-                    metadata={"operation_type": pattern_name}
+                    metadata={"operation_type": pattern_name},
                 )
                 entities.append(entity)
 
@@ -434,7 +426,7 @@ class SemanticParser:
                     value=prop_name,
                     text=match.group(0),
                     start_pos=match.start(),
-                    end_pos=match.end()
+                    end_pos=match.end(),
                 )
                 entities.append(entity)
 
@@ -450,7 +442,7 @@ class SemanticParser:
                     text=match.group(0),
                     start_pos=match.start(),
                     end_pos=match.end(),
-                    metadata={"parameter_name": param_name}
+                    metadata={"parameter_name": param_name},
                 )
                 entities.append(entity)
 
@@ -462,7 +454,7 @@ class SemanticParser:
                 value={"type": "top", "count": int(match.group(2))},
                 text=match.group(0),
                 start_pos=match.start(),
-                end_pos=match.end()
+                end_pos=match.end(),
             )
             entities.append(entity)
 
@@ -473,7 +465,7 @@ class SemanticParser:
                 value={"type": "all"},
                 text=match.group(0),
                 start_pos=match.start(),
-                end_pos=match.end()
+                end_pos=match.end(),
             )
             entities.append(entity)
 
@@ -496,7 +488,7 @@ class SemanticParser:
                 text=ent.text,
                 start_pos=ent.start_char,
                 end_pos=ent.end_char,
-                metadata={"spacy_label": ent.label_}
+                metadata={"spacy_label": ent.label_},
             )
             entities.append(entity)
 
@@ -512,7 +504,7 @@ class SemanticParser:
                         text=token.text,
                         start_pos=token.idx,
                         end_pos=token.idx + len(token.text),
-                        metadata={"lemma": token.lemma_, "pos": token.pos_}
+                        metadata={"lemma": token.lemma_, "pos": token.pos_},
                     )
                     entities.append(entity)
 
@@ -557,7 +549,11 @@ class SemanticParser:
 
         # Extract DOCK relations (ligand-receptor pairs)
         operations = [e for e in entities if e.type == EntityType.OPERATION]
-        molecules = [e for e in entities if e.type in [EntityType.PROTEIN, EntityType.LIGAND, EntityType.MOLECULE]]
+        molecules = [
+            e
+            for e in entities
+            if e.type in [EntityType.PROTEIN, EntityType.LIGAND, EntityType.MOLECULE]
+        ]
 
         for operation in operations:
             if operation.value == BioQLDomain.DOCKING.value:
@@ -571,7 +567,7 @@ class SemanticParser:
                             type=RelationType.DOCK,
                             source=ligand,
                             target=protein,
-                            metadata={"operation": operation.id}
+                            metadata={"operation": operation.id},
                         )
                         relations.append(relation)
 
@@ -583,11 +579,7 @@ class SemanticParser:
                 param, operations, lambda e: e.type == EntityType.OPERATION
             )
             if nearest_op:
-                relation = Relation(
-                    type=RelationType.PARAMETER_OF,
-                    source=param,
-                    target=nearest_op
-                )
+                relation = Relation(type=RelationType.PARAMETER_OF, source=param, target=nearest_op)
                 relations.append(relation)
 
         # Extract PROPERTY_OF relations
@@ -595,15 +587,12 @@ class SemanticParser:
         for prop in properties:
             # Find nearest molecule or operation
             nearest = self._find_nearest_entity(
-                prop, sorted_entities,
-                lambda e: e.type in [EntityType.MOLECULE, EntityType.OPERATION]
+                prop,
+                sorted_entities,
+                lambda e: e.type in [EntityType.MOLECULE, EntityType.OPERATION],
             )
             if nearest:
-                relation = Relation(
-                    type=RelationType.PROPERTY_OF,
-                    source=prop,
-                    target=nearest
-                )
+                relation = Relation(type=RelationType.PROPERTY_OF, source=prop, target=nearest)
                 relations.append(relation)
 
         # Extract SEQUENCE relations (temporal ordering)
@@ -613,7 +602,7 @@ class SemanticParser:
                     type=RelationType.SEQUENCE,
                     source=operations[i],
                     target=operations[i + 1],
-                    metadata={"order": i}
+                    metadata={"order": i},
                 )
                 relations.append(relation)
 
@@ -632,13 +621,9 @@ class SemanticParser:
                     value="negation",
                     text=match.group(0),
                     start_pos=match.start(),
-                    end_pos=match.end()
+                    end_pos=match.end(),
                 )
-                relation = Relation(
-                    type=RelationType.NEGATION,
-                    source=neg_entity,
-                    target=target
-                )
+                relation = Relation(type=RelationType.NEGATION, source=neg_entity, target=target)
                 relations.append(relation)
 
         return relations
@@ -651,7 +636,9 @@ class SemanticParser:
         for token in doc:
             # Find subject-verb-object patterns
             if token.pos_ == "VERB":
-                subjects = [child for child in token.children if child.dep_ in ["nsubj", "nsubjpass"]]
+                subjects = [
+                    child for child in token.children if child.dep_ in ["nsubj", "nsubjpass"]
+                ]
                 objects = [child for child in token.children if child.dep_ in ["dobj", "pobj"]]
 
                 for subj in subjects:
@@ -667,7 +654,7 @@ class SemanticParser:
                                     type=relation_type,
                                     source=subj_entity,
                                     target=obj_entity,
-                                    metadata={"verb": token.lemma_}
+                                    metadata={"verb": token.lemma_},
                                 )
                                 relations.append(relation)
 
@@ -698,10 +685,7 @@ class SemanticParser:
         return None
 
     def _find_nearest_entity(
-        self,
-        entity: Entity,
-        candidates: List[Entity],
-        filter_fn=None
+        self, entity: Entity, candidates: List[Entity], filter_fn=None
     ) -> Optional[Entity]:
         """Find the nearest entity to a given entity."""
         if filter_fn:
@@ -711,13 +695,12 @@ class SemanticParser:
             return None
 
         # Find closest by position
-        closest = min(
-            candidates,
-            key=lambda c: abs(c.start_pos - entity.start_pos)
-        )
+        closest = min(candidates, key=lambda c: abs(c.start_pos - entity.start_pos))
         return closest
 
-    def resolve_references(self, graph: SemanticGraph, text: str, context: Optional[Dict] = None) -> None:
+    def resolve_references(
+        self, graph: SemanticGraph, text: str, context: Optional[Dict] = None
+    ) -> None:
         """
         Resolve coreferences (pronouns and definite references).
 
@@ -739,7 +722,7 @@ class SemanticParser:
                     text=match.group(0),
                     start_pos=match.start(),
                     end_pos=match.end(),
-                    metadata={"pattern": pattern_name}
+                    metadata={"pattern": pattern_name},
                 )
                 references.append(ref_entity)
 
@@ -747,7 +730,8 @@ class SemanticParser:
         for ref in references:
             # Find most recent entity of compatible type before the reference
             candidates = [
-                e for e in graph.nodes
+                e
+                for e in graph.nodes
                 if e.start_pos < ref.start_pos
                 and e.type in [EntityType.PROTEIN, EntityType.LIGAND, EntityType.MOLECULE]
             ]
@@ -761,7 +745,7 @@ class SemanticParser:
                     type=RelationType.COREFERENCE,
                     source=ref,
                     target=target,
-                    metadata={"resolved": True}
+                    metadata={"resolved": True},
                 )
                 graph.add_edge(relation)
 
@@ -783,8 +767,7 @@ class SemanticParser:
 
             # Look for comparison operations after "if"
             comparison_matches = [
-                m for m in self.patterns["comparison"].finditer(text)
-                if m.start() > if_pos
+                m for m in self.patterns["comparison"].finditer(text) if m.start() > if_pos
             ]
 
             if comparison_matches:
@@ -793,7 +776,7 @@ class SemanticParser:
 
                 # Extract the full conditional clause
                 end_pos = comp_match.end() + 20  # Look ahead for value
-                conditional_text = text[if_pos:min(end_pos, len(text))]
+                conditional_text = text[if_pos : min(end_pos, len(text))]
 
                 cond_entity = Entity(
                     id=self._generate_entity_id(EntityType.CONDITION),
@@ -801,21 +784,16 @@ class SemanticParser:
                     value=conditional_text,
                     text=conditional_text,
                     start_pos=if_pos,
-                    end_pos=end_pos
+                    end_pos=end_pos,
                 )
 
                 # Find entities involved in the condition
-                involved_entities = [
-                    e for e in graph.nodes
-                    if if_pos < e.start_pos < end_pos
-                ]
+                involved_entities = [e for e in graph.nodes if if_pos < e.start_pos < end_pos]
 
                 # Link condition to involved entities
                 for entity in involved_entities:
                     relation = Relation(
-                        type=RelationType.CONDITIONAL,
-                        source=cond_entity,
-                        target=entity
+                        type=RelationType.CONDITIONAL, source=cond_entity, target=entity
                     )
                     graph.add_edge(relation)
 
@@ -845,5 +823,5 @@ __all__ = [
     "Relation",
     "SemanticGraph",
     "SemanticParser",
-    "parse_semantic"
+    "parse_semantic",
 ]

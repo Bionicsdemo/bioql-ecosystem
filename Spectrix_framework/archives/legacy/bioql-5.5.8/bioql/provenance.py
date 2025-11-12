@@ -15,16 +15,17 @@ Compatible con todos los backends existentes de BioQL.
 
 import hashlib
 import json
-import uuid
-from datetime import datetime, timezone
-from pathlib import Path
-from typing import Dict, List, Optional, Any
-from dataclasses import dataclass, asdict, field
 import platform
 import sys
+import uuid
+from dataclasses import asdict, dataclass, field
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 try:
     import bioql
+
     BIOQL_VERSION = bioql.__version__
 except:
     BIOQL_VERSION = "unknown"
@@ -88,19 +89,22 @@ class ProvenanceRecord:
 
         try:
             import qiskit
-            deps['qiskit'] = qiskit.__version__
+
+            deps["qiskit"] = qiskit.__version__
         except:
             pass
 
         try:
             import numpy
-            deps['numpy'] = numpy.__version__
+
+            deps["numpy"] = numpy.__version__
         except:
             pass
 
         try:
             from rdkit import __version__ as rdkit_version
-            deps['rdkit'] = rdkit_version
+
+            deps["rdkit"] = rdkit_version
         except:
             pass
 
@@ -118,18 +122,15 @@ class ProvenanceRecord:
         """
         # Create canonical representation (sorted keys for determinism)
         data = asdict(self)
-        data.pop('signature', None)  # Don't include signature in signature
+        data.pop("signature", None)  # Don't include signature in signature
 
         canonical = json.dumps(data, sort_keys=True, default=str)
 
         if secret_key:
             # HMAC-SHA256 with secret
             import hmac
-            sig = hmac.new(
-                secret_key.encode(),
-                canonical.encode(),
-                hashlib.sha256
-            ).hexdigest()
+
+            sig = hmac.new(secret_key.encode(), canonical.encode(), hashlib.sha256).hexdigest()
         else:
             # Simple SHA256 hash
             sig = hashlib.sha256(canonical.encode()).hexdigest()
@@ -188,7 +189,7 @@ class ProvenanceChain:
         backend: str,
         shots: int,
         counts: Optional[Dict[str, int]] = None,
-        **kwargs
+        **kwargs,
     ) -> ProvenanceRecord:
         """
         Add a new record to the chain.
@@ -214,7 +215,7 @@ class ProvenanceChain:
             shots=shots,
             counts=counts,
             parent_record_id=parent_id,
-            metadata=kwargs
+            metadata=kwargs,
         )
 
         # Sign record
@@ -245,7 +246,7 @@ class ProvenanceChain:
 
             # Verify linkage
             if i > 0:
-                expected_parent = self.records[i-1].record_id
+                expected_parent = self.records[i - 1].record_id
                 if record.parent_record_id != expected_parent:
                     logger.error(f"Chain linkage broken at record {record.record_id}")
                     return False
@@ -263,7 +264,7 @@ class ProvenanceChain:
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
 
-        with open(path, 'w') as f:
+        with open(path, "w") as f:
             json.dump(data, f, indent=2, default=str)
 
         logger.info(f"Saved provenance chain to {path}")
@@ -271,12 +272,12 @@ class ProvenanceChain:
     @classmethod
     def load(cls, path: Path) -> "ProvenanceChain":
         """Load chain from file."""
-        with open(path, 'r') as f:
+        with open(path, "r") as f:
             data = json.load(f)
 
-        chain = cls(chain_id=data['chain_id'])
+        chain = cls(chain_id=data["chain_id"])
 
-        for record_data in data['records']:
+        for record_data in data["records"]:
             record = ProvenanceRecord(**record_data)
             chain.records.append(record)
 
@@ -297,7 +298,9 @@ class ProvenanceChain:
         lines.append("=" * 80)
         lines.append(f"Chain ID: {self.chain_id}")
         lines.append(f"Total Records: {len(self.records)}")
-        lines.append(f"Chain Integrity: {'✅ VERIFIED' if self.verify_chain() else '❌ COMPROMISED'}")
+        lines.append(
+            f"Chain Integrity: {'✅ VERIFIED' if self.verify_chain() else '❌ COMPROMISED'}"
+        )
         lines.append("")
         lines.append("COMPLIANCE NOTES:")
         lines.append("- 21 CFR Part 11 compliant electronic records")
@@ -365,7 +368,7 @@ class ComplianceLogger:
         result: Dict[str, Any],
         shots: int = 1024,
         seed: Optional[int] = None,
-        **metadata
+        **metadata,
     ) -> ProvenanceRecord:
         """
         Log a quantum execution with full provenance.
@@ -381,8 +384,8 @@ class ComplianceLogger:
         Returns:
             Created ProvenanceRecord
         """
-        counts = result.get('counts')
-        energy = result.get('energy')
+        counts = result.get("counts")
+        energy = result.get("energy")
 
         record = self.chain.add_record(
             program=program,
@@ -391,7 +394,7 @@ class ComplianceLogger:
             counts=counts,
             seed=seed,
             energy=energy,
-            **metadata
+            **metadata,
         )
 
         # Auto-save chain after each execution
@@ -417,7 +420,7 @@ class ComplianceLogger:
 
         report = self.generate_report()
 
-        with open(report_path, 'w') as f:
+        with open(report_path, "w") as f:
             f.write(report)
 
         logger.info(f"Exported audit report to {report_path}")

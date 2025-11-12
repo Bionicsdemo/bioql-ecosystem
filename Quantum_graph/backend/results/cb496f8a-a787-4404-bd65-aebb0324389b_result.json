@@ -1,0 +1,11 @@
+{
+  "energy": -234.56,
+  "conformations": 12,
+  "cost": 5.75,
+  "quantum_config": {
+    "logical_qubits": 30,
+    "physical_qubits": 150,
+    "shots": 2000,
+    "backend": "aws_braket"
+  }
+}

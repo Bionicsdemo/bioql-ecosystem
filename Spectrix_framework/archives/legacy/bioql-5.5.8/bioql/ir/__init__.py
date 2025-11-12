@@ -5,6 +5,7 @@ This module provides the core IR schema and validation utilities for BioQL.
 """
 
 from .schema import (
+    AlignmentOperation,
     BioQLDomain,
     BioQLOperation,
     BioQLParameter,
@@ -12,7 +13,6 @@ from .schema import (
     BioQLResult,
     DataType,
     DockingOperation,
-    AlignmentOperation,
     Molecule,
     QuantumBackend,
     QuantumCircuit,

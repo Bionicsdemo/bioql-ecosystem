@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test HTTPS Login - BioQL</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
+            color: white;
+            padding: 2rem;
+            margin: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(20, 20, 30, 0.9);
+            padding: 2rem;
+            border-radius: 20px;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+        }
+        h1 {
+            background: linear-gradient(135deg, #00d4ff 0%, #a855f7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        button {
+            background: linear-gradient(135deg, #00d4ff 0%, #a855f7 100%);
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            color: white;
+            font-size: 1.125rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 0.5rem;
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        .result {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 8px;
+            font-family: 'Fira Code', monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .success {
+            border-left: 4px solid #06ffa5;
+            background: rgba(6, 255, 165, 0.1);
+        }
+        .error {
+            border-left: 4px solid #ff3b30;
+            background: rgba(255, 59, 48, 0.1);
+        }
+        .info {
+            border-left: 4px solid #00d4ff;
+            background: rgba(0, 212, 255, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test HTTPS Authentication - BioQL</h1>
+
+        <div class="info result">
+            <strong>🌐 Environment Detection:</strong><br>
+            Protocol: <span id="protocol"></span><br>
+            Hostname: <span id="hostname"></span><br>
+            Is Production: <span id="is-production"></span><br>
+            API Server: <span id="api-server"></span>
+        </div>
+
+        <div>
+            <h3>Credentials:</h3>
+            <div class="info result">
+                Email: heinz@bionics-ai.biz<br>
+                API Key: __BIOQL_REDACTED__
+            </div>
+        </div>
+
+        <button onclick="testLogin()">🔐 Test Login</button>
+        <button onclick="testUserInfo()">👤 Test User Info</button>
+        <button onclick="testAnalytics()">📊 Test Analytics</button>
+        <button onclick="testDashboard()">💰 Test Dashboard</button>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        // Configuration - Auto-detect environment
+        const isProduction = window.location.protocol === 'https:' && !window.location.hostname.includes('localhost');
+        const CONFIG = {
+            BIOQL_SERVER_URL: isProduction
+                ? 'https://spectrix--bioql-agent-create-fastapi-app.modal.run'
+                : 'http://127.0.0.1:5001'
+        };
+
+        const API_KEY = '__BIOQL_REDACTED__';
+        const EMAIL = 'heinz@bionics-ai.biz';
+
+        // Display environment info
+        document.getElementById('protocol').textContent = window.location.protocol;
+        document.getElementById('hostname').textContent = window.location.hostname;
+        document.getElementById('is-production').textContent = isProduction ? 'YES (HTTPS)' : 'NO (Local)';
+        document.getElementById('api-server').textContent = CONFIG.BIOQL_SERVER_URL;
+
+        function displayResult(title, data, isError = false) {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `result ${isError ? 'error' : 'success'}`;
+            resultDiv.innerHTML = `<strong>${title}</strong><br>${JSON.stringify(data, null, 2)}`;
+            resultsDiv.insertBefore(resultDiv, resultsDiv.firstChild);
+        }
+
+        async function testLogin() {
+            try {
+                const response = await fetch(`${CONFIG.BIOQL_SERVER_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'ngrok-skip-browser-warning': 'true'
+                    },
+                    body: JSON.stringify({
+                        email: EMAIL,
+                        api_key: API_KEY
+                    })
+                });
+
+                const data = await response.json();
+                displayResult('✅ POST /auth/login', data, !response.ok);
+            } catch (error) {
+                displayResult('❌ POST /auth/login', { error: error.message }, true);
+            }
+        }
+
+        async function testUserInfo() {
+            try {
+                const response = await fetch(`${CONFIG.BIOQL_SERVER_URL}/auth/user`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${API_KEY}`,
+                        'ngrok-skip-browser-warning': 'true'
+                    }
+                });
+
+                const data = await response.json();
+                displayResult('✅ GET /auth/user', data, !response.ok);
+            } catch (error) {
+                displayResult('❌ GET /auth/user', { error: error.message }, true);
+            }
+        }
+
+        async function testAnalytics() {
+            try {
+                const response = await fetch(`${CONFIG.BIOQL_SERVER_URL}/analytics/usage`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${API_KEY}`,
+                        'ngrok-skip-browser-warning': 'true'
+                    }
+                });
+
+                const data = await response.json();
+                displayResult('✅ GET /analytics/usage', data, !response.ok);
+            } catch (error) {
+                displayResult('❌ GET /analytics/usage', { error: error.message }, true);
+            }
+        }
+
+        async function testDashboard() {
+            try {
+                const response = await fetch(`${CONFIG.BIOQL_SERVER_URL}/dashboard/invoices`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${API_KEY}`,
+                        'ngrok-skip-browser-warning': 'true'
+                    }
+                });
+
+                const data = await response.json();
+                displayResult('✅ GET /dashboard/invoices', data, !response.ok);
+            } catch (error) {
+                displayResult('❌ GET /dashboard/invoices', { error: error.message }, true);
+            }
+        }
+
+        // Auto-run test on load
+        console.log('🚀 Auto-testing login on page load...');
+        setTimeout(testLogin, 1000);
+    </script>
+</body>
+</html>

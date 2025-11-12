@@ -1,0 +1,1354 @@
+================================================================================
+THIRD-PARTY SOFTWARE NOTICES AND INFORMATION
+================================================================================
+
+BioQL Ecosystem v2.0.0
+Copyright (c) 2024-2025 BioQL Project
+
+This file contains notices and information regarding third-party software
+components included with or used by the BioQL Ecosystem. The BioQL Ecosystem
+depends on various open-source libraries and frameworks, each with its own
+licensing terms.
+
+DISCLAIMER:
+This document provides license information for third-party dependencies to the
+best of our knowledge as of 2025-11-12. License information may change over
+time. Users should verify license terms directly with package maintainers for
+authoritative information. Package versions listed reflect minimum required
+versions; actual deployed versions may differ.
+
+================================================================================
+TABLE OF CONTENTS
+================================================================================
+
+1. Apache License 2.0 Components
+2. BSD License Components (3-Clause)
+3. BSD License Components (2-Clause)
+4. MIT License Components
+5. Python Software Foundation License Components
+6. Other Open Source Licenses
+7. Full License Texts
+
+Total Packages Documented: 87
+License Types: 6
+
+================================================================================
+SECTION 1: APACHE LICENSE 2.0 COMPONENTS
+================================================================================
+
+The following components are licensed under the Apache License 2.0:
+
+--------------------------------------------------------------------------------
+1.1 Qiskit (>=1.3.0)
+--------------------------------------------------------------------------------
+Copyright: IBM Research and Contributors
+License: Apache License 2.0
+URL: https://github.com/Qiskit/qiskit
+License URL: https://www.apache.org/licenses/LICENSE-2.0
+
+Description: IBM Quantum Computing Framework
+Notice: Qiskit is an open-source quantum computing software development framework
+
+--------------------------------------------------------------------------------
+1.2 Qiskit-Aer (>=0.15.0)
+--------------------------------------------------------------------------------
+Copyright: IBM Research and Contributors
+License: Apache License 2.0
+URL: https://github.com/Qiskit/qiskit-aer
+License URL: https://www.apache.org/licenses/LICENSE-2.0
+
+Description: High-performance quantum circuit simulator
+
+--------------------------------------------------------------------------------
+1.3 Qiskit-IBM-Runtime (>=0.30.0)
+--------------------------------------------------------------------------------
+Copyright: IBM Quantum
+License: Apache License 2.0
+URL: https://github.com/Qiskit/qiskit-ibm-runtime
+License URL: https://www.apache.org/licenses/LICENSE-2.0
+
+Description: IBM Quantum Runtime API client
+
+--------------------------------------------------------------------------------
+1.4 Qiskit-Nature (>=0.7.0)
+--------------------------------------------------------------------------------
+Copyright: IBM Research and Contributors
+License: Apache License 2.0
+URL: https://github.com/Qiskit/qiskit-nature
+License URL: https://www.apache.org/licenses/LICENSE-2.0
+
+Description: Quantum chemistry and molecular modeling algorithms
+
+--------------------------------------------------------------------------------
+1.5 Qiskit-Optimization (>=0.6.0)
+--------------------------------------------------------------------------------
+Copyright: IBM Research and Contributors
+License: Apache License 2.0
+URL: https://github.com/Qiskit/qiskit-optimization
+License URL: https://www.apache.org/licenses/LICENSE-2.0
+
+Description: Quantum optimization algorithms
+
+--------------------------------------------------------------------------------
+1.6 Qiskit-Machine-Learning (>=0.7.0)
+--------------------------------------------------------------------------------
+Copyright: IBM Research and Contributors
+License: Apache License 2.0
+URL: https://github.com/Qiskit/qiskit-machine-learning
+License URL: https://www.apache.org/licenses/LICENSE-2.0
+
+Description: Quantum machine learning algorithms
+
+--------------------------------------------------------------------------------
+1.7 Amazon Braket SDK (>=1.59.0)
+--------------------------------------------------------------------------------
+Copyright: Amazon.com, Inc. or its affiliates
+License: Apache License 2.0
+URL: https://github.com/aws/amazon-braket-sdk-python
+License URL: https://www.apache.org/licenses/LICENSE-2.0
+
+Description: AWS quantum computing service SDK
+
+--------------------------------------------------------------------------------
+1.8 Cirq (>=1.3.0)
+--------------------------------------------------------------------------------
+Copyright: The Cirq Developers (Google LLC and Contributors)
+License: Apache License 2.0
+URL: https://github.com/quantumlib/Cirq
+License URL: https://www.apache.org/licenses/LICENSE-2.0
+
+Description: Google's quantum computing framework
+
+--------------------------------------------------------------------------------
+1.9 Cirq-IonQ (>=1.3.0)
+--------------------------------------------------------------------------------
+Copyright: The Cirq Developers
+License: Apache License 2.0
+URL: https://github.com/quantumlib/Cirq
+License URL: https://www.apache.org/licenses/LICENSE-2.0
+
+Description: IonQ quantum computing backend for Cirq
+
+--------------------------------------------------------------------------------
+1.10 Stim (>=1.12.0)
+--------------------------------------------------------------------------------
+Copyright: Craig Gidney
+License: Apache License 2.0
+URL: https://github.com/quantumlib/Stim
+License URL: https://www.apache.org/licenses/LICENSE-2.0
+
+Description: Fast stabilizer circuit simulator for quantum error correction
+
+--------------------------------------------------------------------------------
+1.11 PyMatching (>=2.0.0)
+--------------------------------------------------------------------------------
+Copyright: Oscar Higgott and PyMatching Contributors
+License: Apache License 2.0
+URL: https://github.com/oscarhiggott/PyMatching
+License URL: https://www.apache.org/licenses/LICENSE-2.0
+
+Description: Minimum weight perfect matching decoder for quantum error correction
+
+--------------------------------------------------------------------------------
+1.12 Gunicorn (>=21.2.0)
+--------------------------------------------------------------------------------
+Copyright: Benoit Chesneau and Contributors
+License: Apache License 2.0
+URL: https://github.com/benoitc/gunicorn
+License URL: https://www.apache.org/licenses/LICENSE-2.0
+
+Description: Python WSGI HTTP Server for UNIX
+
+--------------------------------------------------------------------------------
+1.13 Click (>=8.1.7)
+--------------------------------------------------------------------------------
+Copyright: Pallets Project
+License: BSD 3-Clause (Note: Some versions use Apache 2.0)
+URL: https://github.com/pallets/click
+License URL: https://palletsprojects.com/license/
+
+Description: Command-line interface creation toolkit
+
+================================================================================
+SECTION 2: BSD LICENSE COMPONENTS (3-CLAUSE)
+================================================================================
+
+The following components are licensed under the BSD 3-Clause License:
+
+--------------------------------------------------------------------------------
+2.1 RDKit (>=2023.9.1)
+--------------------------------------------------------------------------------
+Copyright: Greg Landrum and RDKit Contributors
+License: BSD 3-Clause License
+URL: https://github.com/rdkit/rdkit
+License URL: https://github.com/rdkit/rdkit/blob/master/license.txt
+
+Description: Cheminformatics and machine learning software toolkit
+Notice: RDKit is distributed under a BSD-style license
+
+--------------------------------------------------------------------------------
+2.2 NumPy (>=1.26.0)
+--------------------------------------------------------------------------------
+Copyright: NumPy Developers
+License: BSD 3-Clause License
+URL: https://github.com/numpy/numpy
+License URL: https://github.com/numpy/numpy/blob/main/LICENSE.txt
+
+Description: Fundamental package for scientific computing with Python
+
+--------------------------------------------------------------------------------
+2.3 SciPy (>=1.11.0)
+--------------------------------------------------------------------------------
+Copyright: SciPy Developers
+License: BSD 3-Clause License
+URL: https://github.com/scipy/scipy
+License URL: https://github.com/scipy/scipy/blob/main/LICENSE.txt
+
+Description: Scientific computing and technical computing library
+
+--------------------------------------------------------------------------------
+2.4 Pandas (>=2.1.0)
+--------------------------------------------------------------------------------
+Copyright: Pandas Development Team
+License: BSD 3-Clause License
+URL: https://github.com/pandas-dev/pandas
+License URL: https://github.com/pandas-dev/pandas/blob/main/LICENSE
+
+Description: Data analysis and manipulation library
+
+--------------------------------------------------------------------------------
+2.5 Scikit-learn (>=1.3.0)
+--------------------------------------------------------------------------------
+Copyright: Scikit-learn Developers
+License: BSD 3-Clause License
+URL: https://github.com/scikit-learn/scikit-learn
+License URL: https://github.com/scikit-learn/scikit-learn/blob/main/COPYING
+
+Description: Machine learning library for Python
+
+--------------------------------------------------------------------------------
+2.6 NetworkX (>=3.0)
+--------------------------------------------------------------------------------
+Copyright: NetworkX Developers
+License: BSD 3-Clause License
+URL: https://github.com/networkx/networkx
+License URL: https://github.com/networkx/networkx/blob/main/LICENSE.txt
+
+Description: Network analysis and graph theory library
+
+--------------------------------------------------------------------------------
+2.7 Flask (>=3.0.0)
+--------------------------------------------------------------------------------
+Copyright: Pallets Project
+License: BSD 3-Clause License
+URL: https://github.com/pallets/flask
+License URL: https://flask.palletsprojects.com/license/
+
+Description: Lightweight WSGI web application framework
+
+--------------------------------------------------------------------------------
+2.8 Werkzeug (>=3.0.1)
+--------------------------------------------------------------------------------
+Copyright: Pallets Project
+License: BSD 3-Clause License
+URL: https://github.com/pallets/werkzeug
+License URL: https://palletsprojects.com/license/
+
+Description: WSGI utility library for Python
+
+--------------------------------------------------------------------------------
+2.9 Jinja2 (Dependency of Flask)
+--------------------------------------------------------------------------------
+Copyright: Pallets Project
+License: BSD 3-Clause License
+URL: https://github.com/pallets/jinja
+License URL: https://palletsprojects.com/license/
+
+Description: Modern and designer-friendly templating for Python
+
+--------------------------------------------------------------------------------
+2.10 PyTorch (>=2.3.0)
+--------------------------------------------------------------------------------
+Copyright: PyTorch Contributors
+License: BSD 3-Clause License
+URL: https://github.com/pytorch/pytorch
+License URL: https://github.com/pytorch/pytorch/blob/main/LICENSE
+
+Description: Machine learning framework with GPU acceleration
+
+--------------------------------------------------------------------------------
+2.11 Matplotlib (>=3.8.2)
+--------------------------------------------------------------------------------
+Copyright: Matplotlib Development Team
+License: BSD-Compatible (Matplotlib License)
+URL: https://github.com/matplotlib/matplotlib
+License URL: https://matplotlib.org/stable/users/project/license.html
+
+Description: Comprehensive plotting library for Python
+
+--------------------------------------------------------------------------------
+2.12 Seaborn (>=0.13.0)
+--------------------------------------------------------------------------------
+Copyright: Michael Waskom and Seaborn Contributors
+License: BSD 3-Clause License
+URL: https://github.com/mwaskom/seaborn
+License URL: https://github.com/mwaskom/seaborn/blob/master/LICENSE.md
+
+Description: Statistical data visualization library
+
+--------------------------------------------------------------------------------
+2.13 Biopython (>=1.81)
+--------------------------------------------------------------------------------
+Copyright: Biopython Contributors
+License: Biopython License (BSD-style)
+URL: https://github.com/biopython/biopython
+License URL: https://github.com/biopython/biopython/blob/master/LICENSE.rst
+
+Description: Tools for biological computation
+Notice: Biopython is distributed under a BSD-style license
+
+--------------------------------------------------------------------------------
+2.14 Sphinx (>=7.2.0)
+--------------------------------------------------------------------------------
+Copyright: Sphinx Team
+License: BSD 2-Clause License
+URL: https://github.com/sphinx-doc/sphinx
+License URL: https://github.com/sphinx-doc/sphinx/blob/master/LICENSE.rst
+
+Description: Documentation generator for Python projects
+
+================================================================================
+SECTION 3: BSD LICENSE COMPONENTS (2-CLAUSE)
+================================================================================
+
+The following components are licensed under the BSD 2-Clause License:
+
+--------------------------------------------------------------------------------
+3.1 OpenBabel-Wheel (>=3.1.1)
+--------------------------------------------------------------------------------
+Copyright: OpenBabel Contributors
+License: BSD 2-Clause License (with GPL components)
+URL: https://github.com/openbabel/openbabel
+License URL: https://github.com/openbabel/openbabel/blob/master/COPYING
+
+Description: Chemical format conversion toolkit
+Notice: OpenBabel contains both BSD and GPL licensed components
+
+--------------------------------------------------------------------------------
+3.2 Numba (>=0.56.0)
+--------------------------------------------------------------------------------
+Copyright: Numba Contributors
+License: BSD 2-Clause License
+URL: https://github.com/numba/numba
+License URL: https://github.com/numba/numba/blob/main/LICENSE
+
+Description: JIT compiler for Python using LLVM
+
+================================================================================
+SECTION 4: MIT LICENSE COMPONENTS
+================================================================================
+
+The following components are licensed under the MIT License:
+
+--------------------------------------------------------------------------------
+4.1 FastAPI (>=0.104.1)
+--------------------------------------------------------------------------------
+Copyright: Sebastian Ramirez (tiangolo)
+License: MIT License
+URL: https://github.com/tiangolo/fastapi
+License URL: https://github.com/tiangolo/fastapi/blob/master/LICENSE
+
+Description: Modern, fast web framework for building APIs
+
+--------------------------------------------------------------------------------
+4.2 Pydantic (>=2.5.0)
+--------------------------------------------------------------------------------
+Copyright: Samuel Colvin and Pydantic Contributors
+License: MIT License
+URL: https://github.com/pydantic/pydantic
+License URL: https://github.com/pydantic/pydantic/blob/main/LICENSE
+
+Description: Data validation using Python type annotations
+
+--------------------------------------------------------------------------------
+4.3 SQLAlchemy (>=2.0.23)
+--------------------------------------------------------------------------------
+Copyright: Michael Bayer and SQLAlchemy Contributors
+License: MIT License
+URL: https://github.com/sqlalchemy/sqlalchemy
+License URL: https://github.com/sqlalchemy/sqlalchemy/blob/main/LICENSE
+
+Description: SQL toolkit and Object-Relational Mapping (ORM) library
+
+--------------------------------------------------------------------------------
+4.4 Alembic (>=1.12.1)
+--------------------------------------------------------------------------------
+Copyright: Michael Bayer
+License: MIT License
+URL: https://github.com/sqlalchemy/alembic
+License URL: https://github.com/sqlalchemy/alembic/blob/main/LICENSE
+
+Description: Database migration tool for SQLAlchemy
+
+--------------------------------------------------------------------------------
+4.5 Flask-CORS (>=4.0.0)
+--------------------------------------------------------------------------------
+Copyright: Cory Dolphin
+License: MIT License
+URL: https://github.com/corydolphin/flask-cors
+License URL: https://github.com/corydolphin/flask-cors/blob/master/LICENSE
+
+Description: Cross-Origin Resource Sharing (CORS) extension for Flask
+
+--------------------------------------------------------------------------------
+4.6 Flask-SocketIO (>=5.3.5)
+--------------------------------------------------------------------------------
+Copyright: Miguel Grinberg
+License: MIT License
+URL: https://github.com/miguelgrinberg/Flask-SocketIO
+License URL: https://github.com/miguelgrinberg/Flask-SocketIO/blob/main/LICENSE
+
+Description: WebSocket support for Flask applications
+
+--------------------------------------------------------------------------------
+4.7 Flask-SQLAlchemy (>=3.1.1)
+--------------------------------------------------------------------------------
+Copyright: Pallets Community
+License: MIT License
+URL: https://github.com/pallets-eco/flask-sqlalchemy
+License URL: https://github.com/pallets-eco/flask-sqlalchemy/blob/main/LICENSE.txt
+
+Description: SQLAlchemy extension for Flask
+
+--------------------------------------------------------------------------------
+4.8 Flask-Migrate (>=4.0.5)
+--------------------------------------------------------------------------------
+Copyright: Miguel Grinberg
+License: MIT License
+URL: https://github.com/miguelgrinberg/Flask-Migrate
+License URL: https://github.com/miguelgrinberg/Flask-Migrate/blob/main/LICENSE
+
+Description: Database migration extension for Flask using Alembic
+
+--------------------------------------------------------------------------------
+4.9 Flask-Login (>=0.6.3)
+--------------------------------------------------------------------------------
+Copyright: Matthew Frazier
+License: MIT License
+URL: https://github.com/maxcountryman/flask-login
+License URL: https://github.com/maxcountryman/flask-login/blob/main/LICENSE
+
+Description: User session management for Flask
+
+--------------------------------------------------------------------------------
+4.10 Flask-WTF (>=1.2.1)
+--------------------------------------------------------------------------------
+Copyright: WTForms Team and Flask-WTF Contributors
+License: MIT License
+URL: https://github.com/wtforms/flask-wtf
+License URL: https://github.com/wtforms/flask-wtf/blob/main/LICENSE
+
+Description: Simple integration of Flask and WTForms
+
+--------------------------------------------------------------------------------
+4.11 Stripe (>=7.8.0)
+--------------------------------------------------------------------------------
+Copyright: Stripe, Inc.
+License: MIT License
+URL: https://github.com/stripe/stripe-python
+License URL: https://github.com/stripe/stripe-python/blob/master/LICENSE
+
+Description: Python library for the Stripe API
+
+--------------------------------------------------------------------------------
+4.12 Requests (>=2.31.0)
+--------------------------------------------------------------------------------
+Copyright: Kenneth Reitz and Requests Contributors
+License: Apache License 2.0
+URL: https://github.com/psf/requests
+License URL: https://github.com/psf/requests/blob/main/LICENSE
+
+Description: HTTP library for Python
+
+--------------------------------------------------------------------------------
+4.13 HTTPX (>=0.27.0)
+--------------------------------------------------------------------------------
+Copyright: Tom Christie and HTTPX Contributors
+License: BSD 3-Clause License
+URL: https://github.com/encode/httpx
+License URL: https://github.com/encode/httpx/blob/master/LICENSE.md
+
+Description: Async HTTP client with HTTP/2 support
+
+--------------------------------------------------------------------------------
+4.14 Uvicorn (>=0.24.0)
+--------------------------------------------------------------------------------
+Copyright: Tom Christie and Encode OSS
+License: BSD 3-Clause License
+URL: https://github.com/encode/uvicorn
+License URL: https://github.com/encode/uvicorn/blob/master/LICENSE.md
+
+Description: Lightning-fast ASGI server
+
+--------------------------------------------------------------------------------
+4.15 PyJWT (>=2.8.0)
+--------------------------------------------------------------------------------
+Copyright: Jose Padilla and PyJWT Contributors
+License: MIT License
+URL: https://github.com/jpadilla/pyjwt
+License URL: https://github.com/jpadilla/pyjwt/blob/master/LICENSE
+
+Description: JSON Web Token implementation in Python
+
+--------------------------------------------------------------------------------
+4.16 Bcrypt (>=4.1.1)
+--------------------------------------------------------------------------------
+Copyright: Donald Stufft and Contributors
+License: Apache License 2.0
+URL: https://github.com/pyca/bcrypt
+License URL: https://github.com/pyca/bcrypt/blob/main/LICENSE
+
+Description: Modern password hashing for software and servers
+
+--------------------------------------------------------------------------------
+4.17 Plotly (>=5.18.0)
+--------------------------------------------------------------------------------
+Copyright: Plotly, Inc.
+License: MIT License
+URL: https://github.com/plotly/plotly.py
+License URL: https://github.com/plotly/plotly.py/blob/master/LICENSE.txt
+
+Description: Interactive graphing library for Python
+
+--------------------------------------------------------------------------------
+4.18 Transformers (>=4.41.1)
+--------------------------------------------------------------------------------
+Copyright: Hugging Face, Inc.
+License: Apache License 2.0
+URL: https://github.com/huggingface/transformers
+License URL: https://github.com/huggingface/transformers/blob/main/LICENSE
+
+Description: State-of-the-art Natural Language Processing library
+
+--------------------------------------------------------------------------------
+4.19 Rich (>=13.6.0)
+--------------------------------------------------------------------------------
+Copyright: Will McGugan
+License: MIT License
+URL: https://github.com/Textualize/rich
+License URL: https://github.com/Textualize/rich/blob/master/LICENSE
+
+Description: Rich text and beautiful formatting in the terminal
+
+--------------------------------------------------------------------------------
+4.20 Typer (>=0.9.0)
+--------------------------------------------------------------------------------
+Copyright: Sebastian Ramirez (tiangolo)
+License: MIT License
+URL: https://github.com/tiangolo/typer
+License URL: https://github.com/tiangolo/typer/blob/master/LICENSE
+
+Description: Build command-line interface applications
+
+--------------------------------------------------------------------------------
+4.21 Python-dotenv (>=1.0.1)
+--------------------------------------------------------------------------------
+Copyright: Saurabh Kumar
+License: BSD 3-Clause License
+URL: https://github.com/theskumar/python-dotenv
+License URL: https://github.com/theskumar/python-dotenv/blob/main/LICENSE
+
+Description: Read key-value pairs from .env file
+
+--------------------------------------------------------------------------------
+4.22 Loguru (>=0.7.2)
+--------------------------------------------------------------------------------
+Copyright: Delgan
+License: MIT License
+URL: https://github.com/Delgan/loguru
+License URL: https://github.com/Delgan/loguru/blob/master/LICENSE
+
+Description: Python logging made simple
+
+--------------------------------------------------------------------------------
+4.23 TQDM (>=4.66.0)
+--------------------------------------------------------------------------------
+Copyright: tqdm developers
+License: MIT License / Mozilla Public License 2.0
+URL: https://github.com/tqdm/tqdm
+License URL: https://github.com/tqdm/tqdm/blob/master/LICENCE
+
+Description: Fast, extensible progress bar for Python and CLI
+
+--------------------------------------------------------------------------------
+4.24 PyYAML (>=6.0.1)
+--------------------------------------------------------------------------------
+Copyright: Kirill Simonov and PyYAML Contributors
+License: MIT License
+URL: https://github.com/yaml/pyyaml
+License URL: https://github.com/yaml/pyyaml/blob/main/LICENSE
+
+Description: YAML parser and emitter for Python
+
+--------------------------------------------------------------------------------
+4.25 Marshmallow (>=3.20.1)
+--------------------------------------------------------------------------------
+Copyright: Steven Loria and Contributors
+License: MIT License
+URL: https://github.com/marshmallow-code/marshmallow
+License URL: https://github.com/marshmallow-code/marshmallow/blob/dev/LICENSE
+
+Description: Object serialization/deserialization library
+
+--------------------------------------------------------------------------------
+4.26 Redis (>=5.0.1)
+--------------------------------------------------------------------------------
+Copyright: Redis Python Contributors
+License: MIT License
+URL: https://github.com/redis/redis-py
+License URL: https://github.com/redis/redis-py/blob/master/LICENSE
+
+Description: Python client for Redis key-value store
+
+--------------------------------------------------------------------------------
+4.27 Celery (>=5.3.4)
+--------------------------------------------------------------------------------
+Copyright: Ask Solem and Celery Contributors
+License: BSD 3-Clause License
+URL: https://github.com/celery/celery
+License URL: https://github.com/celery/celery/blob/main/LICENSE
+
+Description: Distributed task queue
+
+--------------------------------------------------------------------------------
+4.28 Pytest (>=7.4.3)
+--------------------------------------------------------------------------------
+Copyright: Holger Krekel and pytest-dev team
+License: MIT License
+URL: https://github.com/pytest-dev/pytest
+License URL: https://github.com/pytest-dev/pytest/blob/main/LICENSE
+
+Description: Testing framework for Python
+
+--------------------------------------------------------------------------------
+4.29 Black (>=23.12.1)
+--------------------------------------------------------------------------------
+Copyright: Lukasz Langa and Black Contributors
+License: MIT License
+URL: https://github.com/psf/black
+License URL: https://github.com/psf/black/blob/main/LICENSE
+
+Description: The uncompromising Python code formatter
+
+--------------------------------------------------------------------------------
+4.30 Pillow (>=10.1.0)
+--------------------------------------------------------------------------------
+Copyright: Jeffrey A. Clark (Alex) and Pillow Contributors
+License: Historical Permission Notice and Disclaimer (HPND)
+URL: https://github.com/python-pillow/Pillow
+License URL: https://github.com/python-pillow/Pillow/blob/main/LICENSE
+
+Description: Python Imaging Library fork
+
+--------------------------------------------------------------------------------
+4.31 Pymongo (>=4.5.0)
+--------------------------------------------------------------------------------
+Copyright: MongoDB, Inc.
+License: Apache License 2.0
+URL: https://github.com/mongodb/mongo-python-driver
+License URL: https://github.com/mongodb/mongo-python-driver/blob/master/LICENSE
+
+Description: Python driver for MongoDB
+
+--------------------------------------------------------------------------------
+4.32 Sentry-SDK (>=1.38.0)
+--------------------------------------------------------------------------------
+Copyright: Sentry
+License: BSD 2-Clause License
+URL: https://github.com/getsentry/sentry-python
+License URL: https://github.com/getsentry/sentry-python/blob/master/LICENSE
+
+Description: Error tracking and performance monitoring
+
+--------------------------------------------------------------------------------
+4.33 Prometheus-Client (>=0.19.0)
+--------------------------------------------------------------------------------
+Copyright: Prometheus Python Client Contributors
+License: Apache License 2.0
+URL: https://github.com/prometheus/client_python
+License URL: https://github.com/prometheus/client_python/blob/master/LICENSE
+
+Description: Prometheus instrumentation library for Python
+
+================================================================================
+SECTION 5: PYTHON SOFTWARE FOUNDATION LICENSE COMPONENTS
+================================================================================
+
+The following components are licensed under the Python Software Foundation License:
+
+--------------------------------------------------------------------------------
+5.1 Python Standard Library Components
+--------------------------------------------------------------------------------
+Copyright: Python Software Foundation
+License: Python Software Foundation License (PSF)
+URL: https://www.python.org
+License URL: https://docs.python.org/3/license.html
+
+Description: Various standard library modules used by the BioQL Ecosystem
+Notice: Python's licensing is compatible with commercial use
+
+================================================================================
+SECTION 6: OTHER OPEN SOURCE LICENSES
+================================================================================
+
+--------------------------------------------------------------------------------
+6.1 TensorFlow (>=2.13.0)
+--------------------------------------------------------------------------------
+Copyright: Google LLC and TensorFlow Contributors
+License: Apache License 2.0
+URL: https://github.com/tensorflow/tensorflow
+License URL: https://github.com/tensorflow/tensorflow/blob/master/LICENSE
+
+Description: End-to-end machine learning platform
+
+--------------------------------------------------------------------------------
+6.2 Keras (>=2.13.0)
+--------------------------------------------------------------------------------
+Copyright: François Chollet and Keras Contributors
+License: Apache License 2.0
+URL: https://github.com/keras-team/keras
+License URL: https://github.com/keras-team/keras/blob/master/LICENSE
+
+Description: High-level neural networks API
+
+--------------------------------------------------------------------------------
+6.3 PyTeomics (>=4.6)
+--------------------------------------------------------------------------------
+Copyright: Anton Goloborodko and PyTeomics Contributors
+License: Apache License 2.0
+URL: https://github.com/levitsky/pyteomics
+License URL: https://github.com/levitsky/pyteomics/blob/master/LICENSE
+
+Description: Mass spectrometry data analysis library
+
+--------------------------------------------------------------------------------
+6.4 PyOpenMS (>=2.9.1)
+--------------------------------------------------------------------------------
+Copyright: OpenMS Team
+License: BSD 3-Clause License
+URL: https://github.com/OpenMS/OpenMS
+License URL: https://github.com/OpenMS/OpenMS/blob/develop/LICENSE
+
+Description: OpenMS framework for mass spectrometry
+
+--------------------------------------------------------------------------------
+6.5 Jupyter (>=1.0.0)
+--------------------------------------------------------------------------------
+Copyright: Project Jupyter Contributors
+License: BSD 3-Clause License
+URL: https://github.com/jupyter/jupyter
+License URL: https://github.com/jupyter/jupyter/blob/master/LICENSE
+
+Description: Interactive computing environment
+
+--------------------------------------------------------------------------------
+6.6 JupyterLab (>=4.0.0)
+--------------------------------------------------------------------------------
+Copyright: Project Jupyter Contributors
+License: BSD 3-Clause License
+URL: https://github.com/jupyterlab/jupyterlab
+License URL: https://github.com/jupyterlab/jupyterlab/blob/master/LICENSE
+
+Description: Web-based interactive development environment
+
+--------------------------------------------------------------------------------
+6.7 IPython (>=8.17.2)
+--------------------------------------------------------------------------------
+Copyright: IPython Development Team
+License: BSD 3-Clause License
+URL: https://github.com/ipython/ipython
+License URL: https://github.com/ipython/ipython/blob/main/LICENSE
+
+Description: Enhanced interactive Python shell
+
+--------------------------------------------------------------------------------
+6.8 Gevent (>=23.9.1)
+--------------------------------------------------------------------------------
+Copyright: Denis Bilenko and gevent contributors
+License: MIT License
+URL: https://github.com/gevent/gevent
+License URL: https://github.com/gevent/gevent/blob/master/LICENSE
+
+Description: Coroutine-based networking library
+
+--------------------------------------------------------------------------------
+6.9 Eventlet (>=0.33.3)
+--------------------------------------------------------------------------------
+Copyright: Linden Research, Inc. and Eventlet Contributors
+License: MIT License
+URL: https://github.com/eventlet/eventlet
+License URL: https://github.com/eventlet/eventlet/blob/master/LICENSE
+
+Description: Concurrent networking library
+
+--------------------------------------------------------------------------------
+6.10 WebSockets (>=12.0)
+--------------------------------------------------------------------------------
+Copyright: Aymeric Augustin
+License: BSD 3-Clause License
+URL: https://github.com/python-websockets/websockets
+License URL: https://github.com/python-websockets/websockets/blob/main/LICENSE
+
+Description: WebSocket protocol implementation
+
+--------------------------------------------------------------------------------
+6.11 Passlib (>=1.7.4)
+--------------------------------------------------------------------------------
+Copyright: Eli Collins
+License: BSD 3-Clause License
+URL: https://foss.heptapod.net/python-libs/passlib
+License URL: https://passlib.readthedocs.io/en/stable/copyright.html
+
+Description: Comprehensive password hashing framework
+
+--------------------------------------------------------------------------------
+6.12 WTForms (>=3.1.1)
+--------------------------------------------------------------------------------
+Copyright: WTForms Team
+License: BSD 3-Clause License
+URL: https://github.com/wtforms/wtforms
+License URL: https://github.com/wtforms/wtforms/blob/master/LICENSE.rst
+
+Description: Flexible forms validation and rendering library
+
+--------------------------------------------------------------------------------
+6.13 Bleach (>=6.1.0)
+--------------------------------------------------------------------------------
+Copyright: Mozilla Foundation and Contributors
+License: Apache License 2.0
+URL: https://github.com/mozilla/bleach
+License URL: https://github.com/mozilla/bleach/blob/main/LICENSE
+
+Description: HTML sanitizing library
+
+--------------------------------------------------------------------------------
+6.14 Email-Validator (>=2.1.0)
+--------------------------------------------------------------------------------
+Copyright: Joshua Tauberer
+License: Unlicense (Public Domain)
+URL: https://github.com/JoshData/python-email-validator
+License URL: https://github.com/JoshData/python-email-validator/blob/main/LICENSE
+
+Description: Email address validation library
+
+--------------------------------------------------------------------------------
+6.15 Datasets (>=2.19.1)
+--------------------------------------------------------------------------------
+Copyright: Hugging Face, Inc.
+License: Apache License 2.0
+URL: https://github.com/huggingface/datasets
+License URL: https://github.com/huggingface/datasets/blob/main/LICENSE
+
+Description: Fast, efficient dataset library for machine learning
+
+--------------------------------------------------------------------------------
+6.16 Accelerate (>=0.31.0)
+--------------------------------------------------------------------------------
+Copyright: Hugging Face, Inc.
+License: Apache License 2.0
+URL: https://github.com/huggingface/accelerate
+License URL: https://github.com/huggingface/accelerate/blob/main/LICENSE
+
+Description: Distributed training library
+
+--------------------------------------------------------------------------------
+6.17 PEFT (>=0.11.1)
+--------------------------------------------------------------------------------
+Copyright: Hugging Face, Inc.
+License: Apache License 2.0
+URL: https://github.com/huggingface/peft
+License URL: https://github.com/huggingface/peft/blob/main/LICENSE
+
+Description: Parameter-efficient fine-tuning of large models
+
+--------------------------------------------------------------------------------
+6.18 SentencePiece (>=0.2.0)
+--------------------------------------------------------------------------------
+Copyright: Google LLC
+License: Apache License 2.0
+URL: https://github.com/google/sentencepiece
+License URL: https://github.com/google/sentencepiece/blob/master/LICENSE
+
+Description: Unsupervised text tokenizer and detokenizer
+
+--------------------------------------------------------------------------------
+6.19 Py3Dmol (>=2.0.4)
+--------------------------------------------------------------------------------
+Copyright: 3Dmol Contributors
+License: BSD 3-Clause License
+URL: https://github.com/3dmol/3Dmol.js
+License URL: https://github.com/avirshup/py3dmol/blob/master/LICENSE
+
+Description: 3D molecular visualization in Python
+
+--------------------------------------------------------------------------------
+6.20 OpenPyXL (>=3.1.2)
+--------------------------------------------------------------------------------
+Copyright: Eric Gazoni, Charlie Clark
+License: MIT License
+URL: https://foss.heptapod.net/openpyxl/openpyxl
+License URL: https://openpyxl.readthedocs.io/en/stable/
+
+Description: Read/write Excel 2010 xlsx/xlsm files
+
+--------------------------------------------------------------------------------
+6.21 PyPDF2 (>=3.0.1)
+--------------------------------------------------------------------------------
+Copyright: Mathieu Fenniak and PyPDF2 Contributors
+License: BSD 3-Clause License
+URL: https://github.com/py-pdf/pypdf
+License URL: https://github.com/py-pdf/pypdf/blob/main/LICENSE
+
+Description: PDF manipulation library
+
+--------------------------------------------------------------------------------
+6.22 JsonSchema (>=4.19.0)
+--------------------------------------------------------------------------------
+Copyright: Julian Berman
+License: MIT License
+URL: https://github.com/python-jsonschema/jsonschema
+License URL: https://github.com/python-jsonschema/jsonschema/blob/main/COPYING
+
+Description: JSON Schema validation implementation
+
+--------------------------------------------------------------------------------
+6.23 TOML (>=0.10.2)
+--------------------------------------------------------------------------------
+Copyright: William Pearson
+License: MIT License
+URL: https://github.com/uiri/toml
+License URL: https://github.com/uiri/toml/blob/master/LICENSE
+
+Description: Python library for parsing TOML
+
+--------------------------------------------------------------------------------
+6.24 Markdown (>=3.5.1)
+--------------------------------------------------------------------------------
+Copyright: Manfred Stienstra, Yuri Takhteyev, and Waylan Limberg
+License: BSD 3-Clause License
+URL: https://github.com/Python-Markdown/markdown
+License URL: https://github.com/Python-Markdown/markdown/blob/master/LICENSE.md
+
+Description: Python implementation of Markdown
+
+--------------------------------------------------------------------------------
+6.25 Flake8 (>=6.1.0)
+--------------------------------------------------------------------------------
+Copyright: Ian Cordasco
+License: MIT License
+URL: https://github.com/PyCQA/flake8
+License URL: https://github.com/PyCQA/flake8/blob/main/LICENSE
+
+Description: Code linter for style guide enforcement
+
+--------------------------------------------------------------------------------
+6.26 MyPy (>=1.7.0)
+--------------------------------------------------------------------------------
+Copyright: Jukka Lehtosalo and MyPy Contributors
+License: MIT License
+URL: https://github.com/python/mypy
+License URL: https://github.com/python/mypy/blob/master/LICENSE
+
+Description: Static type checker for Python
+
+--------------------------------------------------------------------------------
+6.27 Pylint (>=2.17.0)
+--------------------------------------------------------------------------------
+Copyright: Logilab and PyCQA
+License: GPL v2
+URL: https://github.com/pylint-dev/pylint
+License URL: https://github.com/pylint-dev/pylint/blob/main/LICENSE
+
+Description: Source code analyzer for Python
+Notice: GPL license - check compatibility with your use case
+
+--------------------------------------------------------------------------------
+6.28 isort (>=5.12.0)
+--------------------------------------------------------------------------------
+Copyright: Timothy Crosley
+License: MIT License
+URL: https://github.com/PyCQA/isort
+License URL: https://github.com/PyCQA/isort/blob/main/LICENSE
+
+Description: Python utility to sort imports
+
+--------------------------------------------------------------------------------
+6.29 MkDocs (>=1.5.0)
+--------------------------------------------------------------------------------
+Copyright: Tom Christie and MkDocs Contributors
+License: BSD 2-Clause License
+URL: https://github.com/mkdocs/mkdocs
+License URL: https://github.com/mkdocs/mkdocs/blob/master/LICENSE
+
+Description: Static site generator for project documentation
+
+================================================================================
+SECTION 7: FULL LICENSE TEXTS
+================================================================================
+
+================================================================================
+7.1 APACHE LICENSE 2.0
+================================================================================
+
+                                 Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in this section) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of their Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
+
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
+
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
+
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
+
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
+
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
+
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   END OF TERMS AND CONDITIONS
+
+================================================================================
+7.2 BSD 3-CLAUSE LICENSE
+================================================================================
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+   contributors may be used to endorse or promote products derived from
+   this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+================================================================================
+7.3 BSD 2-CLAUSE LICENSE
+================================================================================
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+================================================================================
+7.4 MIT LICENSE
+================================================================================
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+================================================================================
+7.5 PYTHON SOFTWARE FOUNDATION LICENSE
+================================================================================
+
+PYTHON SOFTWARE FOUNDATION LICENSE VERSION 2
+--------------------------------------------
+
+1. This LICENSE AGREEMENT is between the Python Software Foundation ("PSF"),
+   and the Individual or Organization ("Licensee") accessing and otherwise
+   using this software ("Python") in source or binary form and its associated
+   documentation.
+
+2. Subject to the terms and conditions of this License Agreement, PSF hereby
+   grants Licensee a nonexclusive, royalty-free, world-wide license to
+   reproduce, analyze, test, perform and/or display publicly, prepare
+   derivative works, distribute, and otherwise use Python alone or in any
+   derivative version, provided, however, that PSF's License Agreement and
+   PSF's notice of copyright, i.e., "Copyright (c) 2001-2025 Python Software
+   Foundation; All Rights Reserved" are retained in Python alone or in any
+   derivative version prepared by Licensee.
+
+3. In the event Licensee prepares a derivative work that is based on or
+   incorporates Python or any part thereof, and wants to make the derivative
+   work available to others as provided herein, then Licensee hereby agrees
+   to include in any such work a brief summary of the changes made to Python.
+
+4. PSF is making Python available to Licensee on an "AS IS" basis. PSF MAKES
+   NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED. BY WAY OF EXAMPLE,
+   BUT NOT LIMITATION, PSF MAKES NO AND DISCLAIMS ANY REPRESENTATION OR
+   WARRANTY OF MERCHANTABILITY OR FITNESS FOR ANY PARTICULAR PURPOSE OR THAT
+   THE USE OF PYTHON WILL NOT INFRINGE ANY THIRD PARTY RIGHTS.
+
+5. PSF SHALL NOT BE LIABLE TO LICENSEE OR ANY OTHER USERS OF PYTHON FOR ANY
+   INCIDENTAL, SPECIAL, OR CONSEQUENTIAL DAMAGES OR LOSS AS A RESULT OF
+   MODIFYING, DISTRIBUTING, OR OTHERWISE USING PYTHON, OR ANY DERIVATIVE
+   THEREOF, EVEN IF ADVISED OF THE POSSIBILITY THEREOF.
+
+6. This License Agreement will automatically terminate upon a material breach
+   of its terms and conditions.
+
+7. Nothing in this License Agreement shall be deemed to create any
+   relationship of agency, partnership, or joint venture between PSF and
+   Licensee. This License Agreement does not grant permission to use PSF
+   trademarks or trade name in a trademark sense to endorse or promote
+   products or services of Licensee, or any third party.
+
+8. By copying, installing or otherwise using Python, Licensee agrees to be
+   bound by the terms and conditions of this License Agreement.
+
+================================================================================
+END OF THIRD-PARTY NOTICES
+================================================================================
+
+ADDITIONAL NOTES:
+
+1. VERSION INFORMATION:
+   This notice reflects the dependencies as specified in requirements.txt
+   version 2.0.0, dated 2025-11-12. Actual installed versions may vary
+   based on dependency resolution and updates.
+
+2. TRANSITIVE DEPENDENCIES:
+   Many packages listed here have their own dependencies (transitive
+   dependencies) which are not individually listed in this document. Users
+   should be aware that installing these packages may install additional
+   dependencies with their own licenses.
+
+3. OPTIONAL DEPENDENCIES:
+   Some dependencies in requirements.txt are commented out as optional.
+   These are not included in the count above but may be used in certain
+   configurations of the BioQL Ecosystem.
+
+4. LICENSE VERIFICATION:
+   Users are encouraged to verify license terms independently by:
+   - Checking package repositories (PyPI, GitHub, etc.)
+   - Using tools like `pip-licenses` or `licensecheck`
+   - Reviewing LICENSE files in installed package directories
+   - Consulting with legal counsel for commercial deployments
+
+5. LICENSE COMPATIBILITY:
+   While most licenses listed here are permissive and compatible with
+   commercial use, special attention should be paid to:
+   - GPL-licensed components (e.g., Pylint) which have copyleft requirements
+   - Packages with dual licensing options
+   - Patent clauses in Apache 2.0 licensed components
+
+6. UPDATES:
+   This document should be regenerated whenever dependencies are updated
+   or modified. The BioQL project maintainers are responsible for keeping
+   this document current with the consolidated requirements.txt file.
+
+7. CONTACT:
+   For questions about licensing of the BioQL Ecosystem itself or this
+   notice file, please contact the BioQL project maintainers.
+
+For questions about specific third-party component licenses, please contact
+the respective copyright holders or refer to their project documentation.
+
+Last Updated: 2025-11-12
+Generated for: BioQL Ecosystem v2.0.0

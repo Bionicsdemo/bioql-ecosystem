@@ -11,11 +11,10 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
-from qiskit import QuantumCircuit
 import matplotlib.pyplot as plt
-
-from bioql.visualization import QECVisualizer, ResourceEstimator
 from bioql.qec import SurfaceCodeQEC
+from bioql.visualization import QECVisualizer, ResourceEstimator
+from qiskit import QuantumCircuit
 
 
 def create_sample_circuit(num_qubits: int = 10, depth: int = 100) -> QuantumCircuit:
@@ -74,9 +73,7 @@ def example_surface_code_scaling():
 
     # Create plot
     fig = viz.plot_code_distance_scaling(
-        qec_type='surface',
-        distance_range=distances,
-        error_rate=0.001
+        qec_type="surface", distance_range=distances, error_rate=0.001
     )
 
     # Save figure
@@ -121,11 +118,7 @@ def example_resource_estimation():
     print("-" * 70)
 
     for distance in distances:
-        qec_config = {
-            'type': 'surface',
-            'distance': distance,
-            'error_rate': 0.001
-        }
+        qec_config = {"type": "surface", "distance": distance, "error_rate": 0.001}
 
         # Estimate resources
         resources = estimator.estimate_resources(circuit, qec_config)
@@ -155,16 +148,15 @@ def example_overhead_visualization():
 
     # Define different surface code configurations
     qec_configs = [
-        {'type': 'surface', 'distance': 3, 'error_rate': 0.001},
-        {'type': 'surface', 'distance': 5, 'error_rate': 0.001},
-        {'type': 'surface', 'distance': 7, 'error_rate': 0.001},
-        {'type': 'surface', 'distance': 9, 'error_rate': 0.001},
+        {"type": "surface", "distance": 3, "error_rate": 0.001},
+        {"type": "surface", "distance": 5, "error_rate": 0.001},
+        {"type": "surface", "distance": 7, "error_rate": 0.001},
+        {"type": "surface", "distance": 9, "error_rate": 0.001},
     ]
 
     # Create overhead plot
     fig = viz.plot_qubit_overhead(
-        qec_configs,
-        logical_qubits_range=[5, 10, 20, 50, 100, 200, 500, 1000]
+        qec_configs, logical_qubits_range=[5, 10, 20, 50, 100, 200, 500, 1000]
     )
 
     # Save figure
@@ -194,17 +186,16 @@ def example_interactive_plot():
 
     # Define surface code configurations
     qec_configs = [
-        {'type': 'surface', 'distance': 3, 'error_rate': 0.001},
-        {'type': 'surface', 'distance': 5, 'error_rate': 0.001},
-        {'type': 'surface', 'distance': 7, 'error_rate': 0.001},
-        {'type': 'surface', 'distance': 9, 'error_rate': 0.001},
-        {'type': 'surface', 'distance': 11, 'error_rate': 0.001},
+        {"type": "surface", "distance": 3, "error_rate": 0.001},
+        {"type": "surface", "distance": 5, "error_rate": 0.001},
+        {"type": "surface", "distance": 7, "error_rate": 0.001},
+        {"type": "surface", "distance": 9, "error_rate": 0.001},
+        {"type": "surface", "distance": 11, "error_rate": 0.001},
     ]
 
     # Create interactive plot
     fig = viz.create_interactive_plot(
-        qec_configs,
-        logical_qubits_range=[5, 10, 20, 50, 100, 200, 500, 1000]
+        qec_configs, logical_qubits_range=[5, 10, 20, 50, 100, 200, 500, 1000]
     )
 
     # Save as HTML
@@ -236,11 +227,7 @@ def example_qec_report():
     viz = QECVisualizer()
 
     # Estimate resources
-    qec_config = {
-        'type': 'surface',
-        'distance': 7,
-        'error_rate': 0.001
-    }
+    qec_config = {"type": "surface", "distance": 7, "error_rate": 0.001}
 
     resources = estimator.estimate_resources(circuit, qec_config)
 

@@ -7,7 +7,8 @@ Predicts potential off-target effects based on:
 - Known off-target databases
 """
 
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
+
 import numpy as np
 
 from .featurization import calculate_gc_content
@@ -17,7 +18,7 @@ def infer_offtarget_phenotype(
     guide_seq: str,
     genome_regions: Optional[List[str]] = None,
     similarity_threshold: float = 0.8,
-    max_mismatches: int = 3
+    max_mismatches: int = 3,
 ) -> Dict[str, Any]:
     """
     Infer potential off-target effects for a guide RNA
@@ -45,43 +46,41 @@ def infer_offtarget_phenotype(
     """
     # Initialize result
     result = {
-        'guide_sequence': guide_seq,
-        'offtarget_risk': 'unknown',
-        'num_potential_offtargets': 0,
-        'offtarget_sites': [],
-        'risk_score': 0.0,
-        'recommendations': []
+        "guide_sequence": guide_seq,
+        "offtarget_risk": "unknown",
+        "num_potential_offtargets": 0,
+        "offtarget_sites": [],
+        "risk_score": 0.0,
+        "recommendations": [],
     }
 
     # If no genome regions provided, use heuristic scoring
     if genome_regions is None:
         risk_score = _heuristic_offtarget_score(guide_seq)
-        result['risk_score'] = risk_score
-        result['offtarget_risk'] = _categorize_risk(risk_score)
-        result['recommendations'] = _generate_recommendations(guide_seq, risk_score)
+        result["risk_score"] = risk_score
+        result["offtarget_risk"] = _categorize_risk(risk_score)
+        result["recommendations"] = _generate_recommendations(guide_seq, risk_score)
         return result
 
     # Search for potential off-targets in genome
     potential_offtargets = []
 
     for idx, region in enumerate(genome_regions):
-        matches = find_similar_sequences(
-            guide_seq,
-            region,
-            max_mismatches=max_mismatches
-        )
+        matches = find_similar_sequences(guide_seq, region, max_mismatches=max_mismatches)
 
         for match in matches:
-            similarity = calculate_sequence_similarity(guide_seq, match['sequence'])
+            similarity = calculate_sequence_similarity(guide_seq, match["sequence"])
 
             if similarity >= similarity_threshold:
-                potential_offtargets.append({
-                    'region_index': idx,
-                    'position': match['position'],
-                    'sequence': match['sequence'],
-                    'similarity': similarity,
-                    'mismatches': match['mismatches']
-                })
+                potential_offtargets.append(
+                    {
+                        "region_index": idx,
+                        "position": match["position"],
+                        "sequence": match["sequence"],
+                        "similarity": similarity,
+                        "mismatches": match["mismatches"],
+                    }
+                )
 
     # Calculate risk score
     num_offtargets = len(potential_offtargets)
@@ -96,23 +95,21 @@ def infer_offtarget_phenotype(
         risk_score = 0.9
 
     # Adjust for high-similarity matches
-    high_sim_count = sum(1 for ot in potential_offtargets if ot['similarity'] > 0.95)
+    high_sim_count = sum(1 for ot in potential_offtargets if ot["similarity"] > 0.95)
     risk_score += high_sim_count * 0.1
     risk_score = min(risk_score, 1.0)
 
-    result['num_potential_offtargets'] = num_offtargets
-    result['offtarget_sites'] = potential_offtargets[:10]  # Top 10
-    result['risk_score'] = risk_score
-    result['offtarget_risk'] = _categorize_risk(risk_score)
-    result['recommendations'] = _generate_recommendations(guide_seq, risk_score)
+    result["num_potential_offtargets"] = num_offtargets
+    result["offtarget_sites"] = potential_offtargets[:10]  # Top 10
+    result["risk_score"] = risk_score
+    result["offtarget_risk"] = _categorize_risk(risk_score)
+    result["recommendations"] = _generate_recommendations(guide_seq, risk_score)
 
     return result
 
 
 def find_similar_sequences(
-    query: str,
-    target: str,
-    max_mismatches: int = 3
+    query: str, target: str, max_mismatches: int = 3
 ) -> List[Dict[str, Any]]:
     """
     Find similar sequences in target allowing mismatches
@@ -131,15 +128,11 @@ def find_similar_sequences(
     matches = []
 
     for i in range(len(target) - query_len + 1):
-        window = target[i:i + query_len]
+        window = target[i : i + query_len]
         mismatches = sum(q != t for q, t in zip(query, window))
 
         if mismatches <= max_mismatches:
-            matches.append({
-                'position': i,
-                'sequence': window,
-                'mismatches': mismatches
-            })
+            matches.append({"position": i, "sequence": window, "mismatches": mismatches})
 
     return matches
 
@@ -158,8 +151,8 @@ def calculate_sequence_similarity(seq1: str, seq2: str) -> float:
     if len(seq1) != len(seq2):
         # Pad shorter sequence
         max_len = max(len(seq1), len(seq2))
-        seq1 = seq1.ljust(max_len, 'N')
-        seq2 = seq2.ljust(max_len, 'N')
+        seq1 = seq1.ljust(max_len, "N")
+        seq2 = seq2.ljust(max_len, "N")
 
     matches = sum(c1 == c2 for c1, c2 in zip(seq1, seq2))
     return matches / len(seq1)
@@ -189,10 +182,10 @@ def _heuristic_offtarget_score(guide_seq: str) -> float:
 
     # Sequence complexity (Shannon entropy)
     nucleotide_counts = {
-        'A': guide_seq.count('A'),
-        'T': guide_seq.count('T'),
-        'C': guide_seq.count('C'),
-        'G': guide_seq.count('G')
+        "A": guide_seq.count("A"),
+        "T": guide_seq.count("T"),
+        "C": guide_seq.count("C"),
+        "G": guide_seq.count("G"),
     }
 
     total = len(guide_seq)
@@ -207,11 +200,7 @@ def _heuristic_offtarget_score(guide_seq: str) -> float:
     repeat_risk = _detect_repeat_patterns(guide_seq)
 
     # Composite risk
-    risk_score = (
-        0.3 * gc_risk +
-        0.4 * complexity_risk +
-        0.3 * repeat_risk
-    )
+    risk_score = 0.3 * gc_risk + 0.4 * complexity_risk + 0.3 * repeat_risk
 
     return risk_score
 
@@ -232,7 +221,7 @@ def _detect_repeat_patterns(seq: str, window_size: int = 3) -> float:
 
     kmers = {}
     for i in range(len(seq) - window_size + 1):
-        kmer = seq[i:i + window_size]
+        kmer = seq[i : i + window_size]
         kmers[kmer] = kmers.get(kmer, 0) + 1
 
     # Find most frequent k-mer
@@ -256,11 +245,11 @@ def _categorize_risk(risk_score: float) -> str:
         'low', 'medium', or 'high'
     """
     if risk_score < 0.3:
-        return 'low'
+        return "low"
     elif risk_score < 0.6:
-        return 'medium'
+        return "medium"
     else:
-        return 'high'
+        return "high"
 
 
 def _generate_recommendations(guide_seq: str, risk_score: float) -> List[str]:

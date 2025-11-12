@@ -1,0 +1,26 @@
+# Core runtime
+modal>=0.62.0
+python-dotenv>=1.0.1
+
+# DL / GPU
+torch>=2.3.0
+numpy>=1.26.0
+
+# Qiskit stack
+qiskit>=1.1.0
+qiskit-ibm-runtime>=0.25.0
+qiskit-aer>=0.14.0
+
+# Domain libs (pinned for safety)
+bioql>=5.3
+quillow==1.0.0
+qpharos==1.1.0
+
+# Instruction-tuning stack
+transformers>=4.41.1
+datasets>=2.19.1
+accelerate>=0.31.0
+peft>=0.11.1
+bitsandbytes>=0.43.1
+sentencepiece>=0.2.0
+httpx>=0.27.0

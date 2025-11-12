@@ -1,0 +1,122 @@
+{
+  "report_id": "BIOQL-GENIKA-PT-2025-001-20251025",
+  "patient_id": "GENIKA-PT-2025-001",
+  "analysis_date": "2025-10-25T22:28:21.560588",
+  "disease_model": "Type 2 Diabetes Mellitus",
+  "platform": "BioQL Multi-Omics Quantum Platform 6.0.0",
+  "backend": "IBM Torino (simulator)",
+  "clinical_context": {
+    "patient_id": "GENIKA-PT-2025-001",
+    "age": 54,
+    "gender": "female",
+    "bmi": 31.2,
+    "diagnosis": "Type 2 Diabetes Mellitus",
+    "lab_values": {
+      "fasting_glucose_mgdl": 156,
+      "hba1c_percent": 7.8,
+      "total_cholesterol_mgdl": 245,
+      "ldl_cholesterol_mgdl": 158,
+      "hdl_cholesterol_mgdl": 42,
+      "triglycerides_mgdl": 225,
+      "creatinine_mgdl": 0.9,
+      "alt_ul": 28,
+      "ast_ul": 24
+    },
+    "medications": [
+      "Metformin 1000mg BID",
+      "Atorvastatin 20mg daily"
+    ],
+    "family_history": {
+      "diabetes": true,
+      "cardiovascular_disease": true,
+      "cancer": false
+    },
+    "lifestyle": {
+      "smoking": "never",
+      "alcohol": "occasional",
+      "exercise": "sedentary"
+    }
+  },
+  "proteomics_findings": {
+    "proteins_analyzed": 10,
+    "key_protein": "Insulin Receptor Substrate 1 (IRS1)",
+    "sequence_length": 56,
+    "molecular_weight": 6244.0586,
+    "isoelectric_point": 9.394993782043457,
+    "ptm_sites_found": 5,
+    "execution_time_seconds": 0.02880692481994629
+  },
+  "metabolomics_findings": {
+    "metabolites_identified": 3,
+    "identified_compounds": [
+      {
+        "query_mass": 180.156,
+        "expected": "Glucose",
+        "top_match": "Glucose",
+        "confidence": 0.9
+      },
+      {
+        "query_mass": 90.031,
+        "expected": "Lactate",
+        "top_match": "None",
+        "confidence": 0.0
+      },
+      {
+        "query_mass": 147.053,
+        "expected": "Glutamate",
+        "top_match": "None",
+        "confidence": 0.0
+      }
+    ]
+  },
+  "genomics_findings": {
+    "variants_analyzed": 5,
+    "high_risk_variants": [
+      "rs7903146",
+      "rs9939609"
+    ],
+    "polygenic_risk_score": 1.155,
+    "risk_category": "Moderate"
+  },
+  "integrated_insights": {
+    "integration_method": "quantum_fusion",
+    "integrated_shape": "(5, 20)",
+    "latent_factors": 5,
+    "variance_explained": [
+      0.3,
+      0.2,
+      0.15
+    ],
+    "key_correlations": [
+      {
+        "layer1": "Transcriptomics:IRS1",
+        "layer2": "Proteomics:INSR",
+        "coefficient": 0.87,
+        "p_value": 1.2e-05
+      },
+      {
+        "layer1": "Proteomics:GLUT4",
+        "layer2": "Metabolomics:Glucose",
+        "coefficient": -0.76,
+        "p_value": 0.00034
+      },
+      {
+        "layer1": "Transcriptomics:TCF7L2",
+        "layer2": "Metabolomics:Lactate",
+        "coefficient": 0.68,
+        "p_value": 0.0081
+      }
+    ]
+  },
+  "quantum_performance": {
+    "total_runtime_seconds": 0.02880692481994629,
+    "backend_used": "IBM Torino (simulator)",
+    "shots_executed": "N/A (simulator mode)"
+  },
+  "recommendations": [
+    "Monitor glucose metabolism pathways closely",
+    "Consider intensified glycemic control based on genetic risk profile",
+    "Follow-up multi-omics analysis recommended in 3-6 months",
+    "Genetic counseling for high-risk TCF7L2 variant"
+  ]
+}

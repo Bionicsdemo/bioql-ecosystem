@@ -36,7 +36,7 @@ Example:
 from typing import List
 
 from .qualtran_viz import QECVisualizer
-from .resource_estimator import ResourceEstimator, ResourceEstimation
+from .resource_estimator import ResourceEstimation, ResourceEstimator
 
 __version__ = "5.0.0"
 

@@ -1,0 +1,132 @@
+    def generate(self, prompt: str, max_length: int = 300, temperature: float = 0.7) -> dict:
+        """Generate BioQL code from prompt"""
+        import torch
+        import re
+
+        # Detect drug discovery tasks and generate correct code directly
+        prompt_lower = prompt.lower()
+
+        # Check for DE NOVO drug design tasks (BioQL 5.4.1 - DrugDesigner V2)
+        if any(kw in prompt_lower for kw in ['design', 'generate', 'create', 'discover']) and \
+           any(kw in prompt_lower for kw in ['drug', 'molecule', 'compound', 'ligand', 'new', 'novel', 'de novo']):
+            # Extract disease/target if possible
+            disease_match = re.search(r'(?:for|targeting|treat)\s+(\w+)', prompt_lower)
+            pdb_match = re.search(r'(?:pdb|id|receptor)(?:\s+(?:is|:))?\s+([0-9A-Z]{4})', prompt, re.IGNORECASE)
+
+            # Extract backend (full name like ibm_torino, ionq_aria)
+            backend_match = re.search(r'\b(ibm_\w+|ionq_\w+|aws_braket|simulator)\b', prompt_lower)
+            backend = backend_match.group(1) if backend_match else "ibm_torino"
+
+            # Extract shots number
+            shots_match = re.search(r'(?:with\s+)?(\d+)\s+shots?', prompt_lower)
+            shots = int(shots_match.group(1)) if shots_match else 5000
+
+            # Check if QEC is mentioned
+            enable_qec = any(kw in prompt_lower for kw in ['qec', 'error correction', 'surface code', 'quillow', 'steane', 'shor'])
+
+            # Extract QEC parameters if present
+            qec_type = 'surface_code'  # default
+            logical_qubits = 2  # default
+
+            if enable_qec:
+                if 'steane' in prompt_lower:
+                    qec_type = 'steane'
+                elif 'shor' in prompt_lower:
+                    qec_type = 'shor'
+
+                # Extract logical qubits
+                logical_match = re.search(r'(\d+)\s+logical\s+qubits?', prompt_lower)
+                if logical_match:
+                    logical_qubits = int(logical_match.group(1))
+
+            disease = disease_match.group(1) if disease_match else "unspecified disease"
+            pdb = pdb_match.group(1) if pdb_match else "unspecified"
+
+            # Build QEC parameters string if enabled
+            qec_params = ""
+            qec_info = ""
+            if enable_qec:
+                qec_params = f",\n    qec_enabled=True,\n    qec_type='{qec_type}',\n    logical_qubits={logical_qubits}"
+                qec_info = f" using {qec_type} error correction with {logical_qubits} logical qubits"
+
+            # Generate DE NOVO drug design code (BioQL 5.6.2 API)
+            code = f'''from bioql import quantum
+import os
+
+api_key = os.getenv('BIOQL_API_KEY', 'your_api_key_here')
+
+print("="*80)
+print("🧬 DE NOVO Drug Design V2 for {disease.capitalize()}")
+print("⚛️  VALIDATED Molecules + REAL AutoDock Vina")
+print("✅ RDKit Sanitization + PAINS Filters + ADME/Tox")
+{f'print("🛡️  QEC: {qec_type} with {logical_qubits} logical qubits")' if enable_qec else ''}
+print("="*80)
+
+# Execute de novo design on IBM Quantum hardware
+result = quantum(
+    "Design a new drug for {disease} targeting receptor PDB {pdb}{qec_info}",
+    backend='{backend}',  # Quantum backend from user request
+    shots={shots},        # Quantum measurements from user request
+    api_key=api_key{qec_params}
+)
+
+print(f"\\n✅ De Novo Design Complete!")
+print(f"Backend: {{result.backend if hasattr(result, 'backend') else 'ibm_torino'}}")
+
+# Access bio_interpretation for all data
+bio = getattr(result, 'bio_interpretation', {{}})
+
+# Molecule info
+if bio.get('designed_molecule'):
+    print(f"\\n🧬 Best Molecule:")
+    print(f"   SMILES: {{bio['designed_molecule']}}")
+    print(f"   Name: {{bio.get('molecule_name', 'N/A')}}")
+
+# Binding data
+if bio.get('binding_affinity'):
+    print(f"\\n📊 Binding Analysis:")
+    print(f"   Affinity: {{bio['binding_affinity']:.2f}} kcal/mol")
+    if bio.get('ki'):
+        print(f"   Ki: {{bio['ki']:.2f}} nM")
+    if bio.get('ic50'):
+        print(f"   IC50: {{bio['ic50']:.2f}} nM")
+
+# Drug-likeness
+if bio.get('qed_score') is not None:
+    print(f"\\n💊 Drug-Likeness:")
+    print(f"   QED Score: {{bio['qed_score']:.2f}}")
+    print(f"   SA Score: {{bio.get('sa_score', 'N/A')}}/10")
+    print(f"   Lipinski: {{'✅ Pass' if bio.get('lipinski_pass') else '❌ Fail'}} ({{bio.get('lipinski_violations', 0)}} violations)")
+
+# ADME properties
+if bio.get('molecular_weight'):
+    print(f"\\n🔬 ADME Properties:")
+    print(f"   MW: {{bio['molecular_weight']:.1f}} Da")
+    print(f"   LogP: {{bio.get('logP', 'N/A')}}")
+    print(f"   TPSA: {{bio.get('tpsa', 'N/A')}} Ų")
+    print(f"   Oral Bioavailability: {{bio.get('oral_bioavailability', 'N/A')}}")
+    print(f"   BBB Permeability: {{bio.get('bbb_permeability', 'N/A')}}")
+
+# Toxicity
+if bio.get('toxicity_class'):
+    print(f"\\n☢️  Toxicity Prediction:")
+    print(f"   Class: {{bio['toxicity_class']}}")
+    print(f"   Ames Test: {{bio.get('ames_test', 'N/A')}}")
+    print(f"   Hepatotoxicity: {{bio.get('hepatotoxicity', 'N/A')}}")
+    print(f"   Cardiotoxicity: {{bio.get('cardiotoxicity', 'N/A')}}")
+
+# All candidates
+if bio.get('all_candidates'):
+    print(f"\\n🧪 All Candidates ({{len(bio['all_candidates'])}}):")
+    for i, cand in enumerate(bio['all_candidates'][:5], 1):
+        print(f"   {{i}}. {{cand.get('smiles', 'N/A')[:50]}}...")
+
+print("\\n" + "="*80)
+'''
+            return {{
+                "code": code,
+                "success": True
+            }}
+
+        # Check for docking/binding tasks
+        elif any(kw in prompt_lower for kw in ['dock', 'binding', 'affinity', 'ligand', 'receptor', 'smiles', 'pdb']):

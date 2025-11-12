@@ -1,0 +1,19 @@
+{
+  "structure_name": "insulin_fragment",
+  "num_atoms": 450,
+  "num_conformations": 20,
+  "ground_state_energy": -1234.56,
+  "visualization_files": {
+    "3d_structure": "/path/to/results/05c5fa60-12d4-4f8b-b8be-0ffe8a1db82f/structure.png",
+    "energy_landscape": "/path/to/results/05c5fa60-12d4-4f8b-b8be-0ffe8a1db82f/energy.png"
+  },
+  "quantum_config": {
+    "logical_qubits": 40,
+    "physical_qubits": 200,
+    "shots": 5000,
+    "backend": "ibm_quantum",
+    "circuit_depth": 150
+  },
+  "cost": 12.5,
+  "execution_time_seconds": 45.2
+}

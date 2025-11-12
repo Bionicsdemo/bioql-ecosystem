@@ -1,0 +1,192 @@
+{
+  "metadata": {
+    "title": "ADME/Tox Profiling Pipeline",
+    "description": "Comprehensive absorption, distribution, metabolism, excretion, and toxicity analysis for drug candidates",
+    "category": "ADME/Tox",
+    "difficulty": "Intermediate",
+    "estimated_runtime": "1-2 hours",
+    "estimated_cost": "$10-25 per compound",
+    "tags": ["ADME", "pharmacokinetics", "toxicity", "drug-likeness", "safety-profiling"],
+    "version": "1.0",
+    "created": "2025-10-25"
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "source": "# ADME/Tox Profiling Pipeline\n\n## Objective\nComprehensively evaluate the pharmaceutical properties and safety profile of drug candidates to predict human pharmacokinetics and identify potential liabilities.\n\n## Scientific Background\n\n### Why ADME/Tox Matters\nPoor pharmacokinetic properties are a leading cause of attrition in drug development:\n- ~40% of candidates fail due to ADME issues\n- ~30% fail due to toxicity\n- Early identification saves time and resources\n\n### ADME Components\n\n**Absorption (A)**\n- Oral bioavailability prediction\n- Intestinal permeability (Caco-2, PAMPA)\n- P-glycoprotein efflux substrate\n- Solubility and dissolution\n\n**Distribution (D)**\n- Plasma protein binding\n- Volume of distribution\n- Blood-brain barrier penetration\n- Tissue distribution\n\n**Metabolism (M)**\n- Hepatic clearance\n- CYP enzyme interactions (substrate, inhibitor, inducer)\n- Metabolic soft spots\n- Reactive metabolite formation\n\n**Excretion (E)**\n- Renal clearance\n- Biliary excretion\n- Half-life prediction\n\n**Toxicity (Tox)**\n- Cardiac (hERG, QT prolongation)\n- Hepatotoxicity\n- Genotoxicity\n- Target-based toxicity\n- Structural alerts\n\n## This Pipeline Provides\n- Quantitative predictions for 50+ ADME/Tox endpoints\n- Risk assessment and flagging of concerns\n- Comparison to known drugs\n- Optimization suggestions"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Input: Load Compound(s)\n\nLoad single compound or batch for profiling.\n\n**Customize**: Use SMILES, SDF file, or compound library.\n**Batch mode**: Can profile up to 1000s of compounds."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql load_molecules --input \"compound.sdf\" --name_field ID --prepare_3d",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Compound(s) loaded with 2D/3D structures generated"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Section 1: Physicochemical Properties\n\nBasic molecular descriptors that influence ADME.\n\n**Customize**: Add custom properties if needed."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql calculate_descriptors --properties MW,LogP,LogD,TPSA,HBD,HBA,RotBonds,AromaticRings,StereoCenter,FormalCharge --ph 7.4",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Property table with optimal ranges\n\n| Property | Value | Optimal Range | Status |\n|----------|-------|---------------|--------|\n| MW | 387 Da | 150-500 | ✓ |\n| LogP | 3.2 | 0-5 | ✓ |\n| LogD (pH 7.4) | 2.1 | 1-3 | ✓ |\n| TPSA | 76 Ų | 20-130 | ✓ |\n| HBD | 2 | 0-5 | ✓ |\n| HBA | 5 | 0-10 | ✓ |\n| RotBonds | 5 | 0-10 | ✓ |"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Drug-Likeness Rules\n\nEvaluate against established drug-likeness criteria.\n\n**Rules evaluated:**\n- Lipinski's Rule of Five (oral drugs)\n- Veber Rules (bioavailability)\n- Ghose Filter (drug-like chemical space)\n- GSK 4/400 Rule (safety)\n- PAINS filters (assay interference)"
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql evaluate_druglikeness --rules lipinski,veber,ghose,gsk,pains --visualize_violations",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Pass/fail for each rule set with violation details\n\n**Example output:**\n- Lipinski Ro5: PASS (0/4 violations)\n- Veber: PASS\n- Ghose: PASS\n- GSK 4/400: WARNING (LogP = 4.1, just above threshold)\n- PAINS: PASS (no structural alerts)"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Section 2: Absorption Properties\n\nPredict oral bioavailability and intestinal absorption.\n\n**Customize**: Choose experimental or predicted data sources."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql predict_absorption --endpoints bioavailability,caco2,pampa,solubility,dissolution --models deep_learning --confidence_intervals",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Absorption predictions\n\n**Bioavailability (%F):** 65% (moderate to good)\n- Factors: Good permeability, moderate solubility, minimal efflux\n\n**Caco-2 Permeability:** 8.5 × 10⁻⁶ cm/s (high permeability)\n- Classification: BCS Class II (high permeability, low solubility)\n\n**Kinetic Solubility (pH 7.4):** 45 μM (moderate)\n- Recommendation: Formulation strategies may improve\n\n**P-gp Substrate:** Probability = 0.35 (unlikely)\n- Low efflux risk"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Section 3: Distribution Properties\n\nPredict tissue distribution and protein binding.\n\n**Customize**: Add specific tissue predictions if relevant."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql predict_distribution --endpoints ppb,vdss,bbb,logBB,fu --species human",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Distribution predictions\n\n**Plasma Protein Binding (PPB):** 94% (high binding)\n- Free fraction (fu): 6%\n- Note: May impact dosing but typical for lipophilic drugs\n\n**Volume of Distribution (VDss):** 2.3 L/kg (moderate)\n- Interpretation: Distributes to tissues beyond plasma\n\n**Blood-Brain Barrier:**\n- BBB Permeability: 0.12 (low)\n- LogBB: -1.2 (poor CNS penetration)\n- Interpretation: Peripheral target - good (CNS side effects unlikely)"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Section 4: Metabolism Profiling\n\nComprehensive metabolic stability and drug interaction prediction.\n\n**Customize**: Focus on specific CYP enzymes if relevant."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql predict_metabolism --endpoints clint,clh,t12,cyp_substrate,cyp_inhibitor,cyp_inducer --isoforms 1A2,2C9,2C19,2D6,3A4 --identify_softs_spots",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Metabolism predictions\n\n**Hepatic Clearance:**\n- CLint (intrinsic): 85 mL/min/kg (moderate)\n- CLH (hepatic): 12 mL/min/kg (low-moderate)\n- Half-life (t1/2): 4.5 hours (acceptable for BID dosing)\n- Extraction ratio: 0.18 (low)\n\n**CYP Substrate Profile:**\n- CYP3A4: Major substrate (75% metabolism)\n- CYP2C9: Minor substrate (15%)\n- CYP2D6: Not a substrate\n\n**CYP Inhibition:**\n- CYP3A4: IC50 > 50 μM (no concern)\n- CYP2D6: IC50 = 8 μM (weak inhibitor, monitor)\n- Other isoforms: No inhibition\n\n**CYP Induction:** No predicted induction\n\n**Metabolic Soft Spots:**\n- Position 1: Benzylic oxidation (high probability)\n- Position 2: N-dealkylation (moderate)\n- Recommendation: Consider deuteration or blocking groups"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Metabolite Prediction\n\nPredict major metabolites and assess their properties.\n\n**Customize**: Depth of metabolite tree (generations)."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql predict_metabolites --generations 2 --probability_cutoff 0.1 --assess_activity --assess_toxicity",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Metabolite structures with formation probability\n\n**Major Metabolites (>10% parent):**\n\n1. **M1 (Hydroxylation):** 35% formation\n   - Likely active (retains key pharmacophore)\n   - No toxicity concerns\n   - Further metabolism to glucuronide\n\n2. **M2 (N-dealkylation):** 18% formation\n   - Reduced activity (~10-fold)\n   - Rapidly cleared\n   - No concerns\n\n3. **M3 (Oxidation + glucuronidation):** 12% formation\n   - Inactive\n   - Major excretion pathway\n\n**Reactive Metabolite Screen:** No predicted reactive metabolites (quinones, iminium ions, epoxides)"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Section 5: Excretion & PK Parameters\n\nPredict clearance routes and overall pharmacokinetics.\n\n**Customize**: Species for PK simulation."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql predict_pk --endpoints clr,fe,cltot,vdss,t12,auc,cmax --dose 100mg --route oral --species human",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: PK parameter predictions for 100 mg oral dose\n\n**Clearance:**\n- Total Clearance (CLtot): 15 mL/min/kg\n- Renal Clearance (CLR): 2 mL/min/kg\n- Fraction excreted unchanged (fe): 12%\n- Primary route: Hepatic metabolism (88%)\n\n**PK Profile:**\n- Tmax: 2.5 hours\n- Cmax: 850 ng/mL\n- AUC0-inf: 4,200 ng·h/mL\n- Half-life: 4.5 hours\n- Accumulation ratio (BID): 1.3\n\n**Interpretation:** Suitable for BID dosing, low accumulation risk"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Section 6: Toxicity Prediction\n\nComprehensive safety assessment across multiple endpoints.\n\n**Customize**: Add target-specific toxicity concerns."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql predict_toxicity --endpoints herg,ames,hepatotox,carcinogen,ld50,dili --models ensemble --confidence_intervals",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Toxicity predictions with risk classification\n\n**Cardiac Toxicity:**\n- hERG IC50: 15 μM (low risk)\n- Safety margin: ~50-fold vs Cmax\n- QT prolongation risk: Low\n\n**Genotoxicity:**\n- Ames test: Negative (0.15 probability)\n- Micronucleus: Negative\n- No structural alerts for DNA reactivity\n\n**Hepatotoxicity:**\n- DILI risk: Low (0.22 probability)\n- No reactive metabolites predicted\n- Daily dose <100 mg, LogP <4 (favorable)\n\n**Carcinogenicity:**\n- Rodent carcinogenicity: Negative (0.08 probability)\n- No alerts for tumor-promoting structures\n\n**Acute Toxicity:**\n- LD50 (rat, oral): 850 mg/kg (low toxicity)\n- Classification: Category 4 (minimal hazard)"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Structural Alerts Screening\n\nIdentify known toxicophores and reactive groups.\n\n**Customize**: Add project-specific alerts."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql screen_structural_alerts --databases tox21,derek,oecd_qsar,fda_alerts --highlight_substructures",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Alert screening results\n\n**Structural Alerts:** None detected\n\n**Checked categories:**\n- Alkylating agents: ✗\n- Aromatic amines: ✗\n- Quinones/hydroquinones: ✗\n- Epoxides/aziridines: ✗\n- Michael acceptors: ✗\n- Nitro groups: ✗\n- Thiophenes (idiosyncratic): ✗\n- Anilines (methemoglobin): ✗\n\n**Status:** No known toxicophores identified"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Section 7: Multi-Parameter Profiling\n\nComprehensive scoring against optimal ADME/Tox ranges.\n\n**Customize**: Adjust weights for project priorities."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql adme_score --method mpo --parameters absorption:0.25,distribution:0.15,metabolism:0.25,excretion:0.1,toxicity:0.25 --benchmark approved_drugs",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Overall ADME/Tox score with radar chart\n\n**ADME Score: 0.68** (0-1 scale, >0.6 is good)\n\n**Category Scores:**\n- Absorption: 0.72 (good permeability, moderate solubility)\n- Distribution: 0.65 (appropriate distribution)\n- Metabolism: 0.60 (acceptable stability, some CYP concerns)\n- Excretion: 0.75 (appropriate clearance)\n- Toxicity: 0.70 (no major flags)\n\n**Benchmark:** 55th percentile vs approved oral drugs\n\n**Strengths:**\n- Good permeability and absorption\n- Appropriate PK profile for BID dosing\n- No major safety concerns\n- Clean toxicity profile\n\n**Areas for Improvement:**\n- Solubility (formulation strategies)\n- Metabolic stability (could be better for QD dosing)\n- CYP2D6 inhibition (weak but monitor)"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Section 8: Species Translation\n\nPredict preclinical-to-clinical translation for PK studies.\n\n**Customize**: Species used in your development program."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql predict_species_pk --species mouse,rat,dog,monkey,human --allometry --compare_parameters --plot_scaling",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Cross-species PK predictions\n\n| Parameter | Mouse | Rat | Dog | Monkey | Human (predicted) |\n|-----------|-------|-----|-----|--------|-------------------|\n| CL (mL/min/kg) | 85 | 52 | 18 | 15 | 12 |\n| Vdss (L/kg) | 3.2 | 2.8 | 2.5 | 2.4 | 2.3 |\n| T1/2 (h) | 0.8 | 1.5 | 3.2 | 3.8 | 4.5 |\n| F (%) | 45 | 55 | 68 | 70 | 65 |\n\n**Allometric scaling:** Good correlation (R² > 0.95)\n**Human PK confidence:** High (consistent cross-species trends)"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Generate Comprehensive Report\n\nCreate detailed ADME/Tox report for documentation.\n\n**Customize**: Choose sections for final report."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql generate_adme_report --format pdf --sections all --include_plots --include_references --benchmark_drugs similar_approved",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Professional ADME/Tox report (PDF) containing:\n\n1. **Executive Summary**\n   - Overall assessment\n   - Key findings\n   - Risk/benefit analysis\n   - Go/no-go recommendation\n\n2. **Detailed Results**\n   - All predictions with confidence intervals\n   - Comparison to benchmarks\n   - Species scaling\n   - Metabolite assessment\n\n3. **Visualizations**\n   - Radar charts\n   - PK simulations\n   - Metabolic pathways\n   - Structure highlighting\n\n4. **Recommendations**\n   - Optimization suggestions if needed\n   - Experimental validation priorities\n   - Formulation considerations\n   - Clinical development implications"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Interpretation & Next Steps\n\n### Overall Assessment: FAVORABLE for Development\n\n**Summary:**\nCompound shows good overall ADME/Tox profile suitable for oral development with BID dosing. No major liabilities identified. Minor optimization opportunities exist but not critical.\n\n### Key Findings:\n✓ **Strengths:**\n- Good oral permeability (Caco-2 > 8 × 10⁻⁶ cm/s)\n- Appropriate lipophilicity (LogP = 3.2)\n- Moderate to good bioavailability (~65%)\n- Acceptable half-life for BID dosing (4.5 h)\n- Clean toxicity profile (no hERG, Ames, DILI concerns)\n- No structural alerts\n\n⚠ **Minor Concerns:**\n- Moderate solubility (may need formulation)\n- Weak CYP2D6 inhibition (DDI potential - monitor)\n- Could optimize stability further for QD dosing\n\n### Recommended Actions:\n\n**1. Experimental Validation (High Priority):**\n- Caco-2 permeability assay\n- Microsomal stability (mouse, rat, human)\n- hERG patch clamp\n- CYP inhibition panel (especially 2D6)\n- Plasma protein binding\n- Solubility (kinetic and thermodynamic)\n\n**2. In Vivo PK Studies:**\n- Rat PK (IV + PO) to validate predictions\n- Dog PK if required by regulatory path\n- Validate species scaling\n\n**3. Additional Safety Studies:**\n- Ames test (bacterial mutagenicity)\n- Micronucleus assay (chromosomal damage)\n- Off-target screening (safety pharmacology panel)\n\n**4. Formulation Development:**\n- Screen formulation strategies to improve solubility\n- Develop clinical formulation (tablet/capsule)\n- Stability testing\n\n### Decision Point:\n**RECOMMEND:** Advance to full preclinical development\n\nCompound meets criteria for progression. ADME/Tox profile is acceptable and comparable to approved drugs in similar therapeutic space.\n\n## References\n- Waring et al. (2015). An analysis of the attrition of drug candidates. Nat Rev Drug Discov.\n- Arnott & Plantz (2012). In silico ADMET modeling. Methods Mol Biol.\n- FDA Guidance (2020). In Vitro Drug Interaction Studies — Cytochrome P450 Enzyme- and Transporter-Mediated Drug Interactions.\n- ICH Guidelines S1-S11: Safety pharmacology and toxicology testing."
+    }
+  ]
+}

@@ -40,9 +40,11 @@ class BioQLAgent:
         import requests
 
         # 1. Generar plan con el modelo
-        response = requests.post(self.endpoint, json={
-            "api_key": api_key,
-            "prompt": f"""You are a coding assistant. The user asked: "{user_request}"
+        response = requests.post(
+            self.endpoint,
+            json={
+                "api_key": api_key,
+                "prompt": f"""You are a coding assistant. The user asked: "{user_request}"
 
 Analyze what needs to be done and respond with:
 1. Actions needed (read file, edit file, run command, etc.)
@@ -56,10 +58,11 @@ ACTIONS:
 CODE:
 [code here]
 """,
-            "include_reasoning": True,
-            "temperature": 0.3,
-            "max_length": 500
-        })
+                "include_reasoning": True,
+                "temperature": 0.3,
+                "max_length": 500,
+            },
+        )
 
         if response.status_code != 200:
             return {"success": False, "error": "Model API error"}
@@ -76,23 +79,17 @@ CODE:
         for action in actions:
             try:
                 action_result = self._execute_action(action)
-                executed_actions.append({
-                    "action": action,
-                    "result": action_result,
-                    "success": True
-                })
+                executed_actions.append(
+                    {"action": action, "result": action_result, "success": True}
+                )
             except Exception as e:
-                executed_actions.append({
-                    "action": action,
-                    "error": str(e),
-                    "success": False
-                })
+                executed_actions.append({"action": action, "error": str(e), "success": False})
 
         return {
             "success": True,
             "reasoning": reasoning,
             "code_generated": code,
-            "actions_taken": executed_actions
+            "actions_taken": executed_actions,
         }
 
     def _parse_actions(self, reasoning: str, code: str) -> list:
@@ -100,14 +97,14 @@ CODE:
         actions = []
 
         # Detectar lectura de archivos
-        file_read_pattern = r'read\s+([^\s]+)'
+        file_read_pattern = r"read\s+([^\s]+)"
         for match in re.finditer(file_read_pattern, reasoning.lower()):
             actions.append({"type": "read", "file": match.group(1)})
 
         # Detectar edición de archivos
         if "edit" in reasoning.lower() or "fix" in reasoning.lower():
             # Inferir archivo del contexto
-            file_pattern = r'(\w+\.py)'
+            file_pattern = r"(\w+\.py)"
             files = re.findall(file_pattern, reasoning)
             if files:
                 actions.append({"type": "edit", "file": files[0], "new_content": code})
@@ -118,7 +115,7 @@ CODE:
 
         # Detectar creación de archivos
         if "create" in reasoning.lower() or "write" in reasoning.lower():
-            file_pattern = r'(\w+\.py)'
+            file_pattern = r"(\w+\.py)"
             files = re.findall(file_pattern, reasoning)
             if files:
                 actions.append({"type": "write", "file": files[0], "content": code})
@@ -132,14 +129,14 @@ CODE:
         if action_type == "read":
             # Leer archivo
             file_path = action["file"]
-            with open(file_path, 'r') as f:
+            with open(file_path, "r") as f:
                 return f.read()
 
         elif action_type == "write":
             # Escribir archivo
             file_path = action["file"]
             content = action["content"]
-            with open(file_path, 'w') as f:
+            with open(file_path, "w") as f:
                 f.write(content)
             return f"Created {file_path}"
 
@@ -153,7 +150,7 @@ CODE:
             subprocess.run(["cp", file_path, backup_path])
 
             # Escribir nuevo contenido
-            with open(file_path, 'w') as f:
+            with open(file_path, "w") as f:
                 f.write(new_content)
 
             return f"Edited {file_path} (backup: {backup_path})"
@@ -164,15 +161,12 @@ CODE:
 
             # Escribir a archivo temporal
             temp_file = "/tmp/bioql_agent_exec.py"
-            with open(temp_file, 'w') as f:
+            with open(temp_file, "w") as f:
                 f.write(code)
 
             # Ejecutar
             result = subprocess.run(
-                ["python3", temp_file],
-                capture_output=True,
-                text=True,
-                timeout=30
+                ["python3", temp_file], capture_output=True, text=True, timeout=30
             )
 
             if result.returncode == 0:
@@ -196,8 +190,7 @@ if __name__ == "__main__":
 
     # Caso 1: Generar código
     result = agent.execute(
-        user_request="Create a Bell state using BioQL",
-        api_key="bioql_test_870ce7ae"
+        user_request="Create a Bell state using BioQL", api_key="bioql_test_870ce7ae"
     )
 
     print("Result:", result)

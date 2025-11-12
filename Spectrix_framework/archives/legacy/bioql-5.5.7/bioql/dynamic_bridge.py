@@ -14,8 +14,8 @@ Examples:
 import importlib
 import inspect
 import re
-from typing import Any, Dict, Optional, List, Tuple
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple
 
 from .logger import get_logger
 

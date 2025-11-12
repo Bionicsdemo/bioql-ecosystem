@@ -8,13 +8,13 @@ backend selection and fallback handling.
 import os
 import tempfile
 import uuid
-from pathlib import Path
-from typing import Optional, Union, Dict, Any, Tuple
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, Optional, Tuple, Union
 
-from ..logger import get_logger
 from ..chem import prepare_ligand, prepare_receptor
+from ..logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -379,17 +379,21 @@ def _dock_quantum(
         results_json = output_dir / "results.json"
         import json
 
-        with open(results_json, 'w') as f:
-            json.dump({
-                "job_id": job_id,
-                "backend": "quantum",
-                "score": result.score,
-                "energy": result.energy,
-                "ligand_smiles": ligand_smiles,
-                "receptor": str(receptor_path),
-                "shots": shots,
-                "metadata": result.metadata,
-            }, f, indent=2)
+        with open(results_json, "w") as f:
+            json.dump(
+                {
+                    "job_id": job_id,
+                    "backend": "quantum",
+                    "score": result.score,
+                    "energy": result.energy,
+                    "ligand_smiles": ligand_smiles,
+                    "receptor": str(receptor_path),
+                    "shots": shots,
+                    "metadata": result.metadata,
+                },
+                f,
+                indent=2,
+            )
 
         logger.info(f"Quantum docking complete. Score: {result.score}")
 

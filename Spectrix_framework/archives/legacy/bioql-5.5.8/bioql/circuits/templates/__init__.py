@@ -6,12 +6,13 @@ that can be composed to create more complex circuits.
 """
 
 from typing import Any, List, Optional
+
 from ..base import (
-    CircuitTemplate,
     CircuitCategory,
+    CircuitTemplate,
     ComplexityRating,
     ParameterSpec,
-    ResourceEstimate
+    ResourceEstimate,
 )
 
 
@@ -34,28 +35,28 @@ class HardwareEfficientAnsatz(CircuitTemplate):
                 type="int",
                 description="Number of qubits",
                 required=True,
-                range=(1, 100)
+                range=(1, 100),
             ),
             ParameterSpec(
                 name="num_layers",
                 type="int",
                 description="Number of ansatz layers",
                 default=1,
-                range=(1, 50)
+                range=(1, 50),
             ),
             ParameterSpec(
                 name="rotation_gates",
                 type="list",
                 description="List of single-qubit rotation gates to use",
-                default=["RY", "RZ"]
+                default=["RY", "RZ"],
             ),
             ParameterSpec(
                 name="entanglement",
                 type="str",
                 description="Entanglement pattern",
                 default="linear",
-                constraints={"one_of": ["linear", "circular", "full"]}
-            )
+                constraints={"one_of": ["linear", "circular", "full"]},
+            ),
         ]
 
         super().__init__(
@@ -65,14 +66,8 @@ class HardwareEfficientAnsatz(CircuitTemplate):
             complexity=ComplexityRating.LOW,
             parameters=parameters,
             tags=["ansatz", "variational", "vqe", "hardware_efficient"],
-            use_cases=[
-                "VQE ansatz",
-                "Variational quantum algorithms",
-                "NISQ-friendly circuits"
-            ],
-            references=[
-                "Kandala et al., Nature 549, 242-246 (2017)"
-            ]
+            use_cases=["VQE ansatz", "Variational quantum algorithms", "NISQ-friendly circuits"],
+            references=["Kandala et al., Nature 549, 242-246 (2017)"],
         )
 
     def build(self, **kwargs) -> Any:
@@ -111,7 +106,7 @@ class HardwareEfficientAnsatz(CircuitTemplate):
             gate_count=total_gates,
             two_qubit_gates=total_two_qubit,
             measurement_count=0,
-            execution_time_estimate=0.01 * depth
+            execution_time_estimate=0.01 * depth,
         )
 
 
@@ -133,27 +128,27 @@ class UCCSDAnsatz(CircuitTemplate):
                 type="int",
                 description="Number of qubits (spin-orbitals)",
                 required=True,
-                range=(2, 100)
+                range=(2, 100),
             ),
             ParameterSpec(
                 name="num_electrons",
                 type="int",
                 description="Number of electrons",
                 required=True,
-                range=(1, 50)
+                range=(1, 50),
             ),
             ParameterSpec(
                 name="include_singles",
                 type="bool",
                 description="Include single excitations",
-                default=True
+                default=True,
             ),
             ParameterSpec(
                 name="include_doubles",
                 type="bool",
                 description="Include double excitations",
-                default=True
-            )
+                default=True,
+            ),
         ]
 
         super().__init__(
@@ -166,11 +161,9 @@ class UCCSDAnsatz(CircuitTemplate):
             use_cases=[
                 "Molecular ground state calculations",
                 "Quantum chemistry simulations",
-                "Electronic structure calculations"
+                "Electronic structure calculations",
             ],
-            references=[
-                "Romero et al., Quantum Sci. Technol. 4, 014008 (2019)"
-            ]
+            references=["Romero et al., Quantum Sci. Technol. 4, 014008 (2019)"],
         )
 
     def build(self, **kwargs) -> Any:
@@ -193,7 +186,11 @@ class UCCSDAnsatz(CircuitTemplate):
         num_virtual = num_qubits - num_electrons
 
         singles_count = num_occupied * num_virtual if include_singles else 0
-        doubles_count = (num_occupied * (num_occupied - 1) * num_virtual * (num_virtual - 1)) // 4 if include_doubles else 0
+        doubles_count = (
+            (num_occupied * (num_occupied - 1) * num_virtual * (num_virtual - 1)) // 4
+            if include_doubles
+            else 0
+        )
 
         total_excitations = singles_count + doubles_count
 
@@ -210,12 +207,9 @@ class UCCSDAnsatz(CircuitTemplate):
             two_qubit_gates=two_qubit_gates,
             measurement_count=0,
             execution_time_estimate=0.5 * total_excitations,
-            error_budget=0.02
+            error_budget=0.02,
         )
 
 
 # Export all template circuits
-__all__ = [
-    "HardwareEfficientAnsatz",
-    "UCCSDAnsatz"
-]
+__all__ = ["HardwareEfficientAnsatz", "UCCSDAnsatz"]

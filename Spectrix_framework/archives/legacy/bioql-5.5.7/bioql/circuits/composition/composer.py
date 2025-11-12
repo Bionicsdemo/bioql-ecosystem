@@ -5,14 +5,14 @@ This module provides the CircuitComposer class for composing quantum circuits
 using various strategies and patterns.
 """
 
-from enum import Enum
-from typing import List, Optional, Dict, Any, Tuple, Union, Callable
-from dataclasses import dataclass
 import logging
+from dataclasses import dataclass
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.circuit import Parameter
 import numpy as np
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit.circuit import Parameter
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +26,7 @@ class CompositionStrategy(Enum):
         MINIMAL_DEPTH: Optimize for minimal circuit depth (parallelize operations)
         BALANCED: Balance between qubit usage and circuit depth
     """
+
     MINIMAL_QUBITS = "minimal_qubits"
     MINIMAL_DEPTH = "minimal_depth"
     BALANCED = "balanced"
@@ -42,6 +43,7 @@ class CompositionResult:
         classical_mapping: Mapping of classical bits
         metadata: Additional composition metadata
     """
+
     circuit: QuantumCircuit
     qubit_mapping: Dict[str, Dict[int, int]]
     classical_mapping: Dict[str, Dict[int, int]]
@@ -90,7 +92,7 @@ class CircuitComposer:
         self,
         *circuits: QuantumCircuit,
         strategy: Optional[CompositionStrategy] = None,
-        names: Optional[List[str]] = None
+        names: Optional[List[str]] = None,
     ) -> CompositionResult:
         """
         Compose multiple circuits using specified strategy.
@@ -133,9 +135,7 @@ class CircuitComposer:
             return self._compose_balanced(circuits, names)
 
     def parallel(
-        self,
-        *circuits: QuantumCircuit,
-        names: Optional[List[str]] = None
+        self, *circuits: QuantumCircuit, names: Optional[List[str]] = None
     ) -> CompositionResult:
         """
         Compose circuits in parallel (tensor product).
@@ -170,8 +170,8 @@ class CircuitComposer:
         total_clbits = sum(circ.num_clbits for circ in circuits)
 
         # Create registers
-        qreg = QuantumRegister(total_qubits, 'q')
-        creg = ClassicalRegister(total_clbits, 'c') if total_clbits > 0 else None
+        qreg = QuantumRegister(total_qubits, "q")
+        creg = ClassicalRegister(total_clbits, "c") if total_clbits > 0 else None
 
         # Create composed circuit
         if creg:
@@ -209,25 +209,25 @@ class CircuitComposer:
             clbit_offset += circuit.num_clbits
 
         metadata = {
-            'composition_type': 'parallel',
-            'total_qubits': total_qubits,
-            'total_clbits': total_clbits,
-            'num_circuits': len(circuits)
+            "composition_type": "parallel",
+            "total_qubits": total_qubits,
+            "total_clbits": total_clbits,
+            "num_circuits": len(circuits),
         }
 
-        logger.debug(f"Parallel composition complete: {total_qubits} qubits, depth={composed.depth()}")
+        logger.debug(
+            f"Parallel composition complete: {total_qubits} qubits, depth={composed.depth()}"
+        )
 
         return CompositionResult(
             circuit=composed,
             qubit_mapping=qubit_mapping,
             classical_mapping=classical_mapping,
-            metadata=metadata
+            metadata=metadata,
         )
 
     def sequential(
-        self,
-        *circuits: QuantumCircuit,
-        names: Optional[List[str]] = None
+        self, *circuits: QuantumCircuit, names: Optional[List[str]] = None
     ) -> CompositionResult:
         """
         Compose circuits sequentially on the same qubits.
@@ -264,14 +264,16 @@ class CircuitComposer:
         # Verify all circuits have same qubit count
         num_qubits = circuits[0].num_qubits
         if not all(circ.num_qubits == num_qubits for circ in circuits):
-            raise ValueError("All circuits must have the same number of qubits for sequential composition")
+            raise ValueError(
+                "All circuits must have the same number of qubits for sequential composition"
+            )
 
         # Use maximum classical bits
         num_clbits = max(circ.num_clbits for circ in circuits)
 
         # Create registers
-        qreg = QuantumRegister(num_qubits, 'q')
-        creg = ClassicalRegister(num_clbits, 'c') if num_clbits > 0 else None
+        qreg = QuantumRegister(num_qubits, "q")
+        creg = ClassicalRegister(num_clbits, "c") if num_clbits > 0 else None
 
         # Create composed circuit
         if creg:
@@ -295,27 +297,29 @@ class CircuitComposer:
             composed = composed.compose(circuit, qubits=range(num_qubits))
 
         metadata = {
-            'composition_type': 'sequential',
-            'num_qubits': num_qubits,
-            'num_clbits': num_clbits,
-            'num_circuits': len(circuits),
-            'total_depth': composed.depth()
+            "composition_type": "sequential",
+            "num_qubits": num_qubits,
+            "num_clbits": num_clbits,
+            "num_circuits": len(circuits),
+            "total_depth": composed.depth(),
         }
 
-        logger.debug(f"Sequential composition complete: {num_qubits} qubits, depth={composed.depth()}")
+        logger.debug(
+            f"Sequential composition complete: {num_qubits} qubits, depth={composed.depth()}"
+        )
 
         return CompositionResult(
             circuit=composed,
             qubit_mapping=qubit_mapping,
             classical_mapping=classical_mapping,
-            metadata=metadata
+            metadata=metadata,
         )
 
     def conditional(
         self,
         condition: Union[Tuple[ClassicalRegister, int], Callable],
         true_branch: QuantumCircuit,
-        false_branch: Optional[QuantumCircuit] = None
+        false_branch: Optional[QuantumCircuit] = None,
     ) -> CompositionResult:
         """
         Compose circuits conditionally based on classical condition.
@@ -346,18 +350,12 @@ class CircuitComposer:
         logger.info("Creating conditional composition")
 
         # Determine qubit requirements
-        max_qubits = max(
-            true_branch.num_qubits,
-            false_branch.num_qubits if false_branch else 0
-        )
-        max_clbits = max(
-            true_branch.num_clbits,
-            false_branch.num_clbits if false_branch else 0
-        )
+        max_qubits = max(true_branch.num_qubits, false_branch.num_qubits if false_branch else 0)
+        max_clbits = max(true_branch.num_clbits, false_branch.num_clbits if false_branch else 0)
 
         # Create registers
-        qreg = QuantumRegister(max_qubits, 'q')
-        creg = ClassicalRegister(max_clbits, 'c') if max_clbits > 0 else None
+        qreg = QuantumRegister(max_qubits, "q")
+        creg = ClassicalRegister(max_clbits, "c") if max_clbits > 0 else None
 
         # Create composed circuit
         if creg:
@@ -380,36 +378,33 @@ class CircuitComposer:
                 logger.warning("False branch in conditional requires manual condition handling")
 
         qubit_mapping = {
-            'true_branch': {j: j for j in range(true_branch.num_qubits)},
+            "true_branch": {j: j for j in range(true_branch.num_qubits)},
         }
         if false_branch:
-            qubit_mapping['false_branch'] = {j: j for j in range(false_branch.num_qubits)}
+            qubit_mapping["false_branch"] = {j: j for j in range(false_branch.num_qubits)}
 
         classical_mapping = {}
         if true_branch.num_clbits > 0:
-            classical_mapping['true_branch'] = {j: j for j in range(true_branch.num_clbits)}
+            classical_mapping["true_branch"] = {j: j for j in range(true_branch.num_clbits)}
         if false_branch and false_branch.num_clbits > 0:
-            classical_mapping['false_branch'] = {j: j for j in range(false_branch.num_clbits)}
+            classical_mapping["false_branch"] = {j: j for j in range(false_branch.num_clbits)}
 
         metadata = {
-            'composition_type': 'conditional',
-            'has_false_branch': false_branch is not None,
-            'num_qubits': max_qubits,
-            'num_clbits': max_clbits
+            "composition_type": "conditional",
+            "has_false_branch": false_branch is not None,
+            "num_qubits": max_qubits,
+            "num_clbits": max_clbits,
         }
 
         return CompositionResult(
             circuit=composed,
             qubit_mapping=qubit_mapping,
             classical_mapping=classical_mapping,
-            metadata=metadata
+            metadata=metadata,
         )
 
     def repeat(
-        self,
-        circuit: QuantumCircuit,
-        times: int,
-        name: Optional[str] = None
+        self, circuit: QuantumCircuit, times: int, name: Optional[str] = None
     ) -> CompositionResult:
         """
         Repeat a circuit multiple times sequentially.
@@ -438,9 +433,9 @@ class CircuitComposer:
         name = name or "circuit"
 
         # Create composed circuit with same dimensions
-        qreg = QuantumRegister(circuit.num_qubits, 'q')
+        qreg = QuantumRegister(circuit.num_qubits, "q")
         if circuit.num_clbits > 0:
-            creg = ClassicalRegister(circuit.num_clbits, 'c')
+            creg = ClassicalRegister(circuit.num_clbits, "c")
             composed = QuantumCircuit(qreg, creg)
         else:
             composed = QuantumCircuit(qreg)
@@ -449,20 +444,18 @@ class CircuitComposer:
         for i in range(times):
             composed = composed.compose(circuit)
 
-        qubit_mapping = {
-            name: {j: j for j in range(circuit.num_qubits)}
-        }
+        qubit_mapping = {name: {j: j for j in range(circuit.num_qubits)}}
 
         classical_mapping = {}
         if circuit.num_clbits > 0:
             classical_mapping[name] = {j: j for j in range(circuit.num_clbits)}
 
         metadata = {
-            'composition_type': 'repeat',
-            'repetitions': times,
-            'num_qubits': circuit.num_qubits,
-            'num_clbits': circuit.num_clbits,
-            'total_depth': composed.depth()
+            "composition_type": "repeat",
+            "repetitions": times,
+            "num_qubits": circuit.num_qubits,
+            "num_clbits": circuit.num_clbits,
+            "total_depth": composed.depth(),
         }
 
         logger.debug(f"Repeat composition complete: {times} repetitions, depth={composed.depth()}")
@@ -471,14 +464,10 @@ class CircuitComposer:
             circuit=composed,
             qubit_mapping=qubit_mapping,
             classical_mapping=classical_mapping,
-            metadata=metadata
+            metadata=metadata,
         )
 
-    def _compose_minimal_qubits(
-        self,
-        circuits: tuple,
-        names: List[str]
-    ) -> CompositionResult:
+    def _compose_minimal_qubits(self, circuits: tuple, names: List[str]) -> CompositionResult:
         """
         Compose circuits optimizing for minimal qubit usage.
 
@@ -493,11 +482,7 @@ class CircuitComposer:
         else:
             return self.parallel(*circuits, names=names)
 
-    def _compose_minimal_depth(
-        self,
-        circuits: tuple,
-        names: List[str]
-    ) -> CompositionResult:
+    def _compose_minimal_depth(self, circuits: tuple, names: List[str]) -> CompositionResult:
         """
         Compose circuits optimizing for minimal circuit depth.
 
@@ -508,11 +493,7 @@ class CircuitComposer:
         # Always use parallel composition for minimal depth
         return self.parallel(*circuits, names=names)
 
-    def _compose_balanced(
-        self,
-        circuits: tuple,
-        names: List[str]
-    ) -> CompositionResult:
+    def _compose_balanced(self, circuits: tuple, names: List[str]) -> CompositionResult:
         """
         Compose circuits with balanced qubit usage and depth.
 
@@ -531,8 +512,4 @@ class CircuitComposer:
         return self.parallel(*circuits, names=names)
 
 
-__all__ = [
-    'CompositionStrategy',
-    'CompositionResult',
-    'CircuitComposer'
-]
+__all__ = ["CompositionStrategy", "CompositionResult", "CircuitComposer"]

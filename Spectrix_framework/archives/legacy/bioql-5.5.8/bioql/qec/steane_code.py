@@ -12,8 +12,8 @@ Example:
     >>> print(f"Overhead: {overhead}x")  # 7x
 """
 
-from typing import Optional
 from dataclasses import dataclass
+from typing import Optional
 
 from ..logger import get_logger
 
@@ -98,9 +98,7 @@ class SteaneCodeQEC:
             ValueError: error_rate must be between 0 and 0.1
         """
         if not (0 < self.error_rate < 0.1):
-            raise ValueError(
-                f"error_rate must be between 0 and 0.1, got {self.error_rate}"
-            )
+            raise ValueError(f"error_rate must be between 0 and 0.1, got {self.error_rate}")
 
         return True
 
@@ -155,7 +153,7 @@ class SteaneCodeQEC:
 
         # For distance-3 codes, logical error rate ≈ 35 * p^2
         # This is an approximation based on error correction theory
-        logical_error_rate = 35 * (p ** 2)
+        logical_error_rate = 35 * (p**2)
 
         return min(logical_error_rate, p)  # Can't be worse than no correction
 
@@ -174,16 +172,16 @@ class SteaneCodeQEC:
             >>> print(stabilizers['X'])
         """
         return {
-            'X': [
-                'IIIXXXX',  # X stabilizer 1
-                'IXXIIXX',  # X stabilizer 2
-                'XIXIXIX',  # X stabilizer 3
+            "X": [
+                "IIIXXXX",  # X stabilizer 1
+                "IXXIIXX",  # X stabilizer 2
+                "XIXIXIX",  # X stabilizer 3
             ],
-            'Z': [
-                'IIIZZZZ',  # Z stabilizer 1
-                'IZZIIZZ',  # Z stabilizer 2
-                'ZIZIZIZ',  # Z stabilizer 3
-            ]
+            "Z": [
+                "IIIZZZZ",  # Z stabilizer 1
+                "IZZIIZZ",  # Z stabilizer 2
+                "ZIZIZIZ",  # Z stabilizer 3
+            ],
         }
 
     def get_logical_operators(self) -> dict:
@@ -199,8 +197,8 @@ class SteaneCodeQEC:
             >>> print(operators['X'])
         """
         return {
-            'X': 'XXXXXXX',  # Logical X
-            'Z': 'ZZZZZZZ',  # Logical Z
+            "X": "XXXXXXX",  # Logical X
+            "Z": "ZZZZZZZ",  # Logical Z
         }
 
     def get_encoding_circuit_depth(self) -> int:
@@ -235,10 +233,7 @@ class SteaneCodeQEC:
 
     def __repr__(self) -> str:
         """String representation of the Steane code configuration."""
-        return (
-            f"SteaneCodeQEC(error_rate={self.error_rate}, "
-            f"overhead={self.overhead}x)"
-        )
+        return f"SteaneCodeQEC(error_rate={self.error_rate}, " f"overhead={self.overhead}x)"
 
     def to_dict(self) -> dict:
         """
@@ -253,11 +248,11 @@ class SteaneCodeQEC:
             >>> print(config)
         """
         return {
-            'code_type': 'steane',
-            'code_parameters': [7, 1, 3],  # [[n, k, d]] notation
-            'error_rate': self.error_rate,
-            'overhead': self.overhead,
-            'estimated_logical_error_rate': self.estimate_logical_error_rate(),
-            'encoding_circuit_depth': self.get_encoding_circuit_depth(),
-            'syndrome_circuit_depth': self.get_syndrome_circuit_depth(),
+            "code_type": "steane",
+            "code_parameters": [7, 1, 3],  # [[n, k, d]] notation
+            "error_rate": self.error_rate,
+            "overhead": self.overhead,
+            "estimated_logical_error_rate": self.estimate_logical_error_rate(),
+            "encoding_circuit_depth": self.get_encoding_circuit_depth(),
+            "syndrome_circuit_depth": self.get_syndrome_circuit_depth(),
         }

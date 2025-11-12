@@ -4,9 +4,9 @@ Quantum Computing Backend Runner for Molecular Docking
 Uses BioQL's quantum computing capabilities for docking calculations.
 """
 
-from pathlib import Path
-from typing import Optional, Union, Dict, Any, List
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
 
 from ..logger import get_logger
 
@@ -50,6 +50,7 @@ class QuantumRunner:
         """Check if quantum backend is available."""
         try:
             from .. import quantum
+
             return True
         except ImportError:
             return False
@@ -119,17 +120,17 @@ class QuantumRunner:
                 )
 
             # Extract binding energy from quantum result
-            energy = result.energy if hasattr(result, 'energy') else None
+            energy = result.energy if hasattr(result, "energy") else None
 
             # If no energy, calculate from quantum measurement counts
-            if energy is None and hasattr(result, 'counts'):
+            if energy is None and hasattr(result, "counts"):
                 # Calculate expectation value from quantum measurements
                 # Higher counts in |1⟩ state = stronger binding
                 counts = result.counts
                 total = sum(counts.values())
 
                 # Calculate weighted average (simplified)
-                binding_prob = counts.get('1', 0) / total if total > 0 else 0.5
+                binding_prob = counts.get("1", 0) / total if total > 0 else 0.5
 
                 # Convert to binding score (kcal/mol)
                 # Range: -15 to -2 kcal/mol (typical for drug binding)
@@ -145,7 +146,7 @@ class QuantumRunner:
 
             # Generate poses from quantum states
             poses = []
-            if hasattr(result, 'counts') and result.counts:
+            if hasattr(result, "counts") and result.counts:
                 # Each quantum state represents a binding pose
                 # Sort by probability (count)
                 sorted_states = sorted(result.counts.items(), key=lambda x: x[1], reverse=True)
@@ -168,14 +169,16 @@ class QuantumRunner:
                 logger.info(f"Generated {len(poses)} binding poses from quantum measurements")
             else:
                 # Fallback: generate single pose from score
-                poses = [{
-                    "mode": 1,
-                    "affinity": score,
-                    "quantum_state": "unknown",
-                    "probability": 1.0,
-                    "rmsd_lb": 0.0,
-                    "rmsd_ub": 0.0,
-                }]
+                poses = [
+                    {
+                        "mode": 1,
+                        "affinity": score,
+                        "quantum_state": "unknown",
+                        "probability": 1.0,
+                        "rmsd_lb": 0.0,
+                        "rmsd_ub": 0.0,
+                    }
+                ]
 
             return QuantumDockingResult(
                 success=True,
@@ -186,7 +189,7 @@ class QuantumRunner:
                 metadata={
                     "quantum_backend": self.backend,
                     "shots": shots,
-                    "quantum_counts": result.counts if hasattr(result, 'counts') else None,
+                    "quantum_counts": result.counts if hasattr(result, "counts") else None,
                     "num_poses": len(poses),
                 },
             )

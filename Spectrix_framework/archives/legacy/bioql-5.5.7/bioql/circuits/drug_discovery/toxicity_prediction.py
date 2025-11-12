@@ -14,23 +14,25 @@ Common toxicity endpoints:
 """
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
+
 import numpy as np
 
 try:
-    from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+    from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
     from qiskit.circuit import Parameter
-    from qiskit.circuit.library import ZFeatureMap, RealAmplitudes
+    from qiskit.circuit.library import RealAmplitudes, ZFeatureMap
+
     QISKIT_AVAILABLE = True
 except ImportError:
     QISKIT_AVAILABLE = False
 
 from ..base import (
-    CircuitTemplate,
     CircuitCategory,
+    CircuitTemplate,
     ComplexityRating,
     ParameterSpec,
-    ResourceEstimate
+    ResourceEstimate,
 )
 
 
@@ -52,6 +54,7 @@ class ToxicityResult:
         recommendations: Safety recommendations
         metadata: Additional metadata
     """
+
     hepatotoxicity_risk: Optional[float] = None
     cardiotoxicity_risk: Optional[float] = None
     mutagenicity_risk: Optional[float] = None
@@ -110,7 +113,7 @@ class ToxicityPredictionCircuit(CircuitTemplate):
         molecule_smiles: str,
         toxicity_endpoints: List[str] = None,
         n_qubits: int = 10,
-        classifier_depth: int = 3
+        classifier_depth: int = 3,
     ):
         """
         Initialize toxicity prediction circuit.
@@ -131,27 +134,27 @@ class ToxicityPredictionCircuit(CircuitTemplate):
                     name="molecule_smiles",
                     type="str",
                     description="SMILES string of molecule",
-                    required=True
+                    required=True,
                 ),
                 ParameterSpec(
                     name="toxicity_endpoints",
                     type="list",
                     description="Toxicity endpoints to predict",
-                    default=["hepatotoxicity", "cardiotoxicity", "mutagenicity"]
+                    default=["hepatotoxicity", "cardiotoxicity", "mutagenicity"],
                 ),
                 ParameterSpec(
                     name="n_qubits",
                     type="int",
                     description="Number of qubits",
                     default=10,
-                    range=(6, 20)
+                    range=(6, 20),
                 ),
                 ParameterSpec(
                     name="classifier_depth",
                     type="int",
                     description="Classifier circuit depth",
                     default=3,
-                    range=(1, 8)
+                    range=(1, 8),
                 ),
             ],
             tags=["toxicity", "safety", "drug-discovery", "qml", "classification", "admet"],
@@ -160,20 +163,20 @@ class ToxicityPredictionCircuit(CircuitTemplate):
                 "Drug safety assessment",
                 "Lead optimization for safety",
                 "Toxicophore identification",
-                "Regulatory preclinical assessment"
+                "Regulatory preclinical assessment",
             ],
             references=[
                 "Quantum ML for Toxicity Prediction (Mol. Pharm., 2022)",
                 "Multi-task Quantum Classifiers for ADMET (J. Chem. Inf. Model., 2023)",
-                "Toxicophore Detection with QML (Chem. Res. Toxicol., 2023)"
-            ]
+                "Toxicophore Detection with QML (Chem. Res. Toxicol., 2023)",
+            ],
         )
 
         self.molecule_smiles = molecule_smiles
         self.toxicity_endpoints = toxicity_endpoints or [
             "hepatotoxicity",
             "cardiotoxicity",
-            "mutagenicity"
+            "mutagenicity",
         ]
         self.n_qubits = n_qubits
         self.classifier_depth = classifier_depth
@@ -190,8 +193,8 @@ class ToxicityPredictionCircuit(CircuitTemplate):
             raise ImportError("Qiskit is required for toxicity circuits")
 
         # Create quantum and classical registers
-        qr = QuantumRegister(self.n_qubits, 'q')
-        cr = ClassicalRegister(self.n_qubits, 'c')
+        qr = QuantumRegister(self.n_qubits, "q")
+        cr = ClassicalRegister(self.n_qubits, "c")
         circuit = QuantumCircuit(qr, cr)
 
         # Build toxicity classifier
@@ -220,20 +223,15 @@ class ToxicityPredictionCircuit(CircuitTemplate):
         features = self._extract_molecular_features()
 
         # Create feature map
-        feature_map = ZFeatureMap(
-            feature_dimension=min(self.n_qubits, len(features)),
-            reps=2
-        )
+        feature_map = ZFeatureMap(feature_dimension=min(self.n_qubits, len(features)), reps=2)
 
         # Create variational classifier
         variational_circuit = RealAmplitudes(
-            num_qubits=self.n_qubits,
-            reps=self.classifier_depth,
-            entanglement='circular'
+            num_qubits=self.n_qubits, reps=self.classifier_depth, entanglement="circular"
         )
 
         # Combine into full classifier
-        qr = QuantumRegister(self.n_qubits, 'q')
+        qr = QuantumRegister(self.n_qubits, "q")
         classifier = QuantumCircuit(qr)
         classifier.compose(feature_map, inplace=True)
         classifier.compose(variational_circuit, inplace=True)
@@ -257,7 +255,9 @@ class ToxicityPredictionCircuit(CircuitTemplate):
             ...     print("High toxicity risk detected!")
         """
         if endpoint is not None and endpoint not in self._valid_endpoints():
-            raise ValueError(f"Invalid endpoint: {endpoint}. Must be one of {self._valid_endpoints()}")
+            raise ValueError(
+                f"Invalid endpoint: {endpoint}. Must be one of {self._valid_endpoints()}"
+            )
 
         # Build and simulate circuit
         circuit = self.build()
@@ -301,8 +301,8 @@ class ToxicityPredictionCircuit(CircuitTemplate):
                 "molecule": self.molecule_smiles,
                 "n_qubits": self.n_qubits,
                 "endpoints_tested": len(predictions),
-                "classifier_depth": self.classifier_depth
-            }
+                "classifier_depth": self.classifier_depth,
+            },
         )
 
     def estimate_resources(self, **kwargs) -> ResourceEstimate:
@@ -335,18 +335,12 @@ class ToxicityPredictionCircuit(CircuitTemplate):
             measurement_count=self.n_qubits,
             classical_memory=self.n_qubits,
             execution_time_estimate=1.5 * len(self.toxicity_endpoints),
-            error_budget=0.04
+            error_budget=0.04,
         )
 
     def _valid_endpoints(self) -> List[str]:
         """Get list of valid toxicity endpoints."""
-        return [
-            "hepatotoxicity",
-            "cardiotoxicity",
-            "mutagenicity",
-            "cytotoxicity",
-            "neurotoxicity"
-        ]
+        return ["hepatotoxicity", "cardiotoxicity", "mutagenicity", "cytotoxicity", "neurotoxicity"]
 
     def _extract_molecular_features(self) -> np.ndarray:
         """
@@ -367,18 +361,20 @@ class ToxicityPredictionCircuit(CircuitTemplate):
                 raise ValueError(f"Invalid SMILES: {self.molecule_smiles}")
 
             # Extract toxicity-relevant descriptors
-            features = np.array([
-                Descriptors.MolWt(mol),
-                Descriptors.MolLogP(mol),
-                Descriptors.TPSA(mol),
-                Lipinski.NumHDonors(mol),
-                Lipinski.NumHAcceptors(mol),
-                Descriptors.NumAromaticRings(mol),
-                Descriptors.NumAliphaticRings(mol),
-                Descriptors.FractionCSP3(mol),
-                Descriptors.NumRotatableBonds(mol),
-                mol.GetNumHeavyAtoms(),
-            ])
+            features = np.array(
+                [
+                    Descriptors.MolWt(mol),
+                    Descriptors.MolLogP(mol),
+                    Descriptors.TPSA(mol),
+                    Lipinski.NumHDonors(mol),
+                    Lipinski.NumHAcceptors(mol),
+                    Descriptors.NumAromaticRings(mol),
+                    Descriptors.NumAliphaticRings(mol),
+                    Descriptors.FractionCSP3(mol),
+                    Descriptors.NumRotatableBonds(mol),
+                    mol.GetNumHeavyAtoms(),
+                ]
+            )
 
             # Normalize
             features = (features - np.mean(features)) / (np.std(features) + 1e-10)
@@ -400,15 +396,15 @@ class ToxicityPredictionCircuit(CircuitTemplate):
         smiles = self.molecule_smiles
         features = [
             len(smiles),
-            smiles.count('C'),
-            smiles.count('N'),
-            smiles.count('O'),
-            smiles.count('S'),
-            smiles.count('Cl') + smiles.count('Br') + smiles.count('F'),
-            smiles.count('='),
-            smiles.count('c'),  # Aromatic carbons
-            smiles.count('['),  # Complex atoms
-            smiles.count('('),  # Branching
+            smiles.count("C"),
+            smiles.count("N"),
+            smiles.count("O"),
+            smiles.count("S"),
+            smiles.count("Cl") + smiles.count("Br") + smiles.count("F"),
+            smiles.count("="),
+            smiles.count("c"),  # Aromatic carbons
+            smiles.count("["),  # Complex atoms
+            smiles.count("("),  # Branching
         ]
         return np.array(features, dtype=float)
 
@@ -444,12 +440,12 @@ class ToxicityPredictionCircuit(CircuitTemplate):
 
         # Presence of halogens increases some toxicity risks
         if endpoint in ["hepatotoxicity", "cytotoxicity"]:
-            if 'Cl' in self.molecule_smiles or 'Br' in self.molecule_smiles:
+            if "Cl" in self.molecule_smiles or "Br" in self.molecule_smiles:
                 risk += 0.1
 
         # Aromatic rings can indicate mutagenicity
         if endpoint == "mutagenicity":
-            if 'c' in self.molecule_smiles or 'C1=C' in self.molecule_smiles:
+            if "c" in self.molecule_smiles or "C1=C" in self.molecule_smiles:
                 risk += 0.15
 
         # Add noise to simulate quantum measurement
@@ -469,14 +465,14 @@ class ToxicityPredictionCircuit(CircuitTemplate):
 
         # Common toxicophore patterns
         toxicophore_patterns = {
-            'nitro_aromatic': 'c[N+](=O)[O-]',
-            'aromatic_amine': 'cN',
-            'epoxide': 'C1OC1',
-            'aldehyde': 'C=O',
-            'aromatic_halogen': 'c[Cl,Br,I]',
-            'quinone': 'C1=CC(=O)C=CC1=O',
-            'hydrazine': 'NN',
-            'nitrosamine': 'N-N=O',
+            "nitro_aromatic": "c[N+](=O)[O-]",
+            "aromatic_amine": "cN",
+            "epoxide": "C1OC1",
+            "aldehyde": "C=O",
+            "aromatic_halogen": "c[Cl,Br,I]",
+            "quinone": "C1=CC(=O)C=CC1=O",
+            "hydrazine": "NN",
+            "nitrosamine": "N-N=O",
         }
 
         try:
@@ -496,10 +492,10 @@ class ToxicityPredictionCircuit(CircuitTemplate):
 
         except ImportError:
             # Fallback: simple string matching
-            if 'N(=O)=O' in smiles or '[N+](=O)[O-]' in smiles:
-                alerts.append('nitro_group')
-            if 'cN' in smiles or 'c1ccccc1N' in smiles:
-                alerts.append('aromatic_amine')
+            if "N(=O)=O" in smiles or "[N+](=O)[O-]" in smiles:
+                alerts.append("nitro_group")
+            if "cN" in smiles or "c1ccccc1N" in smiles:
+                alerts.append("aromatic_amine")
 
         return alerts
 
@@ -546,7 +542,9 @@ class ToxicityPredictionCircuit(CircuitTemplate):
         else:
             return "severe"
 
-    def _generate_recommendations(self, predictions: Dict[str, float], alerts: List[str]) -> List[str]:
+    def _generate_recommendations(
+        self, predictions: Dict[str, float], alerts: List[str]
+    ) -> List[str]:
         """
         Generate safety recommendations.
 
@@ -575,24 +573,20 @@ class ToxicityPredictionCircuit(CircuitTemplate):
 
         # Hepatotoxicity specific
         if predictions.get("hepatotoxicity", 0) > 0.5:
-            recommendations.append(
-                "Monitor liver function (ALT, AST) in preclinical studies"
-            )
+            recommendations.append("Monitor liver function (ALT, AST) in preclinical studies")
 
         # Cardiotoxicity specific
         if predictions.get("cardiotoxicity", 0) > 0.5:
-            recommendations.append(
-                "Conduct hERG assay to assess cardiac risk"
-            )
+            recommendations.append("Conduct hERG assay to assess cardiac risk")
 
         # Mutagenicity specific
         if predictions.get("mutagenicity", 0) > 0.5:
-            recommendations.append(
-                "Perform Ames test for mutagenicity assessment"
-            )
+            recommendations.append("Perform Ames test for mutagenicity assessment")
 
         if not recommendations:
-            recommendations.append("Toxicity risk appears acceptable. Proceed with standard testing.")
+            recommendations.append(
+                "Toxicity risk appears acceptable. Proceed with standard testing."
+            )
 
         return recommendations
 

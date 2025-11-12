@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="BioQL Lab Notebook - Modern electronic lab notebook for biological research">
+    <title>BioQL Lab Notebook</title>
+    <link rel="stylesheet" href="../static/css/main.css">
+    <link rel="stylesheet" href="../static/css/experiments.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <h1 class="logo">BioQL Lab Notebook</h1>
+            </div>
+            <div class="header-right">
+                <nav class="main-nav">
+                    <ul>
+                        <li><a href="#dashboard" class="nav-link active">Dashboard</a></li>
+                        <li><a href="#experiments" class="nav-link">Experiments</a></li>
+                        <li><a href="#protocols" class="nav-link">Protocols</a></li>
+                        <li><a href="#samples" class="nav-link">Samples</a></li>
+                        <li><a href="#search" class="nav-link">Search</a></li>
+                    </ul>
+                </nav>
+                <div class="user-menu">
+                    <button class="user-button">User</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="sidebar-section">
+                    <h3>Quick Actions</h3>
+                    <button class="btn btn-primary" id="newExperimentBtn">+ New Experiment</button>
+                    <button class="btn btn-secondary" id="newProtocolBtn">+ New Protocol</button>
+                </div>
+                <div class="sidebar-section">
+                    <h3>Recent Experiments</h3>
+                    <ul class="recent-list" id="recentExperiments">
+                        <!-- Populated by JavaScript -->
+                    </ul>
+                </div>
+                <div class="sidebar-section">
+                    <h3>Tags</h3>
+                    <div class="tag-cloud" id="tagCloud">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Content Area -->
+            <section class="content-area">
+                <div id="dashboardView" class="view active">
+                    <h2>Dashboard</h2>
+                    <div class="dashboard-grid">
+                        <div class="dashboard-card">
+                            <h3>Experiments</h3>
+                            <div class="stat-number" id="totalExperiments">0</div>
+                            <p class="stat-label">Total Experiments</p>
+                        </div>
+                        <div class="dashboard-card">
+                            <h3>Protocols</h3>
+                            <div class="stat-number" id="totalProtocols">0</div>
+                            <p class="stat-label">Active Protocols</p>
+                        </div>
+                        <div class="dashboard-card">
+                            <h3>Samples</h3>
+                            <div class="stat-number" id="totalSamples">0</div>
+                            <p class="stat-label">Tracked Samples</p>
+                        </div>
+                        <div class="dashboard-card">
+                            <h3>Activity</h3>
+                            <div class="stat-number" id="recentActivity">0</div>
+                            <p class="stat-label">This Week</p>
+                        </div>
+                    </div>
+                    <div class="recent-activity">
+                        <h3>Recent Activity</h3>
+                        <div id="activityFeed">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <div id="experimentsView" class="view">
+                    <div class="view-header">
+                        <h2>Experiments</h2>
+                        <div class="view-actions">
+                            <input type="search" id="experimentSearch" placeholder="Search experiments..." class="search-input">
+                            <select id="experimentFilter" class="filter-select">
+                                <option value="all">All Experiments</option>
+                                <option value="in-progress">In Progress</option>
+                                <option value="completed">Completed</option>
+                                <option value="archived">Archived</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="experimentsList" class="experiments-grid">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+
+                <div id="protocolsView" class="view">
+                    <div class="view-header">
+                        <h2>Protocols</h2>
+                    </div>
+                    <div id="protocolsList">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+
+                <div id="samplesView" class="view">
+                    <div class="view-header">
+                        <h2>Samples</h2>
+                    </div>
+                    <div id="samplesList">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+
+                <div id="searchView" class="view">
+                    <div class="view-header">
+                        <h2>BioQL Search</h2>
+                    </div>
+                    <div class="search-container">
+                        <textarea id="bioqlQuery" class="bioql-input" placeholder="Enter BioQL query..."></textarea>
+                        <button class="btn btn-primary" id="executeQuery">Execute Query</button>
+                        <div id="queryResults" class="query-results">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>&copy; 2024 BioQL Lab Notebook. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <!-- Modal for New Experiment -->
+    <div id="experimentModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>New Experiment</h2>
+            <form id="experimentForm">
+                <div class="form-group">
+                    <label for="experimentTitle">Title</label>
+                    <input type="text" id="experimentTitle" name="title" required>
+                </div>
+                <div class="form-group">
+                    <label for="experimentTemplate">Template</label>
+                    <select id="experimentTemplate" name="template">
+                        <option value="">Blank</option>
+                        <option value="pcr">PCR</option>
+                        <option value="western-blot">Western Blot</option>
+                        <option value="cell-culture">Cell Culture</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="experimentDescription">Description</label>
+                    <textarea id="experimentDescription" name="description" rows="4"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Create Experiment</button>
+                    <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../js/app.js" type="module"></script>
+    <script src="../js/experiments.js" type="module"></script>
+    <script src="../js/api.js" type="module"></script>
+</body>
+</html>

@@ -5,17 +5,12 @@ This module provides the CircuitCatalog class for searching, filtering,
 and recommending quantum circuit templates.
 """
 
-from dataclasses import dataclass
-from typing import List, Optional, Dict, Any, Callable
-from enum import Enum
 import logging
+from dataclasses import dataclass
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional
 
-from .base import (
-    CircuitTemplate,
-    CircuitCategory,
-    ComplexityRating,
-    ResourceEstimate
-)
+from .base import CircuitCategory, CircuitTemplate, ComplexityRating, ResourceEstimate
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +35,7 @@ class ResourceConstraints:
         ...     error_tolerance=0.05
         ... )
     """
+
     max_qubits: Optional[int] = None
     max_depth: Optional[int] = None
     max_gates: Optional[int] = None
@@ -91,6 +87,7 @@ class SearchFilters:
         exclude_experimental: Exclude experimental circuits
         exclude_deprecated: Exclude deprecated circuits
     """
+
     categories: Optional[List[CircuitCategory]] = None
     complexity_max: Optional[ComplexityRating] = None
     tags: Optional[List[str]] = None
@@ -158,7 +155,7 @@ class CircuitCatalog:
         name: str,
         loader: Callable[[], CircuitTemplate],
         category: CircuitCategory,
-        tags: Optional[List[str]] = None
+        tags: Optional[List[str]] = None,
     ) -> None:
         """
         Register a lazy-loaded circuit template.
@@ -212,9 +209,7 @@ class CircuitCatalog:
         return None
 
     def search(
-        self,
-        query: Optional[str] = None,
-        filters: Optional[SearchFilters] = None
+        self, query: Optional[str] = None, filters: Optional[SearchFilters] = None
     ) -> List[CircuitTemplate]:
         """
         Search for circuit templates.
@@ -256,7 +251,9 @@ class CircuitCatalog:
                     continue
 
                 if filters.tags:
-                    if not any(tag.lower() in [t.lower() for t in template.tags] for tag in filters.tags):
+                    if not any(
+                        tag.lower() in [t.lower() for t in template.tags] for tag in filters.tags
+                    ):
                         continue
 
             # Apply query
@@ -326,7 +323,7 @@ class CircuitCatalog:
         self,
         use_case: Optional[str] = None,
         constraints: Optional[ResourceConstraints] = None,
-        **circuit_params
+        **circuit_params,
     ) -> List[tuple[CircuitTemplate, float]]:
         """
         Recommend circuit templates based on use case and constraints.
@@ -400,10 +397,7 @@ class CircuitCatalog:
         Returns:
             List of categories with templates
         """
-        return [
-            cat for cat, templates in self._category_index.items()
-            if templates
-        ]
+        return [cat for cat, templates in self._category_index.items() if templates]
 
     def list_tags(self) -> List[str]:
         """

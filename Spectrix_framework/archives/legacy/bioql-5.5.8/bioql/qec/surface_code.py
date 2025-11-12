@@ -14,16 +14,16 @@ Example:
     >>> print(f"Physical qubits needed: {physical_qubits}")
 """
 
-from typing import Literal, Optional
-from dataclasses import dataclass
 import math
+from dataclasses import dataclass
+from typing import Literal, Optional
 
 from ..logger import get_logger
 
 logger = get_logger(__name__)
 
 
-DecoderType = Literal['mwpm', 'union_find']
+DecoderType = Literal["mwpm", "union_find"]
 
 
 @dataclass
@@ -53,7 +53,7 @@ class SurfaceCodeQEC:
     code_distance: int = 5
     error_rate: float = 0.001
     correction_rounds: int = 1
-    decoder: DecoderType = 'mwpm'
+    decoder: DecoderType = "mwpm"
 
     def __post_init__(self):
         """Validate parameters after initialization."""
@@ -135,28 +135,21 @@ class SurfaceCodeQEC:
         valid_distances = [3, 5, 7, 9]
         if self.code_distance not in valid_distances:
             raise ValueError(
-                f"code_distance must be one of {valid_distances}, "
-                f"got {self.code_distance}"
+                f"code_distance must be one of {valid_distances}, " f"got {self.code_distance}"
             )
 
         # Validate error rate
         if not (0 < self.error_rate < 0.1):
-            raise ValueError(
-                f"error_rate must be between 0 and 0.1, got {self.error_rate}"
-            )
+            raise ValueError(f"error_rate must be between 0 and 0.1, got {self.error_rate}")
 
         # Validate correction rounds
         if self.correction_rounds < 1:
-            raise ValueError(
-                f"correction_rounds must be positive, got {self.correction_rounds}"
-            )
+            raise ValueError(f"correction_rounds must be positive, got {self.correction_rounds}")
 
         # Validate decoder
-        valid_decoders: list[DecoderType] = ['mwpm', 'union_find']
+        valid_decoders: list[DecoderType] = ["mwpm", "union_find"]
         if self.decoder not in valid_decoders:
-            raise ValueError(
-                f"decoder must be one of {valid_decoders}, got {self.decoder}"
-            )
+            raise ValueError(f"decoder must be one of {valid_decoders}, got {self.decoder}")
 
         return True
 
@@ -260,12 +253,12 @@ class SurfaceCodeQEC:
             >>> print(config)
         """
         return {
-            'code_distance': self.code_distance,
-            'error_rate': self.error_rate,
-            'correction_rounds': self.correction_rounds,
-            'decoder': self.decoder,
-            'ancilla_qubits': self.ancilla_qubits,
-            'logical_overhead': self.logical_overhead,
-            'estimated_logical_error_rate': self.estimate_logical_error_rate(),
-            'syndrome_circuit_depth': self.get_syndrome_circuit_depth(),
+            "code_distance": self.code_distance,
+            "error_rate": self.error_rate,
+            "correction_rounds": self.correction_rounds,
+            "decoder": self.decoder,
+            "ancilla_qubits": self.ancilla_qubits,
+            "logical_overhead": self.logical_overhead,
+            "estimated_logical_error_rate": self.estimate_logical_error_rate(),
+            "syndrome_circuit_depth": self.get_syndrome_circuit_depth(),
         }

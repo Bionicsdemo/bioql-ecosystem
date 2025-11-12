@@ -1,0 +1,4 @@
+{
+  "api_key": "__BIOQL_REDACTED__",
+  "request": "Dock my clinical molecule with SMILES COC1=C(C2=C[N+]3=C(C=C2C=C1)C4=CC5=C(C=C4CC3)OCO5)OC against GLP1R receptor PDB 6B3J for obesity/diabetes using IBM Torino quantum computer with 2000 shots and surface_code QEC distance 5. Calculate Ki from binding affinity. Use Quillow algorithm for error correction."
+}

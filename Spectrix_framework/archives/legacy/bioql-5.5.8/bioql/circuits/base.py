@@ -8,12 +8,14 @@ with quantum circuit templates in BioQL.
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional, Any, Callable
+from typing import Any, Callable, Dict, List, Optional
+
 import numpy as np
 
 
 class CircuitCategory(Enum):
     """Categories of quantum circuits available in BioQL."""
+
     ALGORITHM = "algorithm"
     DRUG_DISCOVERY = "drug_discovery"
     CHEMISTRY = "chemistry"
@@ -24,6 +26,7 @@ class CircuitCategory(Enum):
 
 class ComplexityRating(Enum):
     """Complexity rating for circuit templates."""
+
     LOW = 1
     MEDIUM = 2
     HIGH = 3
@@ -63,6 +66,7 @@ class ParameterSpec:
         ...     range=(1, 100)
         ... )
     """
+
     name: str
     type: str
     description: str
@@ -133,6 +137,7 @@ class ResourceEstimate:
         ...     two_qubit_gates=40
         ... )
     """
+
     num_qubits: int
     circuit_depth: int
     gate_count: int
@@ -210,7 +215,7 @@ class CircuitTemplate(ABC):
         parameters: Optional[List[ParameterSpec]] = None,
         tags: Optional[List[str]] = None,
         use_cases: Optional[List[str]] = None,
-        references: Optional[List[str]] = None
+        references: Optional[List[str]] = None,
     ):
         """
         Initialize circuit template.
@@ -278,10 +283,7 @@ class CircuitTemplate(ABC):
         # Validate provided parameters
         for param_name, param_value in kwargs.items():
             # Find parameter spec
-            param_spec = next(
-                (p for p in self.parameters if p.name == param_name),
-                None
-            )
+            param_spec = next((p for p in self.parameters if p.name == param_name), None)
 
             if param_spec is None:
                 return False, f"Unknown parameter: {param_name}"
@@ -298,11 +300,7 @@ class CircuitTemplate(ABC):
         Returns:
             Dictionary of parameter names to default values
         """
-        return {
-            param.name: param.default
-            for param in self.parameters
-            if param.default is not None
-        }
+        return {param.name: param.default for param in self.parameters if param.default is not None}
 
     def matches_query(self, query: str) -> bool:
         """
@@ -356,6 +354,7 @@ class CircuitMetadata:
         deprecated: Whether template is deprecated
         replacement: Replacement template name if deprecated
     """
+
     version: str = "1.0.0"
     author: Optional[str] = None
     created_date: Optional[str] = None

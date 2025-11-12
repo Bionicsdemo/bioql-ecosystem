@@ -6,24 +6,26 @@ simulations, integrating with BioQL's existing docking infrastructure
 to enable quantum-enhanced drug discovery workflows.
 """
 
+import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
-import hashlib
+
 import numpy as np
 
 try:
     from loguru import logger
 except ImportError:
     import logging
+
     logger = logging.getLogger(__name__)
 
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit import Parameter, ParameterVector
-from qiskit_aer import AerSimulator
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+from qiskit_aer import AerSimulator
 
-from ..templates.base import CircuitTemplate, CircuitBackend
+from ..templates.base import CircuitBackend, CircuitTemplate
 
 
 @dataclass
@@ -40,12 +42,12 @@ class Pose:
     def to_dict(self) -> Dict:
         """Convert to dictionary."""
         return {
-            'pose_id': self.pose_id,
-            'energy': self.energy,
-            'probability': self.probability,
-            'rotation': list(self.rotation),
-            'translation': list(self.translation),
-            'confidence': self.confidence
+            "pose_id": self.pose_id,
+            "energy": self.energy,
+            "probability": self.probability,
+            "rotation": list(self.rotation),
+            "translation": list(self.translation),
+            "confidence": self.confidence,
         }
 
 
@@ -67,16 +69,16 @@ class DockingResult:
     def to_dict(self) -> Dict:
         """Convert to dictionary."""
         return {
-            'success': self.success,
-            'ligand_smiles': self.ligand_smiles,
-            'receptor_pdb': self.receptor_pdb,
-            'num_poses': self.num_poses,
-            'poses': [p.to_dict() for p in self.poses],
-            'best_energy': self.best_energy,
-            'quantum_counts': self.quantum_counts,
-            'execution_time_ms': self.execution_time_ms,
-            'metadata': self.metadata,
-            'error_message': self.error_message
+            "success": self.success,
+            "ligand_smiles": self.ligand_smiles,
+            "receptor_pdb": self.receptor_pdb,
+            "num_poses": self.num_poses,
+            "poses": [p.to_dict() for p in self.poses],
+            "best_energy": self.best_energy,
+            "quantum_counts": self.quantum_counts,
+            "execution_time_ms": self.execution_time_ms,
+            "metadata": self.metadata,
+            "error_message": self.error_message,
         }
 
 
@@ -127,7 +129,7 @@ class MolecularDockingCircuit(CircuitTemplate):
         num_poses: int = 10,
         ligand_qubits: int = 6,
         receptor_qubits: int = 6,
-        backend: CircuitBackend = CircuitBackend.SIMULATOR
+        backend: CircuitBackend = CircuitBackend.SIMULATOR,
     ):
         """
         Initialize molecular docking circuit.
@@ -172,7 +174,7 @@ class MolecularDockingCircuit(CircuitTemplate):
             name=f"Molecular Docking ({num_poses} poses)",
             description=f"Quantum docking of {ligand_smiles[:20]} to receptor",
             num_qubits=total_qubits,
-            backend=backend
+            backend=backend,
         )
 
         logger.info(
@@ -199,9 +201,9 @@ class MolecularDockingCircuit(CircuitTemplate):
             >>> print(circuit.depth())
         """
         # Create quantum and classical registers
-        ligand_reg = QuantumRegister(self.ligand_qubits, 'ligand')
-        receptor_reg = QuantumRegister(self.receptor_qubits, 'receptor')
-        creg = ClassicalRegister(self.num_qubits, 'c')
+        ligand_reg = QuantumRegister(self.ligand_qubits, "ligand")
+        receptor_reg = QuantumRegister(self.receptor_qubits, "receptor")
+        creg = ClassicalRegister(self.num_qubits, "c")
 
         circuit = QuantumCircuit(ligand_reg, receptor_reg, creg)
 
@@ -212,9 +214,7 @@ class MolecularDockingCircuit(CircuitTemplate):
         # Step 2: Encode receptor
         receptor_circuit = self.encode_receptor()
         circuit.compose(
-            receptor_circuit,
-            qubits=range(self.ligand_qubits, self.num_qubits),
-            inplace=True
+            receptor_circuit, qubits=range(self.ligand_qubits, self.num_qubits), inplace=True
         )
 
         # Step 3: Compute interaction energy
@@ -225,8 +225,7 @@ class MolecularDockingCircuit(CircuitTemplate):
         circuit.measure(range(self.num_qubits), range(self.num_qubits))
 
         logger.debug(
-            f"Built docking circuit: depth={circuit.depth()}, "
-            f"gates={len(circuit.data)}"
+            f"Built docking circuit: depth={circuit.depth()}, " f"gates={len(circuit.data)}"
         )
 
         return circuit
@@ -261,9 +260,7 @@ class MolecularDockingCircuit(CircuitTemplate):
                 circuit.x(i)
 
             # Add rotation based on chemical properties
-            angle = self._calculate_rotation_angle(
-                self.ligand_smiles, i
-            )
+            angle = self._calculate_rotation_angle(self.ligand_smiles, i)
             circuit.ry(angle, i)
             circuit.rz(angle / 2, i)
 
@@ -304,9 +301,7 @@ class MolecularDockingCircuit(CircuitTemplate):
                 circuit.x(i)
 
             # Add rotation based on binding site properties
-            angle = self._calculate_rotation_angle(
-                self.receptor_pdb, i
-            )
+            angle = self._calculate_rotation_angle(self.receptor_pdb, i)
             circuit.ry(angle, i)
             circuit.rz(angle / 3, i)
 
@@ -358,11 +353,7 @@ class MolecularDockingCircuit(CircuitTemplate):
 
         return circuit
 
-    def extract_poses(
-        self,
-        counts: Dict[str, int],
-        shots: int
-    ) -> List[Pose]:
+    def extract_poses(self, counts: Dict[str, int], shots: int) -> List[Pose]:
         """
         Extract binding poses from quantum measurement results.
 
@@ -385,14 +376,10 @@ class MolecularDockingCircuit(CircuitTemplate):
         poses = []
 
         # Sort measurement outcomes by frequency
-        sorted_counts = sorted(
-            counts.items(),
-            key=lambda x: x[1],
-            reverse=True
-        )
+        sorted_counts = sorted(counts.items(), key=lambda x: x[1], reverse=True)
 
         # Extract top N poses
-        for i, (bitstring, count) in enumerate(sorted_counts[:self.num_poses]):
+        for i, (bitstring, count) in enumerate(sorted_counts[: self.num_poses]):
             probability = count / shots
 
             # Decode pose information from bitstring
@@ -407,7 +394,7 @@ class MolecularDockingCircuit(CircuitTemplate):
                 probability=probability,
                 rotation=rotation,
                 translation=translation,
-                confidence=confidence
+                confidence=confidence,
             )
 
             poses.append(pose)
@@ -416,11 +403,7 @@ class MolecularDockingCircuit(CircuitTemplate):
 
         return poses
 
-    def run_docking(
-        self,
-        shots: int = 2048,
-        optimization_level: int = 1
-    ) -> DockingResult:
+    def run_docking(self, shots: int = 2048, optimization_level: int = 1) -> DockingResult:
         """
         Run complete molecular docking simulation.
 
@@ -446,16 +429,14 @@ class MolecularDockingCircuit(CircuitTemplate):
             >>> print(f"Poses generated: {len(result.poses)}")
         """
         import time
+
         start_time = time.time()
 
         try:
             logger.info("Starting quantum docking simulation")
 
             # Execute circuit
-            exec_result = self.execute(
-                shots=shots,
-                optimization_level=optimization_level
-            )
+            exec_result = self.execute(shots=shots, optimization_level=optimization_level)
 
             if not exec_result.success:
                 return DockingResult(
@@ -467,7 +448,7 @@ class MolecularDockingCircuit(CircuitTemplate):
                     best_energy=0.0,
                     quantum_counts={},
                     execution_time_ms=exec_result.execution_time_ms,
-                    error_message=exec_result.error_message
+                    error_message=exec_result.error_message,
                 )
 
             # Extract poses from results
@@ -479,8 +460,7 @@ class MolecularDockingCircuit(CircuitTemplate):
             execution_time = (time.time() - start_time) * 1000
 
             logger.success(
-                f"Docking complete: {len(poses)} poses, "
-                f"best energy={best_energy:.2f} kcal/mol"
+                f"Docking complete: {len(poses)} poses, " f"best energy={best_energy:.2f} kcal/mol"
             )
 
             return DockingResult(
@@ -493,13 +473,13 @@ class MolecularDockingCircuit(CircuitTemplate):
                 quantum_counts=exec_result.counts,
                 execution_time_ms=execution_time,
                 metadata={
-                    'circuit_depth': exec_result.circuit_depth,
-                    'gate_count': exec_result.gate_count,
-                    'shots': shots,
-                    'optimization_level': optimization_level,
-                    'ligand_qubits': self.ligand_qubits,
-                    'receptor_qubits': self.receptor_qubits
-                }
+                    "circuit_depth": exec_result.circuit_depth,
+                    "gate_count": exec_result.gate_count,
+                    "shots": shots,
+                    "optimization_level": optimization_level,
+                    "ligand_qubits": self.ligand_qubits,
+                    "receptor_qubits": self.receptor_qubits,
+                },
             )
 
         except Exception as e:
@@ -515,7 +495,7 @@ class MolecularDockingCircuit(CircuitTemplate):
                 best_energy=0.0,
                 quantum_counts={},
                 execution_time_ms=execution_time,
-                error_message=str(e)
+                error_message=str(e),
             )
 
     def _smiles_to_fingerprint(self, smiles: str) -> List[bool]:
@@ -554,8 +534,8 @@ class MolecularDockingCircuit(CircuitTemplate):
     def _bitstring_to_rotation(self, bitstring: str) -> Tuple[float, float, float]:
         """Convert bitstring to Euler angles for rotation."""
         # Extract rotation bits
-        value = int(bitstring[:self.ligand_qubits], 2)
-        max_value = 2 ** self.ligand_qubits
+        value = int(bitstring[: self.ligand_qubits], 2)
+        max_value = 2**self.ligand_qubits
 
         # Map to Euler angles [0, 2π]
         alpha = (value % 100) * 2 * np.pi / 100
@@ -567,7 +547,7 @@ class MolecularDockingCircuit(CircuitTemplate):
     def _bitstring_to_translation(self, bitstring: str) -> Tuple[float, float, float]:
         """Convert bitstring to translation vector."""
         # Extract translation bits
-        value = int(bitstring[self.ligand_qubits:], 2)
+        value = int(bitstring[self.ligand_qubits :], 2)
 
         # Map to translation range: -10 to 10 Angstroms
         x = ((value % 100) - 50) / 5.0
@@ -577,4 +557,4 @@ class MolecularDockingCircuit(CircuitTemplate):
         return (x, y, z)
 
 
-__all__ = ['MolecularDockingCircuit', 'DockingResult', 'Pose']
+__all__ = ["MolecularDockingCircuit", "DockingResult", "Pose"]

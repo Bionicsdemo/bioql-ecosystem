@@ -7,16 +7,16 @@ Converts gRNA sequences (ATCG) into rotation angles for quantum gates:
 - Compatible with all quantum backends
 """
 
-from typing import List, Dict
-import numpy as np
+from typing import Dict, List
 
+import numpy as np
 
 # Nucleotide to angle mapping (radians)
 NUCLEOTIDE_TO_ANGLE = {
-    'A': 0.0,           # Adenine → 0°
-    'T': np.pi / 2,     # Thymine → 90°
-    'C': np.pi,         # Cytosine → 180°
-    'G': 3 * np.pi / 2, # Guanine → 270°
+    "A": 0.0,  # Adenine → 0°
+    "T": np.pi / 2,  # Thymine → 90°
+    "C": np.pi,  # Cytosine → 180°
+    "G": 3 * np.pi / 2,  # Guanine → 270°
 }
 
 
@@ -42,10 +42,7 @@ def encode_guide_sequence(guide_seq: str) -> List[float]:
 
     if not all(nuc in NUCLEOTIDE_TO_ANGLE for nuc in guide_seq):
         invalid = set(guide_seq) - set(NUCLEOTIDE_TO_ANGLE.keys())
-        raise ValueError(
-            f"Invalid nucleotides in sequence: {invalid}. "
-            f"Expected: A, T, C, G"
-        )
+        raise ValueError(f"Invalid nucleotides in sequence: {invalid}. " f"Expected: A, T, C, G")
 
     # Convert to angles
     angles = [NUCLEOTIDE_TO_ANGLE[nuc] for nuc in guide_seq]
@@ -53,11 +50,7 @@ def encode_guide_sequence(guide_seq: str) -> List[float]:
     return angles
 
 
-def guide_to_angles(
-    guide_seq: str,
-    target_length: int = 20,
-    pad_value: float = 0.0
-) -> List[float]:
+def guide_to_angles(guide_seq: str, target_length: int = 20, pad_value: float = 0.0) -> List[float]:
     """
     Convert gRNA to fixed-length angle list (for consistent circuit size)
 
@@ -113,7 +106,7 @@ def decode_angles(angles: List[float], tolerance: float = 0.1) -> str:
 
         # Find closest nucleotide
         closest_nuc = None
-        min_diff = float('inf')
+        min_diff = float("inf")
 
         for nuc, nuc_angle in NUCLEOTIDE_TO_ANGLE.items():
             diff = abs(angle - nuc_angle)
@@ -122,11 +115,11 @@ def decode_angles(angles: List[float], tolerance: float = 0.1) -> str:
                 closest_nuc = nuc
 
         if min_diff > tolerance:
-            sequence.append('N')  # Unknown
+            sequence.append("N")  # Unknown
         else:
             sequence.append(closest_nuc)
 
-    return ''.join(sequence)
+    return "".join(sequence)
 
 
 def calculate_gc_content(guide_seq: str) -> float:
@@ -140,7 +133,7 @@ def calculate_gc_content(guide_seq: str) -> float:
         GC content (0.0 - 1.0)
     """
     guide_seq = guide_seq.upper()
-    gc_count = guide_seq.count('G') + guide_seq.count('C')
+    gc_count = guide_seq.count("G") + guide_seq.count("C")
     total = len(guide_seq)
 
     if total == 0:
@@ -163,9 +156,9 @@ def encode_with_features(guide_seq: str) -> Dict[str, any]:
     gc_content = calculate_gc_content(guide_seq)
 
     return {
-        'angles': angles,
-        'sequence': guide_seq,
-        'length': len(guide_seq),
-        'gc_content': gc_content,
-        'num_qubits': len(angles)
+        "angles": angles,
+        "sequence": guide_seq,
+        "length": len(guide_seq),
+        "gc_content": gc_content,
+        "num_qubits": len(angles),
     }

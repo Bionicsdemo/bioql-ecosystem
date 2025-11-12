@@ -13,23 +13,26 @@ This module provides comprehensive caching for compiled quantum circuits with:
 
 import hashlib
 import json
+import logging
+import re
 import threading
 import time
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Any, Dict, Optional, Pattern, List, Union
-import re
-import logging
+from typing import Any, Dict, List, Optional, Pattern, Union
 
 try:
     from qiskit import QuantumCircuit
+
     QISKIT_AVAILABLE = True
 except ImportError:
     QISKIT_AVAILABLE = False
+
     # Dummy class for type hints
     class QuantumCircuit:
         pass
+
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -46,6 +49,7 @@ class CacheKey:
         optimization_level: Optimization level (0-3)
         parameters_hash: Hash of circuit parameters
     """
+
     program_fingerprint: str
     backend_target: str
     optimization_level: int
@@ -53,22 +57,24 @@ class CacheKey:
 
     def __hash__(self) -> int:
         """Generate hash for use as dictionary key."""
-        return hash((
-            self.program_fingerprint,
-            self.backend_target,
-            self.optimization_level,
-            self.parameters_hash
-        ))
+        return hash(
+            (
+                self.program_fingerprint,
+                self.backend_target,
+                self.optimization_level,
+                self.parameters_hash,
+            )
+        )
 
     def __eq__(self, other) -> bool:
         """Check equality with another CacheKey."""
         if not isinstance(other, CacheKey):
             return False
         return (
-            self.program_fingerprint == other.program_fingerprint and
-            self.backend_target == other.backend_target and
-            self.optimization_level == other.optimization_level and
-            self.parameters_hash == other.parameters_hash
+            self.program_fingerprint == other.program_fingerprint
+            and self.backend_target == other.backend_target
+            and self.optimization_level == other.optimization_level
+            and self.parameters_hash == other.parameters_hash
         )
 
     def __str__(self) -> str:
@@ -85,8 +91,8 @@ class CacheKey:
         ir_program: Union[str, Dict[str, Any], Any],
         backend_target: str = "qiskit",
         optimization_level: int = 1,
-        parameters: Optional[Dict[str, Any]] = None
-    ) -> 'CacheKey':
+        parameters: Optional[Dict[str, Any]] = None,
+    ) -> "CacheKey":
         """
         Create cache key from IR program.
 
@@ -104,7 +110,7 @@ class CacheKey:
             ir_str = ir_program
         elif isinstance(ir_program, dict):
             ir_str = json.dumps(ir_program, sort_keys=True)
-        elif hasattr(ir_program, 'to_json'):
+        elif hasattr(ir_program, "to_json"):
             # BioQLProgram object
             ir_str = ir_program.to_json()
         else:
@@ -124,7 +130,7 @@ class CacheKey:
             program_fingerprint=program_fingerprint,
             backend_target=backend_target,
             optimization_level=optimization_level,
-            parameters_hash=parameters_hash
+            parameters_hash=parameters_hash,
         )
 
 
@@ -140,6 +146,7 @@ class CachedCircuit:
         access_count: Number of times accessed
         last_accessed: Last access timestamp
     """
+
     circuit: Any  # QuantumCircuit or similar
     metadata: Dict[str, Any] = field(default_factory=dict)
     created_at: datetime = field(default_factory=datetime.now)
@@ -162,22 +169,23 @@ class CachedCircuit:
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
-            'metadata': self.metadata,
-            'created_at': self.created_at.isoformat(),
-            'access_count': self.access_count,
-            'last_accessed': self.last_accessed.isoformat(),
-            'age_seconds': self.age_seconds(),
-            'circuit_info': {
-                'num_qubits': getattr(self.circuit, 'num_qubits', None),
-                'depth': getattr(self.circuit, 'depth', lambda: None)(),
-                'num_gates': len(getattr(self.circuit, 'data', []))
-            }
+            "metadata": self.metadata,
+            "created_at": self.created_at.isoformat(),
+            "access_count": self.access_count,
+            "last_accessed": self.last_accessed.isoformat(),
+            "age_seconds": self.age_seconds(),
+            "circuit_info": {
+                "num_qubits": getattr(self.circuit, "num_qubits", None),
+                "depth": getattr(self.circuit, "depth", lambda: None)(),
+                "num_gates": len(getattr(self.circuit, "data", [])),
+            },
         }
 
 
 @dataclass
 class CacheStats:
     """Statistics for cache performance tracking."""
+
     hits: int = 0
     misses: int = 0
     evictions: int = 0
@@ -199,14 +207,14 @@ class CacheStats:
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return {
-            'hits': self.hits,
-            'misses': self.misses,
-            'evictions': self.evictions,
-            'expirations': self.expirations,
-            'invalidations': self.invalidations,
-            'total_size': self.total_size,
-            'hit_rate': self.hit_rate(),
-            'miss_rate': self.miss_rate()
+            "hits": self.hits,
+            "misses": self.misses,
+            "evictions": self.evictions,
+            "expirations": self.expirations,
+            "invalidations": self.invalidations,
+            "total_size": self.total_size,
+            "hit_rate": self.hit_rate(),
+            "miss_rate": self.miss_rate(),
         }
 
 
@@ -232,12 +240,7 @@ class CircuitCache:
         >>> print(cache.get_hit_rate())
     """
 
-    def __init__(
-        self,
-        max_size: int = 100,
-        ttl_hours: float = 24.0,
-        enable_stats: bool = True
-    ):
+    def __init__(self, max_size: int = 100, ttl_hours: float = 24.0, enable_stats: bool = True):
         """
         Initialize circuit cache.
 
@@ -304,12 +307,7 @@ class CircuitCache:
             logger.debug(f"Cache hit: {key} (accessed {cached.access_count} times)")
             return cached
 
-    def put(
-        self,
-        key: CacheKey,
-        circuit: Any,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> None:
+    def put(self, key: CacheKey, circuit: Any, metadata: Optional[Dict[str, Any]] = None) -> None:
         """
         Store circuit in cache.
 
@@ -333,7 +331,7 @@ class CircuitCache:
                 metadata=metadata or {},
                 created_at=datetime.now(),
                 access_count=0,
-                last_accessed=datetime.now()
+                last_accessed=datetime.now(),
             )
 
             # Store in cache (at end, most recently used)
@@ -432,15 +430,15 @@ class CircuitCache:
             Dictionary with cache statistics
         """
         if not self.enable_stats:
-            return {'error': 'Statistics not enabled'}
+            return {"error": "Statistics not enabled"}
 
         with self._lock:
             return {
                 **self._stats.to_dict(),
-                'max_size': self.max_size,
-                'current_size': len(self._cache),
-                'ttl_hours': self.ttl_seconds / 3600,
-                'utilization': len(self._cache) / self.max_size if self.max_size > 0 else 0
+                "max_size": self.max_size,
+                "current_size": len(self._cache),
+                "ttl_hours": self.ttl_seconds / 3600,
+                "utilization": len(self._cache) / self.max_size if self.max_size > 0 else 0,
             }
 
     def optimize_cache(self) -> Dict[str, Any]:
@@ -474,24 +472,30 @@ class CircuitCache:
             cold_entries = sum(1 for count in access_counts if count < cold_threshold)
 
             report = {
-                'initial_size': initial_size,
-                'final_size': len(self._cache),
-                'expired_removed': len(expired_keys),
-                'cold_entries': cold_entries,
-                'avg_access_count': avg_access,
-                'hit_rate': self._stats.hit_rate(),
-                'recommendations': []
+                "initial_size": initial_size,
+                "final_size": len(self._cache),
+                "expired_removed": len(expired_keys),
+                "cold_entries": cold_entries,
+                "avg_access_count": avg_access,
+                "hit_rate": self._stats.hit_rate(),
+                "recommendations": [],
             }
 
             # Add recommendations
             if len(self._cache) > self.max_size * 0.9:
-                report['recommendations'].append('Cache is near capacity, consider increasing max_size')
+                report["recommendations"].append(
+                    "Cache is near capacity, consider increasing max_size"
+                )
 
             if self._stats.hit_rate() < 0.5:
-                report['recommendations'].append('Low hit rate, consider increasing TTL or cache size')
+                report["recommendations"].append(
+                    "Low hit rate, consider increasing TTL or cache size"
+                )
 
             if cold_entries > len(self._cache) * 0.5:
-                report['recommendations'].append('Many cold entries, consider reducing cache size or TTL')
+                report["recommendations"].append(
+                    "Many cold entries, consider reducing cache size or TTL"
+                )
 
             if self.enable_stats:
                 self._stats.total_size = len(self._cache)
@@ -500,10 +504,7 @@ class CircuitCache:
             return report
 
     def warm_cache(
-        self,
-        circuits: List[tuple],
-        backend_target: str = "qiskit",
-        optimization_level: int = 1
+        self, circuits: List[tuple], backend_target: str = "qiskit", optimization_level: int = 1
     ) -> int:
         """
         Pre-populate cache with circuits.
@@ -538,21 +539,23 @@ class CircuitCache:
         with self._lock:
             entries = []
             for key, cached in list(self._cache.items()):
-                entries.append({
-                    'key': str(key),
-                    'backend': key.backend_target,
-                    'optimization_level': key.optimization_level,
-                    'age_seconds': cached.age_seconds(),
-                    'access_count': cached.access_count,
-                    'time_since_access': cached.time_since_access_seconds(),
-                    **cached.to_dict()
-                })
+                entries.append(
+                    {
+                        "key": str(key),
+                        "backend": key.backend_target,
+                        "optimization_level": key.optimization_level,
+                        "age_seconds": cached.age_seconds(),
+                        "access_count": cached.access_count,
+                        "time_since_access": cached.time_since_access_seconds(),
+                        **cached.to_dict(),
+                    }
+                )
 
             return {
-                'stats': self.get_stats(),
-                'entries': entries,
-                'size': len(self._cache),
-                'max_size': self.max_size
+                "stats": self.get_stats(),
+                "entries": entries,
+                "size": len(self._cache),
+                "max_size": self.max_size,
             }
 
     def export_circuit(self, key: CacheKey, format: str = "qasm") -> Optional[str]:
@@ -578,18 +581,21 @@ class CircuitCache:
                 return circuit.qasm()
             elif format == "json":
                 # Return circuit info as JSON
-                return json.dumps({
-                    'num_qubits': circuit.num_qubits,
-                    'depth': circuit.depth(),
-                    'num_gates': len(circuit.data),
-                    'operations': [
-                        {
-                            'name': instr.operation.name,
-                            'qubits': [q.index for q in instr.qubits]
-                        }
-                        for instr in circuit.data
-                    ]
-                }, indent=2)
+                return json.dumps(
+                    {
+                        "num_qubits": circuit.num_qubits,
+                        "depth": circuit.depth(),
+                        "num_gates": len(circuit.data),
+                        "operations": [
+                            {
+                                "name": instr.operation.name,
+                                "qubits": [q.index for q in instr.qubits],
+                            }
+                            for instr in circuit.data
+                        ],
+                    },
+                    indent=2,
+                )
 
         # Fallback to string representation
         return str(circuit)
@@ -613,10 +619,7 @@ class CircuitCache:
 _global_cache: Optional[CircuitCache] = None
 
 
-def get_global_cache(
-    max_size: int = 100,
-    ttl_hours: float = 24.0
-) -> CircuitCache:
+def get_global_cache(max_size: int = 100, ttl_hours: float = 24.0) -> CircuitCache:
     """
     Get or create global circuit cache instance.
 
@@ -664,12 +667,12 @@ def integrate_with_quantum_connector():
             def get(self, circuit, shots: int, backend: str, max_age_hours: int = 24):
                 """Backward compatible get method."""
                 # Create key from circuit
-                circuit_str = str(circuit) if hasattr(circuit, '__str__') else ''
+                circuit_str = str(circuit) if hasattr(circuit, "__str__") else ""
                 key = CacheKey(
                     program_fingerprint=hashlib.sha256(circuit_str.encode()).hexdigest(),
                     backend_target=backend,
                     optimization_level=1,
-                    parameters_hash=f"shots_{shots}"
+                    parameters_hash=f"shots_{shots}",
                 )
 
                 cached = self._cache.get(key)
@@ -677,15 +680,15 @@ def integrate_with_quantum_connector():
 
             def put(self, circuit, shots: int, backend: str, result):
                 """Backward compatible put method."""
-                circuit_str = str(circuit) if hasattr(circuit, '__str__') else ''
+                circuit_str = str(circuit) if hasattr(circuit, "__str__") else ""
                 key = CacheKey(
                     program_fingerprint=hashlib.sha256(circuit_str.encode()).hexdigest(),
                     backend_target=backend,
                     optimization_level=1,
-                    parameters_hash=f"shots_{shots}"
+                    parameters_hash=f"shots_{shots}",
                 )
 
-                self._cache.put(key, result, {'shots': shots, 'backend': backend})
+                self._cache.put(key, result, {"shots": shots, "backend": backend})
 
         # Replace the global cache
         quantum_connector._circuit_cache = CompatibilityWrapper(global_cache)
@@ -700,17 +703,17 @@ def integrate_with_quantum_connector():
 
 # Export main classes
 __all__ = [
-    'CacheKey',
-    'CachedCircuit',
-    'CacheStats',
-    'CircuitCache',
-    'get_global_cache',
-    'reset_global_cache',
-    'integrate_with_quantum_connector'
+    "CacheKey",
+    "CachedCircuit",
+    "CacheStats",
+    "CircuitCache",
+    "get_global_cache",
+    "reset_global_cache",
+    "integrate_with_quantum_connector",
 ]
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Demo usage
     logging.basicConfig(level=logging.INFO)
 
@@ -726,7 +729,7 @@ if __name__ == '__main__':
             program_fingerprint=f"program_{i}",
             backend_target="qiskit",
             optimization_level=1,
-            parameters_hash="params_1"
+            parameters_hash="params_1",
         )
         cache.put(key, f"circuit_{i}", {"iteration": i})
 
@@ -738,7 +741,7 @@ if __name__ == '__main__':
         program_fingerprint="program_10",
         backend_target="qiskit",
         optimization_level=1,
-        parameters_hash="params_1"
+        parameters_hash="params_1",
     )
 
     result = cache.get(key)

@@ -41,14 +41,17 @@ Circuit Categories:
     - UTILITY: Utility circuits and building blocks
 """
 
+# Algorithm circuits
+from .algorithms import GroverCircuit, QAOACircuit, VQECircuit
+
 # Base classes and types
 from .base import (
-    CircuitTemplate,
     CircuitCategory,
+    CircuitMetadata,
+    CircuitTemplate,
     ComplexityRating,
     ParameterSpec,
     ResourceEstimate,
-    CircuitMetadata
 )
 
 # Catalog
@@ -58,40 +61,26 @@ from .catalog import (
     SearchFilters,
     get_catalog,
     register_template,
-    search_templates
-)
-
-# Algorithm circuits
-from .algorithms import (
-    VQECircuit,
-    QAOACircuit,
-    GroverCircuit
-)
-
-# Drug discovery circuits
-from .drug_discovery import (
-    MolecularDockingCircuit,
-    ProteinFoldingCircuit,
-    BindingAffinityCircuit
-)
-
-# Template circuits
-from .templates import (
-    HardwareEfficientAnsatz,
-    UCCSDAnsatz
+    search_templates,
 )
 
 # Composition utilities
+from .composition import CircuitComposer  # Legacy template composer
 from .composition import (
-    CircuitComposer,  # Legacy template composer
     CircuitPipeline,
-    QiskitCircuitComposer,
     CircuitStitcher,
-    ModularCircuitBuilder,
     CompositionStrategy,
+    ModularCircuitBuilder,
+    QiskitCircuitComposer,
     StitchingStrategy,
-    WiringMode
+    WiringMode,
 )
+
+# Drug discovery circuits
+from .drug_discovery import BindingAffinityCircuit, MolecularDockingCircuit, ProteinFoldingCircuit
+
+# Template circuits
+from .templates import HardwareEfficientAnsatz, UCCSDAnsatz
 
 
 # Register all circuits in the global catalog
@@ -127,7 +116,6 @@ __all__ = [
     "ParameterSpec",
     "ResourceEstimate",
     "CircuitMetadata",
-
     # Catalog
     "CircuitCatalog",
     "ResourceConstraints",
@@ -135,25 +123,20 @@ __all__ = [
     "get_catalog",
     "register_template",
     "search_templates",
-
     # Algorithm circuits
     "VQECircuit",
     "QAOACircuit",
     "GroverCircuit",
-
     # Drug discovery circuits
     "MolecularDockingCircuit",
     "ProteinFoldingCircuit",
     "BindingAffinityCircuit",
-
     # Template circuits
     "HardwareEfficientAnsatz",
     "UCCSDAnsatz",
-
     # Composition (Legacy)
     "CircuitComposer",
     "CircuitPipeline",
-
     # Composition (New Tools)
     "QiskitCircuitComposer",
     "CircuitStitcher",

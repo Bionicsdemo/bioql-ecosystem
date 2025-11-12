@@ -12,8 +12,8 @@ Example:
     >>> print(f"Overhead: {overhead}x")  # 9x
 """
 
-from typing import Optional
 from dataclasses import dataclass
+from typing import Optional
 
 from ..logger import get_logger
 
@@ -99,9 +99,7 @@ class ShorCodeQEC:
             ValueError: error_rate must be between 0 and 0.1
         """
         if not (0 < self.error_rate < 0.1):
-            raise ValueError(
-                f"error_rate must be between 0 and 0.1, got {self.error_rate}"
-            )
+            raise ValueError(f"error_rate must be between 0 and 0.1, got {self.error_rate}")
 
         return True
 
@@ -156,7 +154,7 @@ class ShorCodeQEC:
 
         # For distance-3 codes, logical error rate ≈ 42 * p^2
         # This is an approximation based on error correction theory
-        logical_error_rate = 42 * (p ** 2)
+        logical_error_rate = 42 * (p**2)
 
         return min(logical_error_rate, p)  # Can't be worse than no correction
 
@@ -177,19 +175,19 @@ class ShorCodeQEC:
         """
         # Shor code stabilizers: 6 for bit-flips, 2 for phase-flips
         return {
-            'generators': [
+            "generators": [
                 # Bit-flip stabilizers (within each block of 3)
-                'ZZIIIIIII',  # Check qubits 0,1
-                'IZZIIIIII',  # Check qubits 1,2
-                'IIIZZIII',   # Check qubits 3,4
-                'IIIIZZII',   # Check qubits 4,5
-                'IIIIIIZZI',  # Check qubits 6,7
-                'IIIIIIIZZ',  # Check qubits 7,8
+                "ZZIIIIIII",  # Check qubits 0,1
+                "IZZIIIIII",  # Check qubits 1,2
+                "IIIZZIII",  # Check qubits 3,4
+                "IIIIZZII",  # Check qubits 4,5
+                "IIIIIIZZI",  # Check qubits 6,7
+                "IIIIIIIZZ",  # Check qubits 7,8
                 # Phase-flip stabilizers (across blocks)
-                'XXXXXXIII',  # Check blocks 0,1
-                'IIIXXXXXX',  # Check blocks 1,2
+                "XXXXXXIII",  # Check blocks 0,1
+                "IIIXXXXXX",  # Check blocks 1,2
             ],
-            'description': 'Concatenated bit-flip and phase-flip code'
+            "description": "Concatenated bit-flip and phase-flip code",
         }
 
     def get_logical_operators(self) -> dict:
@@ -205,8 +203,8 @@ class ShorCodeQEC:
             >>> print(operators['X'])
         """
         return {
-            'X': 'XXXXXXXXX',  # Logical X (apply X to all 9 qubits)
-            'Z': 'ZZZIIIII',   # Logical Z (apply Z to first block)
+            "X": "XXXXXXXXX",  # Logical X (apply X to all 9 qubits)
+            "Z": "ZZZIIIII",  # Logical Z (apply Z to first block)
         }
 
     def get_encoding_circuit_depth(self) -> int:
@@ -253,21 +251,18 @@ class ShorCodeQEC:
             >>> print(structure['description'])
         """
         return {
-            'description': 'Concatenation of phase-flip and bit-flip codes',
-            'outer_code': '3-qubit phase-flip code',
-            'inner_code': '3-qubit bit-flip code',
-            'blocks': 3,
-            'qubits_per_block': 3,
-            'total_qubits': 9,
-            'correctable_errors': 'Any single-qubit error (X, Y, or Z)',
+            "description": "Concatenation of phase-flip and bit-flip codes",
+            "outer_code": "3-qubit phase-flip code",
+            "inner_code": "3-qubit bit-flip code",
+            "blocks": 3,
+            "qubits_per_block": 3,
+            "total_qubits": 9,
+            "correctable_errors": "Any single-qubit error (X, Y, or Z)",
         }
 
     def __repr__(self) -> str:
         """String representation of the Shor code configuration."""
-        return (
-            f"ShorCodeQEC(error_rate={self.error_rate}, "
-            f"overhead={self.overhead}x)"
-        )
+        return f"ShorCodeQEC(error_rate={self.error_rate}, " f"overhead={self.overhead}x)"
 
     def to_dict(self) -> dict:
         """
@@ -282,12 +277,12 @@ class ShorCodeQEC:
             >>> print(config)
         """
         return {
-            'code_type': 'shor',
-            'code_parameters': [9, 1, 3],  # [[n, k, d]] notation
-            'error_rate': self.error_rate,
-            'overhead': self.overhead,
-            'estimated_logical_error_rate': self.estimate_logical_error_rate(),
-            'encoding_circuit_depth': self.get_encoding_circuit_depth(),
-            'syndrome_circuit_depth': self.get_syndrome_circuit_depth(),
-            'code_structure': self.get_code_structure(),
+            "code_type": "shor",
+            "code_parameters": [9, 1, 3],  # [[n, k, d]] notation
+            "error_rate": self.error_rate,
+            "overhead": self.overhead,
+            "estimated_logical_error_rate": self.estimate_logical_error_rate(),
+            "encoding_circuit_depth": self.get_encoding_circuit_depth(),
+            "syndrome_circuit_depth": self.get_syndrome_circuit_depth(),
+            "code_structure": self.get_code_structure(),
         }

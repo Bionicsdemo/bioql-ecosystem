@@ -1,0 +1,11 @@
+{
+  "energy": -123.45,
+  "conformations": 10,
+  "cost": 2.5,
+  "quantum_config": {
+    "logical_qubits": 20,
+    "physical_qubits": 100,
+    "shots": 1000,
+    "backend": "ibm_quantum"
+  }
+}

@@ -12,7 +12,8 @@ Requires:
 """
 
 import time
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
+
 import numpy as np
 
 from .base import QuantumEngine
@@ -20,12 +21,14 @@ from .base import QuantumEngine
 try:
     from qiskit import QuantumCircuit
     from qiskit_aer import Aer
+
     HAVE_QISKIT = True
 except ImportError:
     HAVE_QISKIT = False
 
 try:
     from qiskit_ibm_runtime import QiskitRuntimeService, Sampler
+
     HAVE_IBM_RUNTIME = True
 except ImportError:
     HAVE_IBM_RUNTIME = False
@@ -40,7 +43,7 @@ class QiskitEngine(QuantumEngine):
         self,
         backend_name: str = "aer_simulator",
         shots: int = 1000,
-        ibm_token: Optional[str] = None
+        ibm_token: Optional[str] = None,
     ):
         """
         Initialize Qiskit backend
@@ -52,8 +55,7 @@ class QiskitEngine(QuantumEngine):
         """
         if not HAVE_QISKIT:
             raise ImportError(
-                "Qiskit not installed. "
-                "Install with: pip install qiskit qiskit-aer"
+                "Qiskit not installed. " "Install with: pip install qiskit qiskit-aer"
             )
 
         super().__init__(backend_name=backend_name, shots=shots)
@@ -65,7 +67,7 @@ class QiskitEngine(QuantumEngine):
         self,
         angles: List[float],
         coupling_strength: float = 1.0,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Run energy estimation on Qiskit backend
@@ -97,22 +99,20 @@ class QiskitEngine(QuantumEngine):
             counts = self._run_ibm_runtime(circuit)
 
         # Calculate energy
-        energy_estimate = self._calculate_energy_from_counts(
-            counts, angles, coupling_strength
-        )
+        energy_estimate = self._calculate_energy_from_counts(counts, angles, coupling_strength)
 
         confidence = self._calculate_confidence(counts)
 
         runtime = time.time() - start_time
 
         return {
-            'energy_estimate': float(energy_estimate),
-            'confidence': float(confidence),
-            'runtime_seconds': runtime,
-            'backend': self.backend_name,
-            'shots': self.shots,
-            'num_qubits': num_qubits,
-            'metadata': metadata or {}
+            "energy_estimate": float(energy_estimate),
+            "confidence": float(confidence),
+            "runtime_seconds": runtime,
+            "backend": self.backend_name,
+            "shots": self.shots,
+            "num_qubits": num_qubits,
+            "metadata": metadata or {},
         }
 
     def validate_backend(self) -> bool:
@@ -125,7 +125,7 @@ class QiskitEngine(QuantumEngine):
         try:
             if self.backend_name == "aer_simulator":
                 # Local simulator
-                self.backend = Aer.get_backend('aer_simulator')
+                self.backend = Aer.get_backend("aer_simulator")
                 self.validated = True
                 return True
 
@@ -133,13 +133,13 @@ class QiskitEngine(QuantumEngine):
                 # IBM Quantum hardware
                 if not HAVE_IBM_RUNTIME:
                     raise ImportError(
-                        "IBM Runtime not installed. "
-                        "Install with: pip install qiskit-ibm-runtime"
+                        "IBM Runtime not installed. " "Install with: pip install qiskit-ibm-runtime"
                     )
 
                 # Load IBM token from BioQL's internal config (SERVER SIDE)
                 if not self.ibm_token:
                     from ...quantum_connector import _load_ibm_token_from_config
+
                     self.ibm_token = _load_ibm_token_from_config()
 
                 if not self.ibm_token:
@@ -149,8 +149,7 @@ class QiskitEngine(QuantumEngine):
                     )
 
                 self.service = QiskitRuntimeService(
-                    channel="ibm_quantum_platform",
-                    token=self.ibm_token
+                    channel="ibm_quantum_platform", token=self.ibm_token
                 )
                 self.backend = self.service.backend(self.backend_name)
                 self.validated = True
@@ -161,11 +160,7 @@ class QiskitEngine(QuantumEngine):
             self.validated = False
             return False
 
-    def _build_circuit(
-        self,
-        angles: List[float],
-        coupling_strength: float
-    ) -> QuantumCircuit:
+    def _build_circuit(self, angles: List[float], coupling_strength: float) -> QuantumCircuit:
         """
         Build Qiskit quantum circuit for energy estimation
 
@@ -186,7 +181,7 @@ class QiskitEngine(QuantumEngine):
         # Apply ZZ couplings for base-pair interactions
         for i in range(num_qubits - 1):
             theta = coupling_strength * np.pi / 4
-            circuit.rzz(2 * theta, i, i+1)
+            circuit.rzz(2 * theta, i, i + 1)
 
         # Measure all qubits (creates 'meas' classical register automatically)
         circuit.measure_all()
@@ -248,17 +243,14 @@ class QiskitEngine(QuantumEngine):
         for bitstring, count in counts_dict.items():
             # bitstring might be int or string, normalize to binary string
             if isinstance(bitstring, int):
-                counts[format(bitstring, f'0{circuit.num_qubits}b')] = count
+                counts[format(bitstring, f"0{circuit.num_qubits}b")] = count
             else:
                 counts[bitstring] = count
 
         return counts
 
     def _calculate_energy_from_counts(
-        self,
-        counts: Dict[str, int],
-        angles: List[float],
-        coupling_strength: float
+        self, counts: Dict[str, int], angles: List[float], coupling_strength: float
     ) -> float:
         """
         Calculate energy expectation from Qiskit measurement counts
@@ -277,13 +269,13 @@ class QiskitEngine(QuantumEngine):
 
         for bitstring, count in counts.items():
             # Qiskit uses reversed bit order
-            spins = np.array([1 if b == '1' else -1 for b in bitstring[::-1]])
+            spins = np.array([1 if b == "1" else -1 for b in bitstring[::-1]])
 
             # H = Σ h_i Z_i + Σ J_ij Z_i Z_j
             config_energy = np.dot(h_fields, spins)
 
             for i in range(len(spins) - 1):
-                config_energy += coupling_strength * spins[i] * spins[i+1]
+                config_energy += coupling_strength * spins[i] * spins[i + 1]
 
             energy += (count / total_shots) * config_energy
 

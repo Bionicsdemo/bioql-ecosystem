@@ -236,6 +236,21 @@ pip install bioql[quantum_chemistry]
 pip install bioql[viz,vina,quantum_chemistry]
 ```
 
+### Optional Dependencies
+
+#### OpenBabel (GPL-2.0)
+
+**Important:** OpenBabel is licensed under GPL-2.0, which is incompatible with BioQL's Apache 2.0 license. Therefore, it is NOT included in the default installation.
+
+If you need OpenBabel functionality:
+```bash
+pip install openbabel-wheel
+```
+
+**Note:** By installing OpenBabel, you accept the GPL-2.0 license terms.
+
+**Alternative:** BioQL uses RDKit as the default chemistry toolkit, which provides similar functionality under a BSD license.
+
 ### Install Quillow (QEC)
 
 ```bash

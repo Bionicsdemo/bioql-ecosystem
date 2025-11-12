@@ -12,19 +12,21 @@ Uses LLM to:
 """
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
 
 # Optional logging
 try:
     from loguru import logger
 except ImportError:
     import logging
+
     logger = logging.getLogger(__name__)
 
 
 @dataclass
 class CodeGenerationRequest:
     """Request for code generation."""
+
     description: str
     domain: str = "general"  # general, bioinformatics, chemistry
     complexity: str = "medium"  # simple, medium, complex
@@ -36,6 +38,7 @@ class CodeGenerationRequest:
 @dataclass
 class CodeGenerationResult:
     """Result of code generation."""
+
     code: str
     explanation: str
     estimated_qubits: int
@@ -133,7 +136,7 @@ Generate the code now:
         complexity: str = "medium",
         backend: str = "simulator",
         shots: int = 1000,
-        use_local_model: bool = False
+        use_local_model: bool = False,
     ) -> CodeGenerationResult:
         """
         Generate BioQL code from natural language description.
@@ -164,7 +167,7 @@ Generate the code now:
             domain=domain,
             complexity=complexity,
             target_backend=backend,
-            shots=shots
+            shots=shots,
         )
 
         # Create prompt
@@ -184,11 +187,7 @@ Generate the code now:
             estimated_qubits=estimated_qubits,
             estimated_depth=estimated_depth,
             warnings=warnings,
-            metadata={
-                "model": self.model,
-                "domain": domain,
-                "complexity": complexity
-            }
+            metadata={"model": self.model, "domain": domain, "complexity": complexity},
         )
 
         logger.info(f"Code generated: {estimated_qubits} qubits, {estimated_depth} depth")
@@ -199,7 +198,7 @@ Generate the code now:
 
         # Template-based generation for common patterns
         templates = {
-            "bell": '''from bioql import quantum
+            "bell": """from bioql import quantum
 
 # Create a Bell state - maximally entangled 2-qubit state
 result = quantum(
@@ -214,8 +213,8 @@ print(f"Cost: ${{result.cost_estimate:.4f}}")
 
 # Expected results: approximately 50% |00⟩ and 50% |11⟩
 # This demonstrates quantum entanglement
-''',
-            "qft": '''from bioql import quantum
+""",
+            "qft": """from bioql import quantum
 
 # Quantum Fourier Transform on {n} qubits
 result = quantum(
@@ -231,8 +230,8 @@ print(f"QFT Results: {{result.counts}}")
 # - Shor's algorithm
 # - Phase estimation
 # - Signal processing
-''',
-            "protein": '''from bioql import quantum
+""",
+            "protein": """from bioql import quantum
 
 # Simulate protein folding using quantum optimization
 result = quantum(
@@ -249,8 +248,8 @@ print(f"Bio interpretation: {{result.bio_interpretation}}")
 # - Energy minimization
 # - Structural stability
 # - Folding pathways
-''',
-            "drug": '''from bioql import quantum
+""",
+            "drug": """from bioql import quantum
 
 # Drug-receptor binding simulation
 result = quantum(
@@ -267,7 +266,7 @@ print(f"Quantum states: {{result.counts}}")
 # - Molecular docking
 # - Binding energy
 # - Drug efficacy
-'''
+""",
         }
 
         # Simple keyword matching
@@ -287,10 +286,7 @@ print(f"Quantum states: {{result.counts}}")
             template = templates["bell"]  # Default to Bell state
 
         # Fill in template
-        code = template.format(
-            backend=request.target_backend,
-            shots=request.shots
-        )
+        code = template.format(backend=request.target_backend, shots=request.shots)
 
         return code
 

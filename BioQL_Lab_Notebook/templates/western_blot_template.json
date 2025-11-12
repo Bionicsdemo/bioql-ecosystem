@@ -1,0 +1,58 @@
+{
+  "name": "Western Blot Template",
+  "description": "Immunoblot protocol for protein detection",
+  "fields": {
+    "objective": "Detect and quantify specific protein expression using immunoblotting",
+    "hypothesis": "",
+    "materials": "- Protein samples\n- Protein ladder/marker\n- SDS-PAGE gel (or materials to cast gel)\n- Running buffer\n- Transfer buffer\n- PVDF or nitrocellulose membrane\n- Blocking buffer (5% milk or BSA in TBST)\n- Primary antibody\n- Secondary antibody (HRP-conjugated)\n- ECL substrate\n- TBST (Tris-buffered saline with Tween-20)\n- Imaging system",
+    "protocol": [
+      {
+        "step": 1,
+        "description": "Sample Preparation:\n  - Determine protein concentration (Bradford or BCA assay)\n  - Prepare samples to equal concentration\n  - Add loading buffer (4x) and DTT or β-mercaptoethanol\n  - Heat samples at 95°C for 5 minutes\n  - Cool and centrifuge briefly"
+      },
+      {
+        "step": 2,
+        "description": "SDS-PAGE:\n  - Load 20-30 μg protein per well\n  - Include protein ladder in first lane\n  - Run at 80-120V until dye front reaches bottom"
+      },
+      {
+        "step": 3,
+        "description": "Transfer to Membrane:\n  - Activate PVDF membrane in methanol (1 min)\n  - Rinse in transfer buffer\n  - Assemble transfer sandwich (sponge-paper-gel-membrane-paper-sponge)\n  - Transfer at 100V for 1-2 hours (or overnight at 30V)\n  - Optional: Stain membrane with Ponceau S to verify transfer"
+      },
+      {
+        "step": 4,
+        "description": "Blocking:\n  - Wash membrane briefly in TBST\n  - Block in 5% milk/BSA in TBST for 1 hour at room temperature\n  - Shake gently on orbital shaker"
+      },
+      {
+        "step": 5,
+        "description": "Primary Antibody Incubation:\n  - Prepare primary antibody in blocking buffer (check datasheet for dilution)\n  - Incubate overnight at 4°C with gentle shaking\n  - OR 2 hours at room temperature"
+      },
+      {
+        "step": 6,
+        "description": "Washing:\n  - Wash 3 times with TBST, 5-10 minutes each\n  - Shake gently during washes"
+      },
+      {
+        "step": 7,
+        "description": "Secondary Antibody Incubation:\n  - Prepare HRP-conjugated secondary antibody in blocking buffer (typically 1:5000 to 1:10000)\n  - Incubate 1-2 hours at room temperature with shaking"
+      },
+      {
+        "step": 8,
+        "description": "Final Washing:\n  - Wash 3-4 times with TBST, 5-10 minutes each\n  - Final rinse with TBS (no Tween)"
+      },
+      {
+        "step": 9,
+        "description": "Detection:\n  - Apply ECL substrate according to manufacturer instructions\n  - Incubate for recommended time (usually 1-5 minutes)\n  - Image immediately using chemiluminescence imager\n  - Capture multiple exposures"
+      }
+    ],
+    "dataFields": [
+      "Protein concentration",
+      "Amount loaded per lane",
+      "Primary antibody (name, dilution, incubation time)",
+      "Secondary antibody (name, dilution, incubation time)",
+      "Expected protein size",
+      "Observed band size",
+      "Band intensity"
+    ],
+    "observations": "- Record images of blot\n- Note signal intensity\n- Document any background or non-specific bands\n- Note loading control results",
+    "tags": ["western-blot", "protein", "immunoblot", "antibody"]
+  }
+}

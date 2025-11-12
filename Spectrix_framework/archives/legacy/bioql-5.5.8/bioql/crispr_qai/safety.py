@@ -11,8 +11,7 @@ NO AUTOMATED WET-LAB EXECUTION IS PERMITTED.
 """
 
 import warnings
-from typing import Optional, Dict, Any
-
+from typing import Any, Dict, Optional
 
 # Global safety flag (DO NOT MODIFY)
 SIMULATION_ONLY = True
@@ -20,6 +19,7 @@ SIMULATION_ONLY = True
 
 class CRISPRSafetyError(Exception):
     """Raised when attempting unsafe CRISPR operations"""
+
     pass
 
 
@@ -77,9 +77,7 @@ def log_safety_warning(operation: str, context: Optional[Dict[str, Any]] = None)
 
 
 def validate_research_use(
-    purpose: str,
-    institution: Optional[str] = None,
-    ethics_approval: bool = False
+    purpose: str, institution: Optional[str] = None, ethics_approval: bool = False
 ) -> Dict[str, Any]:
     """
     Validate CRISPR-QAI is being used for legitimate research
@@ -102,34 +100,37 @@ def validate_research_use(
     check_simulation_only()
 
     result = {
-        'validated': True,
-        'mode': 'simulation_only',
-        'purpose': purpose,
-        'institution': institution or 'Unknown',
-        'ethics_approval_required': False,  # Not needed for simulation
-        'warnings': []
+        "validated": True,
+        "mode": "simulation_only",
+        "purpose": purpose,
+        "institution": institution or "Unknown",
+        "ethics_approval_required": False,  # Not needed for simulation
+        "warnings": [],
     }
 
     # Add warnings for ambiguous use cases
     dangerous_keywords = [
-        'human', 'clinical', 'patient', 'therapy', 'treatment',
-        'germline', 'embryo', 'fetus'
+        "human",
+        "clinical",
+        "patient",
+        "therapy",
+        "treatment",
+        "germline",
+        "embryo",
+        "fetus",
     ]
 
     purpose_lower = purpose.lower()
     for keyword in dangerous_keywords:
         if keyword in purpose_lower:
-            result['warnings'].append(
+            result["warnings"].append(
                 f"⚠️  Detected '{keyword}' in purpose. "
                 f"Human applications require extensive validation, "
                 f"ethics approval, and regulatory oversight."
             )
 
     # Log safety warning
-    log_safety_warning(
-        operation="Research Use Validation",
-        context=result
-    )
+    log_safety_warning(operation="Research Use Validation", context=result)
 
     return result
 

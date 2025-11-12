@@ -1,0 +1,563 @@
+/* ==========================================================================
+   BioQL Lab Notebook - Molecular Viewer Styles
+   3D molecular visualization panel and controls
+   ========================================================================== */
+
+/* Molecular Viewer Container
+   ========================================================================== */
+.molecular-viewer-panel {
+  position: relative;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+
+.viewer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md) var(--space-lg);
+  background: var(--gradient-subtle);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.viewer-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.viewer-title-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--gradient-quantum);
+  color: var(--text-inverse);
+  border-radius: var(--radius-md);
+}
+
+.viewer-header-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+/* 3D Viewer Canvas
+   ========================================================================== */
+.viewer-canvas-container {
+  position: relative;
+  width: 100%;
+  height: 500px;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  overflow: hidden;
+}
+
+.viewer-canvas {
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
+
+.viewer-canvas:active {
+  cursor: grabbing;
+}
+
+/* Loading Overlay */
+.viewer-loading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(4px);
+  z-index: 10;
+}
+
+.viewer-loading-spinner {
+  width: 60px;
+  height: 60px;
+  border: 4px solid rgba(124, 58, 237, 0.2);
+  border-top-color: var(--primary-purple);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: var(--space-md);
+}
+
+.viewer-loading-text {
+  color: var(--text-inverse);
+  font-size: var(--font-size-sm);
+}
+
+/* Viewer Controls Toolbar
+   ========================================================================== */
+.viewer-controls {
+  position: absolute;
+  top: var(--space-md);
+  right: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  z-index: 20;
+}
+
+.viewer-control-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm);
+  box-shadow: var(--shadow-lg);
+}
+
+[data-theme="dark"] .viewer-control-group {
+  background: rgba(30, 41, 59, 0.95);
+}
+
+.viewer-control-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.viewer-control-button:hover {
+  background: var(--gradient-quantum);
+  color: var(--text-inverse);
+  transform: scale(1.1);
+}
+
+.viewer-control-button.active {
+  background: var(--primary-purple);
+  color: var(--text-inverse);
+  box-shadow: var(--shadow-glow);
+}
+
+/* Representation Controls
+   ========================================================================== */
+.viewer-representations {
+  position: absolute;
+  bottom: var(--space-md);
+  left: var(--space-md);
+  display: flex;
+  gap: var(--space-sm);
+  z-index: 20;
+}
+
+.representation-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-md);
+}
+
+[data-theme="dark"] .representation-button {
+  background: rgba(30, 41, 59, 0.95);
+}
+
+.representation-button:hover {
+  border-color: var(--primary-purple);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.representation-button.active {
+  background: var(--gradient-quantum);
+  color: var(--text-inverse);
+  border-color: transparent;
+  box-shadow: var(--shadow-glow);
+}
+
+.representation-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+.representation-label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Info Panel
+   ========================================================================== */
+.viewer-info-panel {
+  position: absolute;
+  top: var(--space-md);
+  left: var(--space-md);
+  max-width: 300px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 20;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-10px);
+  transition: all var(--transition-base);
+}
+
+[data-theme="dark"] .viewer-info-panel {
+  background: rgba(30, 41, 59, 0.95);
+}
+
+.viewer-info-panel.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
+}
+
+.info-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-sm);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.info-panel-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.info-panel-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: var(--space-xs);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.info-panel-close:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.info-panel-content {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-xs) 0;
+}
+
+.info-label {
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+}
+
+/* Settings Panel
+   ========================================================================== */
+.viewer-settings {
+  padding: var(--space-lg);
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.settings-section {
+  margin-bottom: var(--space-lg);
+}
+
+.settings-section:last-child {
+  margin-bottom: 0;
+}
+
+.settings-section-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-md);
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-sm) 0;
+}
+
+.settings-label {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+/* Color Scheme Selector */
+.color-scheme-selector {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.color-scheme-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-md);
+  background: var(--bg-primary);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.color-scheme-option:hover {
+  border-color: var(--primary-purple);
+}
+
+.color-scheme-option.active {
+  background: var(--gradient-quantum);
+  color: var(--text-inverse);
+  border-color: transparent;
+}
+
+.color-preview {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+}
+
+/* Measurement Tools
+   ========================================================================== */
+.measurement-display {
+  position: absolute;
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--primary-purple);
+  color: var(--text-inverse);
+  font-size: var(--font-size-xs);
+  font-family: var(--font-mono);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  z-index: 30;
+  pointer-events: none;
+}
+
+.measurement-line {
+  position: absolute;
+  height: 2px;
+  background: var(--primary-purple);
+  transform-origin: left center;
+  z-index: 25;
+  pointer-events: none;
+}
+
+.measurement-point {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: var(--accent-cyan);
+  border: 2px solid var(--text-inverse);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 26;
+  cursor: pointer;
+  box-shadow: var(--shadow-glow-blue);
+}
+
+/* Molecule Selection Highlight */
+.selection-highlight {
+  position: absolute;
+  border: 2px solid var(--accent-cyan);
+  background: rgba(6, 182, 212, 0.1);
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+  z-index: 15;
+  animation: pulse-highlight 2s ease-in-out infinite;
+}
+
+/* Annotation Labels */
+.viewer-annotation {
+  position: absolute;
+  padding: var(--space-xs) var(--space-sm);
+  background: rgba(0, 0, 0, 0.8);
+  color: var(--text-inverse);
+  font-size: var(--font-size-xs);
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+  z-index: 20;
+  white-space: nowrap;
+}
+
+.viewer-annotation::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 4px solid rgba(0, 0, 0, 0.8);
+}
+
+/* Sequence Viewer Integration
+   ========================================================================== */
+.sequence-viewer-wrapper {
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  padding: var(--space-md);
+}
+
+.sequence-display {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  line-height: 2;
+  overflow-x: auto;
+  padding: var(--space-sm);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+}
+
+.sequence-residue {
+  display: inline-block;
+  padding: 2px 4px;
+  margin: 0 1px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border-radius: var(--radius-sm);
+}
+
+.sequence-residue:hover {
+  background: var(--primary-purple-light);
+  color: var(--text-inverse);
+  transform: scale(1.2);
+}
+
+.sequence-residue.selected {
+  background: var(--gradient-quantum);
+  color: var(--text-inverse);
+  box-shadow: var(--shadow-glow);
+}
+
+/* Export Options
+   ========================================================================== */
+.viewer-export-menu {
+  position: absolute;
+  bottom: var(--space-md);
+  right: var(--space-md);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm);
+  box-shadow: var(--shadow-lg);
+  z-index: 20;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px);
+  transition: all var(--transition-base);
+}
+
+[data-theme="dark"] .viewer-export-menu {
+  background: rgba(30, 41, 59, 0.95);
+}
+
+.viewer-export-menu.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.export-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  color: var(--text-primary);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.export-option:hover {
+  background: var(--gradient-quantum);
+  color: var(--text-inverse);
+}
+
+/* Responsive Design
+   ========================================================================== */
+@media (max-width: 768px) {
+  .viewer-canvas-container {
+    height: 400px;
+  }
+
+  .viewer-controls {
+    top: var(--space-sm);
+    right: var(--space-sm);
+  }
+
+  .viewer-control-button {
+    width: 36px;
+    height: 36px;
+  }
+
+  .viewer-representations {
+    bottom: var(--space-sm);
+    left: var(--space-sm);
+    flex-direction: column;
+    max-width: 60px;
+  }
+
+  .representation-label {
+    display: none;
+  }
+
+  .viewer-info-panel {
+    max-width: calc(100% - var(--space-xl));
+  }
+}
+
+/* Fullscreen Mode
+   ========================================================================== */
+.molecular-viewer-panel.fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-modal);
+  border-radius: 0;
+}
+
+.molecular-viewer-panel.fullscreen .viewer-canvas-container {
+  height: calc(100vh - 120px);
+}

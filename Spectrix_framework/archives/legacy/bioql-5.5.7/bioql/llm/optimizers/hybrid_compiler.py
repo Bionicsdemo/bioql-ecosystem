@@ -27,18 +27,20 @@ import ast
 import inspect
 from dataclasses import dataclass
 from enum import Enum
-from typing import Callable, Dict, List, Optional, Any, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 # Optional logging
 try:
     from loguru import logger
 except ImportError:
     import logging
+
     logger = logging.getLogger(__name__)
 
 
 class ExecutionTarget(Enum):
     """Where code should execute."""
+
     CPU = "cpu"
     GPU = "gpu"
     QPU = "qpu"  # Quantum Processing Unit
@@ -48,6 +50,7 @@ class ExecutionTarget(Enum):
 @dataclass
 class CodeBlock:
     """A block of code with execution target."""
+
     code: str
     target: ExecutionTarget
     estimated_speedup: float
@@ -58,6 +61,7 @@ class CodeBlock:
 @dataclass
 class CompilationResult:
     """Result of hybrid compilation."""
+
     original_function: Callable
     optimized_function: Callable
     code_blocks: List[CodeBlock]
@@ -105,53 +109,48 @@ class HybridCompiler:
                 "quantum_algorithm": "grover",
                 "speedup": "quadratic",
                 "min_size": 100,
-                "description": "Database search with Grover's algorithm"
+                "description": "Database search with Grover's algorithm",
             },
-
             # Optimization patterns
             "optimize": {
                 "keywords": ["minimize", "maximize", "optimize", "best"],
                 "quantum_algorithm": "vqe",
                 "speedup": "exponential",
                 "min_size": 10,
-                "description": "Optimization with VQE/QAOA"
+                "description": "Optimization with VQE/QAOA",
             },
-
             # Simulation patterns
             "simulate": {
                 "keywords": ["simulate", "model", "dynamics"],
                 "quantum_algorithm": "hamiltonian",
                 "speedup": "exponential",
                 "min_size": 5,
-                "description": "Quantum simulation"
+                "description": "Quantum simulation",
             },
-
             # Fourier transform
             "fourier": {
                 "keywords": ["fft", "fourier", "frequency", "transform"],
                 "quantum_algorithm": "qft",
                 "speedup": "exponential",
                 "min_size": 8,
-                "description": "Quantum Fourier Transform"
+                "description": "Quantum Fourier Transform",
             },
-
             # Linear algebra
             "linear_algebra": {
                 "keywords": ["solve", "invert", "eigenvalue", "matrix"],
                 "quantum_algorithm": "hhl",
                 "speedup": "exponential",
                 "min_size": 16,
-                "description": "Linear algebra with HHL algorithm"
+                "description": "Linear algebra with HHL algorithm",
             },
-
             # Machine learning
             "ml": {
                 "keywords": ["classify", "cluster", "predict", "learn"],
                 "quantum_algorithm": "qsvm",
                 "speedup": "quadratic",
                 "min_size": 50,
-                "description": "Quantum machine learning"
-            }
+                "description": "Quantum machine learning",
+            },
         }
 
     def analyze_function(self, func: Callable) -> Dict[str, Any]:
@@ -181,7 +180,7 @@ class HybridCompiler:
             "quantum_patterns": [],
             "loops": 0,
             "complexity": "unknown",
-            "data_size": 0
+            "data_size": 0,
         }
 
         # Walk AST to find quantum patterns
@@ -192,17 +191,19 @@ class HybridCompiler:
 
             # Check function calls
             if isinstance(node, ast.Call):
-                if hasattr(node.func, 'id'):
+                if hasattr(node.func, "id"):
                     func_name = node.func.id.lower()
 
                     # Check against quantum patterns
                     for pattern_name, pattern in self.quantum_patterns.items():
                         if any(kw in func_name for kw in pattern["keywords"]):
-                            analysis["quantum_patterns"].append({
-                                "pattern": pattern_name,
-                                "algorithm": pattern["quantum_algorithm"],
-                                "speedup": pattern["speedup"]
-                            })
+                            analysis["quantum_patterns"].append(
+                                {
+                                    "pattern": pattern_name,
+                                    "algorithm": pattern["quantum_algorithm"],
+                                    "speedup": pattern["speedup"],
+                                }
+                            )
                             analysis["quantizable"] = True
 
         logger.info(f"Analysis: {len(analysis['quantum_patterns'])} quantum patterns found")
@@ -226,21 +227,25 @@ class HybridCompiler:
         if analysis["quantizable"]:
             # Create quantum code blocks
             for pattern in analysis["quantum_patterns"]:
-                blocks.append(CodeBlock(
-                    code=f"quantum_{pattern['algorithm']}()",
-                    target=ExecutionTarget.QPU,
-                    estimated_speedup=2.0,  # TODO: Calculate based on pattern
-                    quantum_advantage=True,
-                    qubits_required=4  # TODO: Estimate from data
-                ))
+                blocks.append(
+                    CodeBlock(
+                        code=f"quantum_{pattern['algorithm']}()",
+                        target=ExecutionTarget.QPU,
+                        estimated_speedup=2.0,  # TODO: Calculate based on pattern
+                        quantum_advantage=True,
+                        qubits_required=4,  # TODO: Estimate from data
+                    )
+                )
         else:
             # Keep on CPU
-            blocks.append(CodeBlock(
-                code=inspect.getsource(func),
-                target=ExecutionTarget.CPU,
-                estimated_speedup=1.0,
-                quantum_advantage=False
-            ))
+            blocks.append(
+                CodeBlock(
+                    code=inspect.getsource(func),
+                    target=ExecutionTarget.CPU,
+                    estimated_speedup=1.0,
+                    quantum_advantage=False,
+                )
+            )
 
         logger.info(f"Decomposed into {len(blocks)} blocks")
         return blocks
@@ -274,7 +279,7 @@ class HybridCompiler:
         execution_plan = {
             "cpu_blocks": sum(1 for b in blocks if b.target == ExecutionTarget.CPU),
             "qpu_blocks": sum(1 for b in blocks if b.target == ExecutionTarget.QPU),
-            "hybrid": any(b.target == ExecutionTarget.HYBRID for b in blocks)
+            "hybrid": any(b.target == ExecutionTarget.HYBRID for b in blocks),
         }
 
         # Calculate speedup
@@ -283,7 +288,9 @@ class HybridCompiler:
         # Generate recommendations
         recommendations = []
         if analysis["quantizable"]:
-            recommendations.append(f"✅ Quantum acceleration possible: {len(analysis['quantum_patterns'])} patterns")
+            recommendations.append(
+                f"✅ Quantum acceleration possible: {len(analysis['quantum_patterns'])} patterns"
+            )
             recommendations.append(f"🚀 Estimated speedup: {estimated_speedup:.1f}x")
         else:
             recommendations.append("ℹ️  No quantum advantage detected")
@@ -298,7 +305,7 @@ class HybridCompiler:
             code_blocks=blocks,
             execution_plan=execution_plan,
             estimated_speedup=estimated_speedup,
-            recommendations=recommendations
+            recommendations=recommendations,
         )
 
         logger.info(f"=== Compilation complete: {estimated_speedup:.1f}x speedup ===")
@@ -315,6 +322,7 @@ class HybridCompiler:
             >>> def my_function(data):
             ...     return search(data, target)
         """
+
         def decorator(f: Callable) -> Callable:
             # Compile function
             result = self.compile(f, **options)
@@ -360,12 +368,13 @@ class AutoQuantumCompiler(HybridCompiler):
         logger.info(f"Auto-compiling module: {module_name}")
 
         import importlib
+
         module = importlib.import_module(module_name)
 
         results = {}
         for name in dir(module):
             obj = getattr(module, name)
-            if callable(obj) and not name.startswith('_'):
+            if callable(obj) and not name.startswith("_"):
                 try:
                     results[name] = self.compile(obj)
                     logger.info(f"✅ Compiled {name}")

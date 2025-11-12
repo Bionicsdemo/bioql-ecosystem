@@ -12,23 +12,25 @@ Metrics:
 - Benchmark performance
 """
 
-from dataclasses import dataclass
-from typing import List, Dict, Any, Optional, Callable
-from pathlib import Path
-import json
 import ast
+import json
+from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional
 
 # Optional dependencies
 try:
     from loguru import logger
 except ImportError:
     import logging
+
     logger = logging.getLogger(__name__)
 
 
 class MetricType(Enum):
     """Types of evaluation metrics."""
+
     SYNTAX_CORRECTNESS = "syntax_correctness"
     EXECUTION_SUCCESS = "execution_success"
     CIRCUIT_QUALITY = "circuit_quality"
@@ -40,6 +42,7 @@ class MetricType(Enum):
 @dataclass
 class EvaluationResult:
     """Result from model evaluation."""
+
     model_name: str
     metrics: Dict[str, float]
     details: Dict[str, Any]
@@ -74,16 +77,9 @@ class CodeCorrectnessEvaluator:
         """
         try:
             ast.parse(code)
-            return {
-                "valid": True,
-                "error": None
-            }
+            return {"valid": True, "error": None}
         except SyntaxError as e:
-            return {
-                "valid": False,
-                "error": str(e),
-                "line": e.lineno
-            }
+            return {"valid": False, "error": str(e), "line": e.lineno}
 
     def evaluate_imports(self, code: str) -> Dict[str, Any]:
         """
@@ -109,16 +105,9 @@ class CodeCorrectnessEvaluator:
             # Check if bioql is imported
             has_bioql = any("bioql" in imp for imp in imports if imp)
 
-            return {
-                "valid": has_bioql,
-                "imports": imports,
-                "has_bioql": has_bioql
-            }
+            return {"valid": has_bioql, "imports": imports, "has_bioql": has_bioql}
         except Exception as e:
-            return {
-                "valid": False,
-                "error": str(e)
-            }
+            return {"valid": False, "error": str(e)}
 
     def evaluate_execution(self, code: str, timeout: int = 5) -> Dict[str, Any]:
         """
@@ -135,16 +124,12 @@ class CodeCorrectnessEvaluator:
         syntax_check = self.evaluate_syntax(code)
 
         if not syntax_check["valid"]:
-            return {
-                "success": False,
-                "error": "Syntax error",
-                "details": syntax_check
-            }
+            return {"success": False, "error": "Syntax error", "details": syntax_check}
 
         return {
             "success": True,
             "error": None,
-            "output": "Mock execution - sandboxing required for real execution"
+            "output": "Mock execution - sandboxing required for real execution",
         }
 
     def evaluate(self, code: str) -> Dict[str, Any]:
@@ -170,12 +155,7 @@ class CodeCorrectnessEvaluator:
         if execution["success"]:
             score += 0.3
 
-        return {
-            "score": score,
-            "syntax": syntax,
-            "imports": imports,
-            "execution": execution
-        }
+        return {"score": score, "syntax": syntax, "imports": imports, "execution": execution}
 
 
 class QuantumCircuitEvaluator:
@@ -235,7 +215,7 @@ class QuantumCircuitEvaluator:
             "qubits": qubits,
             "depth": depth,
             "gates": gates,
-            "efficiency": gates / max(qubits * depth, 1)
+            "efficiency": gates / max(qubits * depth, 1),
         }
 
     def evaluate(self, code: str) -> Dict[str, Any]:
@@ -262,7 +242,7 @@ class QuantumCircuitEvaluator:
             "resources": resources,
             "depth_score": depth_score,
             "gate_score": gate_score,
-            "qubit_score": qubit_score
+            "qubit_score": qubit_score,
         }
 
 
@@ -282,7 +262,7 @@ class BioInterpretationEvaluator:
             "protein": ["folding", "structure", "amino acid", "conformation"],
             "drug": ["binding", "affinity", "receptor", "docking", "efficacy"],
             "dna": ["sequence", "base pair", "nucleotide", "gene"],
-            "molecular": ["energy", "state", "optimization", "hamiltonian"]
+            "molecular": ["energy", "state", "optimization", "hamiltonian"],
         }
 
         logger.info("BioInterpretationEvaluator initialized")
@@ -324,7 +304,7 @@ class BioInterpretationEvaluator:
             "has_bio_interpretation": has_bio_interpretation,
             "has_bio_keywords": has_bio_keywords,
             "matched_keywords": matched_keywords,
-            "domain": domain
+            "domain": domain,
         }
 
 
@@ -353,10 +333,7 @@ class BioQLEvaluator:
         logger.info("BioQLEvaluator initialized")
 
     def evaluate_single(
-        self,
-        generated_code: str,
-        reference_code: Optional[str] = None,
-        domain: str = "general"
+        self, generated_code: str, reference_code: Optional[str] = None, domain: str = "general"
     ) -> Dict[str, Any]:
         """
         Evaluate a single generated code example.
@@ -380,9 +357,9 @@ class BioQLEvaluator:
 
         # Overall score (weighted average)
         overall = (
-            code_metrics["score"] * 0.4 +
-            circuit_metrics["score"] * 0.3 +
-            bio_metrics["score"] * 0.3
+            code_metrics["score"] * 0.4
+            + circuit_metrics["score"] * 0.3
+            + bio_metrics["score"] * 0.3
         )
 
         return {
@@ -390,17 +367,11 @@ class BioQLEvaluator:
             "code_correctness": code_metrics["score"],
             "circuit_quality": circuit_metrics["score"],
             "bio_interpretation": bio_metrics["score"],
-            "details": {
-                "code": code_metrics,
-                "circuit": circuit_metrics,
-                "bio": bio_metrics
-            }
+            "details": {"code": code_metrics, "circuit": circuit_metrics, "bio": bio_metrics},
         }
 
     def evaluate_dataset(
-        self,
-        test_examples: List[Dict[str, Any]],
-        model_name: str = "BioQL-Model"
+        self, test_examples: List[Dict[str, Any]], model_name: str = "BioQL-Model"
     ) -> EvaluationResult:
         """
         Evaluate model on test dataset.
@@ -431,15 +402,17 @@ class BioQLEvaluator:
             metrics = self.evaluate_single(
                 generated_code=example["generated"],
                 reference_code=example.get("reference"),
-                domain=example.get("domain", "general")
+                domain=example.get("domain", "general"),
             )
 
             all_metrics.append(metrics)
-            example_results.append({
-                "index": i,
-                "metrics": metrics,
-                "generated": example["generated"][:200] + "..."  # Truncate
-            })
+            example_results.append(
+                {
+                    "index": i,
+                    "metrics": metrics,
+                    "generated": example["generated"][:200] + "...",  # Truncate
+                }
+            )
 
             if (i + 1) % 100 == 0:
                 logger.info(f"Evaluated {i+1}/{len(test_examples)} examples")
@@ -449,8 +422,9 @@ class BioQLEvaluator:
             "overall": sum(m["overall"] for m in all_metrics) / len(all_metrics),
             "code_correctness": sum(m["code_correctness"] for m in all_metrics) / len(all_metrics),
             "circuit_quality": sum(m["circuit_quality"] for m in all_metrics) / len(all_metrics),
-            "bio_interpretation": sum(m["bio_interpretation"] for m in all_metrics) / len(all_metrics),
-            "num_examples": len(test_examples)
+            "bio_interpretation": sum(m["bio_interpretation"] for m in all_metrics)
+            / len(all_metrics),
+            "num_examples": len(test_examples),
         }
 
         # Create summary
@@ -471,11 +445,9 @@ Scores (0.0 - 1.0):
         result = EvaluationResult(
             model_name=model_name,
             metrics=aggregated,
-            details={
-                "per_example": all_metrics
-            },
+            details={"per_example": all_metrics},
             examples=example_results[:10],  # First 10 examples
-            summary=summary
+            summary=summary,
         )
 
         logger.info(f"✅ Evaluation complete")
@@ -501,10 +473,10 @@ Scores (0.0 - 1.0):
             "model_name": result.model_name,
             "metrics": result.metrics,
             "summary": result.summary,
-            "examples": result.examples
+            "examples": result.examples,
         }
 
-        with open(output, 'w') as f:
+        with open(output, "w") as f:
             json.dump(data, f, indent=2)
 
         logger.info(f"✅ Results saved to {output_path}")
@@ -514,7 +486,7 @@ def quick_evaluate(
     generated_codes: List[str],
     reference_codes: Optional[List[str]] = None,
     domains: Optional[List[str]] = None,
-    model_name: str = "BioQL-Model"
+    model_name: str = "BioQL-Model",
 ) -> EvaluationResult:
     """
     Quick evaluation helper.
@@ -542,7 +514,7 @@ def quick_evaluate(
         example = {
             "generated": code,
             "reference": reference_codes[i] if reference_codes else None,
-            "domain": domains[i] if domains else "general"
+            "domain": domains[i] if domains else "general",
         }
         test_examples.append(example)
 

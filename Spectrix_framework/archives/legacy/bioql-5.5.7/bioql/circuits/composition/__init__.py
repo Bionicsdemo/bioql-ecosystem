@@ -8,30 +8,18 @@ Includes both legacy template-based composition and new Qiskit circuit
 composition tools.
 """
 
-from typing import Any, List, Optional, Dict
+from typing import Any, Dict, List, Optional
+
 from ..base import CircuitTemplate, ResourceEstimate
 
 # Import new Qiskit-based composition tools
+from .composer import CircuitComposer as QiskitCircuitComposer
 from .composer import (
-    CircuitComposer as QiskitCircuitComposer,
+    CompositionResult,
     CompositionStrategy,
-    CompositionResult
 )
-
-from .stitching import (
-    CircuitStitcher,
-    StitchingStrategy,
-    StitchingResult,
-    ValidationResult
-)
-
-from .modular import (
-    ModularCircuitBuilder,
-    WiringMode,
-    ModuleSpec,
-    WiringSpec,
-    ArchitectureDiagram
-)
+from .modular import ArchitectureDiagram, ModularCircuitBuilder, ModuleSpec, WiringMode, WiringSpec
+from .stitching import CircuitStitcher, StitchingResult, StitchingStrategy, ValidationResult
 
 
 class CircuitComposer:
@@ -53,11 +41,7 @@ class CircuitComposer:
         self._sequential_circuits: List[tuple[CircuitTemplate, Dict[str, Any]]] = []
         self._parallel_circuits: List[List[tuple[CircuitTemplate, Dict[str, Any]]]] = []
 
-    def add_sequential(
-        self,
-        template: CircuitTemplate,
-        **params
-    ) -> 'CircuitComposer':
+    def add_sequential(self, template: CircuitTemplate, **params) -> "CircuitComposer":
         """
         Add a circuit to be executed sequentially.
 
@@ -72,9 +56,8 @@ class CircuitComposer:
         return self
 
     def add_parallel(
-        self,
-        templates: List[tuple[CircuitTemplate, Dict[str, Any]]]
-    ) -> 'CircuitComposer':
+        self, templates: List[tuple[CircuitTemplate, Dict[str, Any]]]
+    ) -> "CircuitComposer":
         """
         Add circuits to be executed in parallel.
 
@@ -146,7 +129,7 @@ class CircuitComposer:
             two_qubit_gates=total_two_qubit,
             measurement_count=total_measurements,
             execution_time_estimate=total_time,
-            error_budget=max_error
+            error_budget=max_error,
         )
 
     def build(self, **global_params) -> Dict[str, Any]:
@@ -163,11 +146,9 @@ class CircuitComposer:
         for template, params in self._sequential_circuits:
             merged_params = {**global_params, **params}
             circuit = template.build(**merged_params)
-            sequential.append({
-                "template": template.name,
-                "circuit": circuit,
-                "params": merged_params
-            })
+            sequential.append(
+                {"template": template.name, "circuit": circuit, "params": merged_params}
+            )
 
         parallel = []
         for parallel_group in self._parallel_circuits:
@@ -175,18 +156,16 @@ class CircuitComposer:
             for template, params in parallel_group:
                 merged_params = {**global_params, **params}
                 circuit = template.build(**merged_params)
-                group_circuits.append({
-                    "template": template.name,
-                    "circuit": circuit,
-                    "params": merged_params
-                })
+                group_circuits.append(
+                    {"template": template.name, "circuit": circuit, "params": merged_params}
+                )
             parallel.append(group_circuits)
 
         return {
             "type": "composed_circuit",
             "sequential": sequential,
             "parallel": parallel,
-            "resource_estimate": self.estimate_resources()
+            "resource_estimate": self.estimate_resources(),
         }
 
     def clear(self) -> None:
@@ -219,8 +198,8 @@ class CircuitPipeline:
         name: str,
         template: CircuitTemplate,
         params: Optional[Dict[str, Any]] = None,
-        depends_on: Optional[List[str]] = None
-    ) -> 'CircuitPipeline':
+        depends_on: Optional[List[str]] = None,
+    ) -> "CircuitPipeline":
         """
         Add a pipeline stage.
 
@@ -237,7 +216,7 @@ class CircuitPipeline:
             "template": template,
             "params": params or {},
             "depends_on": depends_on or [],
-            "result": None
+            "result": None,
         }
         self._execution_order = None  # Invalidate cached order
         return self
@@ -327,7 +306,7 @@ class CircuitPipeline:
             two_qubit_gates=total_two_qubit,
             measurement_count=total_measurements,
             execution_time_estimate=total_time,
-            error_budget=max_error
+            error_budget=max_error,
         )
 
     def build(self) -> Dict[str, Any]:
@@ -350,14 +329,14 @@ class CircuitPipeline:
                 "template": template.name,
                 "circuit": circuit,
                 "params": params,
-                "depends_on": stage["depends_on"]
+                "depends_on": stage["depends_on"],
             }
 
         return {
             "type": "pipeline",
             "execution_order": order,
             "stages": stages,
-            "resource_estimate": self.estimate_resources()
+            "resource_estimate": self.estimate_resources(),
         }
 
 

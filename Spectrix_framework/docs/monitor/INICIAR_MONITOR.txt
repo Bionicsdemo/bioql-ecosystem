@@ -1,0 +1,194 @@
+================================================================================
+                    SISTEMA DE MONITOREO BIOQL
+                    ✅ LISTO PARA INICIAR
+================================================================================
+
+📋 ESTADO ACTUAL:
+   ✅ Servidor Python: Corriendo (puerto 5001)
+   ✅ ngrok Tunnel: Activo (https://aae99709f69d.ngrok-free.app)
+   ⏸️ Monitor: Listo para iniciar
+
+================================================================================
+                    COMANDO PARA INICIAR
+================================================================================
+
+cd /Users/heinzjungbluth/Desktop/bioql && \
+nohup ./monitor_services.sh > logs/monitor_nohup.log 2>&1 &
+
+================================================================================
+                    VERIFICAR QUE FUNCIONA
+================================================================================
+
+# Esperar 5 segundos
+sleep 5
+
+# Ver logs
+tail -20 logs/monitor.log
+
+# Ver estado completo
+./check_services.sh
+
+================================================================================
+                    LO QUE HACE EL MONITOR
+================================================================================
+
+CADA 24 HORAS REVISA:
+
+1. Servidor Python
+   - Proceso corriendo
+   - Puerto escuchando
+   - Health endpoint /health respondiendo
+
+2. ngrok Tunnel
+   - Proceso activo
+   - Túnel conectado
+   - URL pública accesible
+
+3. Sistema
+   - Uso de memoria
+   - Uso de disco
+   - Tamaño de logs
+
+AUTO-RESTART:
+   - Si un servicio falla, lo reinicia automáticamente
+   - Verifica que reinició correctamente
+   - Registra todo en logs
+
+LIMPIEZA:
+   - Comprime logs >7 días
+   - Elimina logs >30 días
+   - Mantiene sistema limpio
+
+================================================================================
+                    COMANDOS ÚTILES
+================================================================================
+
+Ver estado:
+./check_services.sh
+
+Ver logs en tiempo real:
+tail -f logs/monitor.log
+
+Detener todo:
+./stop_services.sh
+
+Reiniciar todo:
+./stop_services.sh && ./start_services.sh
+
+Ver si monitor está corriendo:
+ps aux | grep monitor_services.sh | grep -v grep
+
+Matar monitor:
+pkill -f monitor_services.sh
+
+================================================================================
+                    CONFIGURACIÓN
+================================================================================
+
+Cambiar intervalo de revisión:
+   Editar: monitor_services.sh línea 15
+
+   CHECK_INTERVAL=86400   # 24 horas (default)
+   CHECK_INTERVAL=43200   # 12 horas
+   CHECK_INTERVAL=3600    # 1 hora
+   CHECK_INTERVAL=300     # 5 minutos (testing)
+
+Activar alertas por email:
+   Editar: monitor_services.sh línea 16
+
+   ALERT_EMAIL="tu@email.com"
+
+================================================================================
+                    ARCHIVOS IMPORTANTES
+================================================================================
+
+Scripts:
+   monitor_services.sh          Monitor principal
+   start_services.sh            Inicia todo
+   stop_services.sh             Detiene todo
+   check_services.sh            Verifica estado
+   test_monitor.sh              Test del sistema
+
+Logs:
+   logs/monitor.log             Log principal
+   logs/server_nohup.log        Servidor Python
+   logs/ngrok_nohup.log         ngrok
+   logs/current_tunnel_url.txt  URL actual de ngrok
+
+Documentación:
+   SERVICE_MONITOR_GUIDE.md     Guía completa (300+ líneas)
+   QUICK_START_MONITOR.md       Inicio rápido
+   MONITOR_SYSTEM_SUMMARY.md    Resumen ejecutivo
+
+================================================================================
+                    FIREBASE (OPCIONAL)
+================================================================================
+
+Si quieres auto-deploy a Firebase:
+
+1. Instalar Firebase CLI:
+   npm install -g firebase-tools
+
+2. Login:
+   firebase login
+
+3. Init:
+   firebase init hosting
+
+4. Descomentar en monitor_services.sh línea 290:
+   deploy_to_firebase
+
+5. Reiniciar monitor
+
+================================================================================
+                    TROUBLESHOOTING
+================================================================================
+
+Monitor no inicia:
+   1. Verificar permisos: ls -l monitor_services.sh
+   2. Dar permisos: chmod +x monitor_services.sh
+   3. Ver errores: cat logs/monitor_nohup.log
+
+Servicios caídos:
+   ./stop_services.sh
+   sleep 2
+   ./start_services.sh
+
+Logs no se crean:
+   mkdir -p logs
+   ls -ld logs
+
+Ver todos los procesos:
+   ps aux | grep -E "(bioql|ngrok|monitor)" | grep -v grep
+
+================================================================================
+                    SIGUIENTE PASO
+================================================================================
+
+EJECUTA ESTE COMANDO AHORA:
+
+cd /Users/heinzjungbluth/Desktop/bioql && \
+nohup ./monitor_services.sh > logs/monitor_nohup.log 2>&1 & \
+sleep 3 && echo "✅ Monitor iniciado! PID: $(pgrep -f monitor_services.sh)"
+
+Luego verifica:
+
+./check_services.sh
+
+Deberías ver todo en verde (✓)
+
+================================================================================
+                    SOPORTE
+================================================================================
+
+Guía completa: SERVICE_MONITOR_GUIDE.md
+Quick start:   QUICK_START_MONITOR.md
+Test sistema:  ./test_monitor.sh
+
+Email: support@bioql.com
+
+================================================================================
+
+¡Todo listo para correr 24/7! 🚀
+
+================================================================================

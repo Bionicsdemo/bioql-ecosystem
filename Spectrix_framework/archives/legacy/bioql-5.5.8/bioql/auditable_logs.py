@@ -10,12 +10,12 @@ Sistema de logs que separa claramente:
 Evita confusión entre resultados reales y simulados.
 """
 
-import logging
 import json
-from typing import Dict, Any, Optional
-from dataclasses import dataclass, asdict
+import logging
+from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
+from typing import Any, Dict, Optional
 
 # Logger dedicado para auditoría
 audit_logger = logging.getLogger("bioql.audit")
@@ -25,6 +25,7 @@ audit_logger.setLevel(logging.INFO)
 @dataclass
 class HardwareExecution:
     """Registro de ejecución REAL en hardware cuántico."""
+
     backend: str
     job_id: str
     shots: int
@@ -60,6 +61,7 @@ class HardwareExecution:
 @dataclass
 class DockingExecution:
     """Registro de docking clásico REAL (Vina/gnina/etc)."""
+
     engine: str  # "vina", "gnina", "smina", etc.
     ligand_smiles: str
     receptor_pdb: str
@@ -88,6 +90,7 @@ class DockingExecution:
 @dataclass
 class PostprocessExecution:
     """Registro de post-procesamiento (NO altera resultados físicos)."""
+
     method: str  # "quantum_features", "score_fusion", "ml_prediction", etc.
     inputs: Dict[str, Any]
     outputs: Dict[str, Any]
@@ -110,6 +113,7 @@ class PostprocessExecution:
 @dataclass
 class QualtranVisualization:
     """Registro de visualizaciones Qualtran (estimaciones, no ejecución real)."""
+
     available: bool
     circuit_name: str
     estimated_resources: Optional[Dict[str, Any]]
@@ -126,7 +130,9 @@ class QualtranVisualization:
         audit_logger.info(f"QUALTRAN_AVAILABLE={self.available}")
         audit_logger.info(f"QUALTRAN_CIRCUIT={self.circuit_name}")
         if self.estimated_resources:
-            audit_logger.info(f"QUALTRAN_ESTIMATED_RESOURCES={json.dumps(self.estimated_resources)}")
+            audit_logger.info(
+                f"QUALTRAN_ESTIMATED_RESOURCES={json.dumps(self.estimated_resources)}"
+            )
         if self.output_file:
             audit_logger.info(f"QUALTRAN_OUTPUT={self.output_file}")
 
@@ -176,31 +182,28 @@ class AuditableSession:
             "start_time": self.start_time.isoformat(),
             "end_time": end_time.isoformat(),
             "duration_seconds": (end_time - self.start_time).total_seconds(),
-
             "HARDWARE_EXECUTIONS": [hw.to_dict() for hw in self.hardware_executions],
             "DOCKING_EXECUTIONS": [dk.to_dict() for dk in self.docking_executions],
             "POSTPROC_EXECUTIONS": [pp.to_dict() for pp in self.postproc_executions],
             "QUALTRAN_VISUALIZATIONS": [qt.to_dict() for qt in self.qualtran_visualizations],
-
             "SUMMARY": {
                 "total_hardware_jobs": len(self.hardware_executions),
                 "total_docking_runs": len(self.docking_executions),
                 "total_postproc_steps": len(self.postproc_executions),
                 "total_qualtran_viz": len(self.qualtran_visualizations),
                 "total_cost_usd": sum(hw.cost_usd for hw in self.hardware_executions),
-                "total_shots": sum(hw.shots for hw in self.hardware_executions)
+                "total_shots": sum(hw.shots for hw in self.hardware_executions),
             },
-
             "NOTES": [
                 "HARDWARE_*: Resultados de ejecución REAL en computadoras cuánticas",
                 "DOCKING_*: Resultados de software de docking clásico REAL (Vina/gnina)",
                 "POSTPROC_*: Análisis derivados que NO modifican resultados físicos",
-                "QUALTRAN_*: Visualizaciones y estimaciones teóricas"
-            ]
+                "QUALTRAN_*: Visualizaciones y estimaciones teóricas",
+            ],
         }
 
         report_file = self.output_dir / f"{self.session_name}_audit_report.json"
-        with open(report_file, 'w') as f:
+        with open(report_file, "w") as f:
             json.dump(report, f, indent=2)
 
         audit_logger.info(f"SESSION_END={self.session_name}")
@@ -210,14 +213,16 @@ class AuditableSession:
 
     def print_summary(self):
         """Imprime resumen claro en consola."""
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print(f"📊 BioQL Auditable Session: {self.session_name}")
-        print("="*80)
+        print("=" * 80)
 
         print(f"\n🔬 HARDWARE (Quantum Computing Real):")
         for hw in self.hardware_executions:
             print(f"  ✅ {hw.provider} {hw.backend}: Job {hw.job_id}")
-            print(f"     Shots: {hw.shots}, Cost: ${hw.cost_usd:.4f}, Runtime: {hw.runtime_seconds:.1f}s")
+            print(
+                f"     Shots: {hw.shots}, Cost: ${hw.cost_usd:.4f}, Runtime: {hw.runtime_seconds:.1f}s"
+            )
 
         print(f"\n💊 DOCKING (Classical Real):")
         for dk in self.docking_executions:
@@ -233,10 +238,10 @@ class AuditableSession:
             status = "Available" if qt.available else "Unavailable"
             print(f"  ℹ️  {status}: {qt.circuit_name}")
 
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         total_cost = sum(hw.cost_usd for hw in self.hardware_executions)
         print(f"💰 Total Hardware Cost: ${total_cost:.4f}")
-        print("="*80 + "\n")
+        print("=" * 80 + "\n")
 
 
 # Configuración global del logger de auditoría
@@ -245,17 +250,17 @@ def configure_audit_logging(output_file: Optional[Path] = None):
     if output_file:
         handler = logging.FileHandler(output_file)
         handler.setLevel(logging.INFO)
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
         handler.setFormatter(formatter)
         audit_logger.addHandler(handler)
 
 
 __all__ = [
-    'HardwareExecution',
-    'DockingExecution',
-    'PostprocessExecution',
-    'QualtranVisualization',
-    'AuditableSession',
-    'configure_audit_logging',
-    'audit_logger'
+    "HardwareExecution",
+    "DockingExecution",
+    "PostprocessExecution",
+    "QualtranVisualization",
+    "AuditableSession",
+    "configure_audit_logging",
+    "audit_logger",
 ]

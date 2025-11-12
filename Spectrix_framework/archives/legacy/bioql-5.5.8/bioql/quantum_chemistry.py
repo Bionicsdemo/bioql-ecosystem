@@ -18,16 +18,18 @@ Physical Accuracy:
 - Verifies circuit depth and gate count
 """
 
-import numpy as np
-from typing import Dict, List, Tuple, Optional, Any
-from dataclasses import dataclass
 import warnings
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
 
 try:
     import openfermion as of
     from openfermion.chem import MolecularData
-    from openfermion.transforms import jordan_wigner, bravyi_kitaev, get_fermion_operator
-    from openfermion.linalg import get_sparse_operator, eigenspectrum
+    from openfermion.linalg import eigenspectrum, get_sparse_operator
+    from openfermion.transforms import bravyi_kitaev, get_fermion_operator, jordan_wigner
+
     OPENFERMION_AVAILABLE = True
 except ImportError:
     OPENFERMION_AVAILABLE = False
@@ -36,6 +38,7 @@ except ImportError:
 try:
     from rdkit import Chem
     from rdkit.Chem import AllChem
+
     RDKIT_AVAILABLE = True
 except ImportError:
     RDKIT_AVAILABLE = False
@@ -57,13 +60,14 @@ class QuantumMolecule:
         basis: Basis set (e.g., 'sto-3g', '6-31g')
         name: Molecule identifier
     """
+
     geometry: List[Tuple[str, Tuple[float, float, float]]]
     charge: int = 0
     multiplicity: int = 1
-    basis: str = 'sto-3g'
-    name: str = 'molecule'
+    basis: str = "sto-3g"
+    name: str = "molecule"
 
-    def to_openfermion(self) -> 'MolecularData':
+    def to_openfermion(self) -> "MolecularData":
         """Convert to OpenFermion MolecularData object."""
         if not OPENFERMION_AVAILABLE:
             raise ImportError("OpenFermion required for quantum chemistry calculations")
@@ -73,11 +77,13 @@ class QuantumMolecule:
             basis=self.basis,
             multiplicity=self.multiplicity,
             charge=self.charge,
-            description=self.name
+            description=self.name,
         )
 
 
-def smiles_to_geometry(smiles: str, optimize: bool = True) -> List[Tuple[str, Tuple[float, float, float]]]:
+def smiles_to_geometry(
+    smiles: str, optimize: bool = True
+) -> List[Tuple[str, Tuple[float, float, float]]]:
     """
     Convert SMILES string to 3D molecular geometry using RDKit.
 
@@ -122,9 +128,7 @@ def smiles_to_geometry(smiles: str, optimize: bool = True) -> List[Tuple[str, Tu
 
 
 def auto_select_active_space(
-    n_electrons: int,
-    n_orbitals: int,
-    max_qubits: int = 20
+    n_electrons: int, n_orbitals: int, max_qubits: int = 20
 ) -> Optional[Tuple[int, int]]:
     """
     Automatically select active space to keep qubit count manageable.
@@ -155,10 +159,10 @@ def auto_select_active_space(
 
 def build_molecular_hamiltonian(
     molecule: QuantumMolecule,
-    transformation: str = 'jordan_wigner',
+    transformation: str = "jordan_wigner",
     active_space: Optional[Tuple[int, int]] = None,
     auto_reduce: bool = True,
-    max_qubits: int = 20
+    max_qubits: int = 20,
 ) -> Dict[str, Any]:
     """
     Build a quantum Hamiltonian for a molecule using OpenFermion.
@@ -201,7 +205,7 @@ def build_molecular_hamiltonian(
         mol_data = run_pyscf(
             mol_data,
             run_scf=True,
-            run_fci=False  # Skip FCI - too expensive, VQE will approximate this
+            run_fci=False,  # Skip FCI - too expensive, VQE will approximate this
         )
 
         hf_energy = mol_data.hf_energy
@@ -227,7 +231,9 @@ def build_molecular_hamiltonian(
         active_space = auto_select_active_space(n_electrons, n_orbitals, max_qubits)
         if active_space:
             active_space_used = active_space
-            print(f"🔧 Auto-selected active space: {active_space[0]} electrons in {active_space[1]} orbitals")
+            print(
+                f"🔧 Auto-selected active space: {active_space[0]} electrons in {active_space[1]} orbitals"
+            )
 
     # Apply active space reduction if specified
     if active_space is not None:
@@ -236,9 +242,9 @@ def build_molecular_hamiltonian(
         pass
 
     # Transform to qubit Hamiltonian
-    if transformation.lower() == 'jordan_wigner':
+    if transformation.lower() == "jordan_wigner":
         qubit_hamiltonian = jordan_wigner(fermion_op)
-    elif transformation.lower() == 'bravyi_kitaev':
+    elif transformation.lower() == "bravyi_kitaev":
         qubit_hamiltonian = bravyi_kitaev(fermion_op)
     else:
         raise ValueError(f"Unknown transformation: {transformation}")
@@ -247,12 +253,12 @@ def build_molecular_hamiltonian(
     pauli_terms = {}
     for term, coeff in qubit_hamiltonian.terms.items():
         if not term:  # Identity term
-            pauli_string = 'I' * mol_data.n_qubits
+            pauli_string = "I" * mol_data.n_qubits
         else:
-            pauli_string = ['I'] * mol_data.n_qubits
+            pauli_string = ["I"] * mol_data.n_qubits
             for qubit_idx, pauli_op in term:
                 pauli_string[qubit_idx] = pauli_op
-            pauli_string = ''.join(pauli_string)
+            pauli_string = "".join(pauli_string)
 
         pauli_terms[pauli_string] = float(np.real(coeff))
 
@@ -266,17 +272,17 @@ def build_molecular_hamiltonian(
         ground_state_energy = fci_energy if fci_energy is not None else hf_energy
 
     return {
-        'qubit_hamiltonian': qubit_hamiltonian,
-        'n_qubits': mol_data.n_qubits,
-        'hf_energy': hf_energy,
-        'fci_energy': fci_energy,
-        'nuclear_repulsion': nuclear_repulsion,
-        'ground_state_energy': ground_state_energy,  # From exact diagonalization
-        'pauli_terms': pauli_terms,
-        'transformation': transformation,
-        'basis': molecule.basis,
-        'validated': True if hf_energy is not None else False,
-        'active_space_used': active_space_used
+        "qubit_hamiltonian": qubit_hamiltonian,
+        "n_qubits": mol_data.n_qubits,
+        "hf_energy": hf_energy,
+        "fci_energy": fci_energy,
+        "nuclear_repulsion": nuclear_repulsion,
+        "ground_state_energy": ground_state_energy,  # From exact diagonalization
+        "pauli_terms": pauli_terms,
+        "transformation": transformation,
+        "basis": molecule.basis,
+        "validated": True if hf_energy is not None else False,
+        "active_space_used": active_space_used,
     }
 
 
@@ -302,7 +308,9 @@ def hamiltonian_to_qiskit(pauli_terms: Dict[str, float]) -> Any:
         raise ImportError("Qiskit required. Install: pip install qiskit")
 
 
-def validate_hamiltonian(hamiltonian_data: Dict[str, Any], tolerance: float = 1e-6) -> Dict[str, bool]:
+def validate_hamiltonian(
+    hamiltonian_data: Dict[str, Any], tolerance: float = 1e-6
+) -> Dict[str, bool]:
     """
     Validate that the quantum Hamiltonian is physically accurate.
 
@@ -321,27 +329,27 @@ def validate_hamiltonian(hamiltonian_data: Dict[str, Any], tolerance: float = 1e
     validations = {}
 
     # Check if Hermitian (should always be true for quantum Hamiltonians)
-    qubit_ham = hamiltonian_data['qubit_hamiltonian']
+    qubit_ham = hamiltonian_data["qubit_hamiltonian"]
     sparse_ham = get_sparse_operator(qubit_ham)
     is_hermitian = np.allclose(sparse_ham.toarray(), sparse_ham.toarray().conj().T)
-    validations['hermitian'] = is_hermitian
+    validations["hermitian"] = is_hermitian
 
     # Check ground state energy
-    ground_energy = hamiltonian_data['ground_state_energy']
-    fci_energy = hamiltonian_data.get('fci_energy')
-    hf_energy = hamiltonian_data.get('hf_energy')
+    ground_energy = hamiltonian_data["ground_state_energy"]
+    fci_energy = hamiltonian_data.get("fci_energy")
+    hf_energy = hamiltonian_data.get("hf_energy")
 
     if fci_energy is not None:
         energy_error = abs(ground_energy - fci_energy)
-        validations['matches_fci'] = energy_error < tolerance
-        validations['fci_error_hartree'] = energy_error
+        validations["matches_fci"] = energy_error < tolerance
+        validations["fci_error_hartree"] = energy_error
 
     if hf_energy is not None:
-        validations['below_hf'] = ground_energy <= hf_energy + tolerance
+        validations["below_hf"] = ground_energy <= hf_energy + tolerance
 
-    validations['physically_valid'] = all([
-        v for k, v in validations.items() if isinstance(v, bool)
-    ])
+    validations["physically_valid"] = all(
+        [v for k, v in validations.items() if isinstance(v, bool)]
+    )
 
     return validations
 
@@ -349,21 +357,14 @@ def validate_hamiltonian(hamiltonian_data: Dict[str, Any], tolerance: float = 1e
 # Example usage and validation
 if __name__ == "__main__":
     # Example: H2 molecule (simplest case for validation)
-    h2_geometry = [
-        ('H', (0.0, 0.0, 0.0)),
-        ('H', (0.0, 0.0, 0.74))  # Bond length 0.74 Angstrom
-    ]
+    h2_geometry = [("H", (0.0, 0.0, 0.0)), ("H", (0.0, 0.0, 0.74))]  # Bond length 0.74 Angstrom
 
     h2_molecule = QuantumMolecule(
-        geometry=h2_geometry,
-        charge=0,
-        multiplicity=1,
-        basis='sto-3g',
-        name='H2'
+        geometry=h2_geometry, charge=0, multiplicity=1, basis="sto-3g", name="H2"
     )
 
     print("Building H2 Hamiltonian with Jordan-Wigner...")
-    ham_data = build_molecular_hamiltonian(h2_molecule, transformation='jordan_wigner')
+    ham_data = build_molecular_hamiltonian(h2_molecule, transformation="jordan_wigner")
 
     print(f"Number of qubits: {ham_data['n_qubits']}")
     print(f"Hartree-Fock energy: {ham_data['hf_energy']:.6f} Hartree")

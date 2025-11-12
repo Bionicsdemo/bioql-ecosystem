@@ -12,10 +12,10 @@ Features:
 - Weights & Biases integration
 """
 
-from dataclasses import dataclass, field
-from typing import Optional, Dict, Any, List
-from pathlib import Path
 import json
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 # Optional dependencies
 try:
@@ -23,12 +23,13 @@ try:
     import torch.nn as nn
     from torch.utils.data import DataLoader
     from transformers import (
-        Trainer,
-        TrainingArguments,
         AutoModelForCausalLM,
         AutoTokenizer,
-        BitsAndBytesConfig
+        BitsAndBytesConfig,
+        Trainer,
+        TrainingArguments,
     )
+
     _transformers_available = True
 except ImportError:
     _transformers_available = False
@@ -38,10 +39,13 @@ except ImportError:
 try:
     from peft import (
         LoraConfig,
+    )
+    from peft import TaskType as PeftTaskType
+    from peft import (
         get_peft_model,
         prepare_model_for_kbit_training,
-        TaskType as PeftTaskType
     )
+
     _peft_available = True
 except ImportError:
     _peft_available = False
@@ -50,6 +54,7 @@ try:
     from loguru import logger
 except ImportError:
     import logging
+
     logger = logging.getLogger(__name__)
 
 
@@ -67,6 +72,7 @@ class TrainingConfig:
         ...     use_qlora=True
         ... )
     """
+
     # Model
     model_name: str = "meta-llama/Llama-2-7b-hf"
     tokenizer_name: Optional[str] = None
@@ -90,9 +96,9 @@ class TrainingConfig:
     lora_r: int = 8
     lora_alpha: int = 16
     lora_dropout: float = 0.05
-    lora_target_modules: List[str] = field(default_factory=lambda: [
-        "q_proj", "k_proj", "v_proj", "o_proj"
-    ])
+    lora_target_modules: List[str] = field(
+        default_factory=lambda: ["q_proj", "k_proj", "v_proj", "o_proj"]
+    )
 
     # Optimization
     optim: str = "adamw_torch"
@@ -118,7 +124,7 @@ class TrainingConfig:
         """Convert to dictionary."""
         return {k: v for k, v in self.__dict__.items()}
 
-    def to_training_args(self) -> 'TrainingArguments':
+    def to_training_args(self) -> "TrainingArguments":
         """Convert to HuggingFace TrainingArguments."""
         if not _transformers_available:
             raise ImportError("transformers required")
@@ -144,11 +150,12 @@ class TrainingConfig:
             save_total_limit=3,
             load_best_model_at_end=True,
             report_to="wandb" if self.use_wandb else "none",
-            run_name=self.wandb_run_name
+            run_name=self.wandb_run_name,
         )
 
 
 if _transformers_available and _peft_available:
+
     class BioQLTrainer(Trainer):
         """
         Specialized trainer for BioQL foundational model.
@@ -208,7 +215,7 @@ if _transformers_available and _peft_available:
                     load_in_4bit=True,
                     bnb_4bit_quant_type="nf4",
                     bnb_4bit_compute_dtype=torch.float16,
-                    bnb_4bit_use_double_quant=True
+                    bnb_4bit_use_double_quant=True,
                 )
 
             # Load base model
@@ -217,7 +224,7 @@ if _transformers_available and _peft_available:
                 self.config.model_name,
                 quantization_config=quantization_config,
                 device_map="auto" if torch.cuda.is_available() else None,
-                trust_remote_code=True
+                trust_remote_code=True,
             )
 
             # Prepare for k-bit training if using QLoRA
@@ -233,24 +240,21 @@ if _transformers_available and _peft_available:
                     lora_alpha=self.config.lora_alpha,
                     lora_dropout=self.config.lora_dropout,
                     target_modules=self.config.lora_target_modules,
-                    bias="none"
+                    bias="none",
                 )
                 self.model = get_peft_model(self.model, self.peft_config)
 
             # Print trainable parameters
             trainable_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
             total_params = sum(p.numel() for p in self.model.parameters())
-            logger.info(f"Trainable params: {trainable_params:,} ({100 * trainable_params / total_params:.2f}%)")
+            logger.info(
+                f"Trainable params: {trainable_params:,} ({100 * trainable_params / total_params:.2f}%)"
+            )
             logger.info(f"Total params: {total_params:,}")
 
             logger.info("✅ Model prepared for training")
 
-        def train(
-            self,
-            train_dataset,
-            eval_dataset=None,
-            callbacks=None
-        ):
+        def train(self, train_dataset, eval_dataset=None, callbacks=None):
             """
             Train the model.
 
@@ -274,7 +278,7 @@ if _transformers_available and _peft_available:
                 train_dataset=train_dataset,
                 eval_dataset=eval_dataset,
                 tokenizer=self.tokenizer,
-                callbacks=callbacks
+                callbacks=callbacks,
             )
 
             # Train
@@ -312,13 +316,13 @@ if _transformers_available and _peft_available:
 
             # Save config
             config_path = output / "training_config.json"
-            with open(config_path, 'w') as f:
+            with open(config_path, "w") as f:
                 json.dump(self.config.to_dict(), f, indent=2)
 
             logger.info(f"✅ Model saved to {output_path}")
 
         @classmethod
-        def from_pretrained(cls, model_path: str) -> 'BioQLTrainer':
+        def from_pretrained(cls, model_path: str) -> "BioQLTrainer":
             """
             Load fine-tuned model.
 
@@ -332,7 +336,7 @@ if _transformers_available and _peft_available:
 
             # Load config
             config_path = Path(model_path) / "training_config.json"
-            with open(config_path, 'r') as f:
+            with open(config_path, "r") as f:
                 config_dict = json.load(f)
 
             # Convert lists back from JSON
@@ -353,8 +357,7 @@ if _transformers_available and _peft_available:
                 from peft import PeftModel
 
                 base_model = AutoModelForCausalLM.from_pretrained(
-                    config.model_name,
-                    device_map="auto" if torch.cuda.is_available() else None
+                    config.model_name, device_map="auto" if torch.cuda.is_available() else None
                 )
                 trainer.model = PeftModel.from_pretrained(base_model, model_path)
             else:
@@ -379,7 +382,7 @@ def quick_train(
     num_epochs: int = 3,
     use_lora: bool = True,
     use_qlora: bool = False,
-    **kwargs
+    **kwargs,
 ):
     """
     Quick training function with sensible defaults.
@@ -420,7 +423,7 @@ def quick_train(
         num_train_epochs=num_epochs,
         use_lora=use_lora,
         use_qlora=use_qlora,
-        **kwargs
+        **kwargs,
     )
 
     # Create trainer

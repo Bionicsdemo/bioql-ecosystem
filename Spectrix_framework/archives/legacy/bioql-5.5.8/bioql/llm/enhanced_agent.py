@@ -3,11 +3,12 @@ Enhanced BioQL Agent - Versión mejorada con más tools
 ======================================================
 """
 
+import json
 import re
 import subprocess
-import json
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Any, Dict, List
+
 import requests
 
 
@@ -59,7 +60,7 @@ class EnhancedBioQLAgent:
                 return {
                     "success": False,
                     "error": model_response.get("error"),
-                    "actions": all_actions
+                    "actions": all_actions,
                 }
 
             # Parsear y ejecutar acciones
@@ -72,7 +73,7 @@ class EnhancedBioQLAgent:
                     "success": True,
                     "actions": all_actions,
                     "final_response": model_response.get("text", ""),
-                    "iterations": iteration + 1
+                    "iterations": iteration + 1,
                 }
 
             # Actualizar contexto con resultados
@@ -82,7 +83,7 @@ class EnhancedBioQLAgent:
             "success": True,
             "actions": all_actions,
             "warning": f"Max iterations ({max_iterations}) reached",
-            "iterations": max_iterations
+            "iterations": max_iterations,
         }
 
     def _call_model(self, context: str, api_key: str) -> Dict[str, Any]:
@@ -103,12 +104,11 @@ PARAMS: <parameters or code>
 REASONING: <your reasoning>
 """
 
-            response = requests.post(self.endpoint, json={
-                "api_key": api_key,
-                "prompt": prompt,
-                "temperature": 0.2,
-                "max_length": 1000
-            }, timeout=30)
+            response = requests.post(
+                self.endpoint,
+                json={"api_key": api_key, "prompt": prompt, "temperature": 0.2, "max_length": 1000},
+                timeout=30,
+            )
 
             if response.status_code != 200:
                 return {"success": False, "error": f"API error: {response.status_code}"}
@@ -117,7 +117,7 @@ REASONING: <your reasoning>
             return {
                 "success": True,
                 "text": result.get("code", ""),
-                "reasoning": result.get("reasoning", "")
+                "reasoning": result.get("reasoning", ""),
             }
 
         except Exception as e:
@@ -129,7 +129,7 @@ REASONING: <your reasoning>
         actions = []
 
         # Extraer tool calls
-        tool_pattern = r'TOOL:\s*(\w+)\s*\nPARAMS:\s*(.+?)(?:\n|$)'
+        tool_pattern = r"TOOL:\s*(\w+)\s*\nPARAMS:\s*(.+?)(?:\n|$)"
         matches = re.finditer(tool_pattern, text, re.DOTALL)
 
         for match in matches:
@@ -137,13 +137,15 @@ REASONING: <your reasoning>
             params = match.group(2).strip()
 
             action_result = self._execute_tool(tool_name, params)
-            actions.append({
-                "tool": tool_name,
-                "params": params,
-                "result": action_result.get("output"),
-                "success": action_result.get("success"),
-                "error": action_result.get("error")
-            })
+            actions.append(
+                {
+                    "tool": tool_name,
+                    "params": params,
+                    "result": action_result.get("output"),
+                    "success": action_result.get("success"),
+                    "error": action_result.get("error"),
+                }
+            )
 
         # Si no hay tool calls explícitos, inferir del contenido
         if not actions:
@@ -156,13 +158,13 @@ REASONING: <your reasoning>
         try:
             if tool_name == "read_file":
                 file_path = self.workspace / params.strip()
-                with open(file_path, 'r') as f:
+                with open(file_path, "r") as f:
                     content = f.read()
                 return {"success": True, "output": content}
 
             elif tool_name == "write_file":
                 # Format: filename|content
-                parts = params.split('|', 1)
+                parts = params.split("|", 1)
                 if len(parts) != 2:
                     return {"success": False, "error": "Invalid format. Use: filename|content"}
 
@@ -170,14 +172,14 @@ REASONING: <your reasoning>
                 content = parts[1].strip()
 
                 file_path.parent.mkdir(parents=True, exist_ok=True)
-                with open(file_path, 'w') as f:
+                with open(file_path, "w") as f:
                     f.write(content)
 
                 return {"success": True, "output": f"Wrote to {file_path}"}
 
             elif tool_name == "edit_file":
                 # Format: filename|old_content|new_content
-                parts = params.split('|', 2)
+                parts = params.split("|", 2)
                 if len(parts) != 3:
                     return {"success": False, "error": "Invalid format"}
 
@@ -185,14 +187,14 @@ REASONING: <your reasoning>
                 old_content = parts[1].strip()
                 new_content = parts[2].strip()
 
-                with open(file_path, 'r') as f:
+                with open(file_path, "r") as f:
                     current = f.read()
 
                 if old_content not in current:
                     return {"success": False, "error": "Old content not found"}
 
                 updated = current.replace(old_content, new_content)
-                with open(file_path, 'w') as f:
+                with open(file_path, "w") as f:
                     f.write(updated)
 
                 return {"success": True, "output": f"Edited {file_path}"}
@@ -200,38 +202,35 @@ REASONING: <your reasoning>
             elif tool_name == "run_bioql":
                 # Ejecutar código BioQL
                 temp_file = "/tmp/bioql_temp.bioql"
-                with open(temp_file, 'w') as f:
+                with open(temp_file, "w") as f:
                     f.write(params)
 
                 result = subprocess.run(
                     ["bioql", "quantum", "execute", temp_file],
                     capture_output=True,
                     text=True,
-                    timeout=30
+                    timeout=30,
                 )
 
                 return {
                     "success": result.returncode == 0,
                     "output": result.stdout,
-                    "error": result.stderr if result.returncode != 0 else None
+                    "error": result.stderr if result.returncode != 0 else None,
                 }
 
             elif tool_name == "run_python":
                 temp_file = "/tmp/bioql_agent_python.py"
-                with open(temp_file, 'w') as f:
+                with open(temp_file, "w") as f:
                     f.write(params)
 
                 result = subprocess.run(
-                    ["python3", temp_file],
-                    capture_output=True,
-                    text=True,
-                    timeout=30
+                    ["python3", temp_file], capture_output=True, text=True, timeout=30
                 )
 
                 return {
                     "success": result.returncode == 0,
                     "output": result.stdout,
-                    "error": result.stderr if result.returncode != 0 else None
+                    "error": result.stderr if result.returncode != 0 else None,
                 }
 
             elif tool_name == "run_shell":
@@ -241,18 +240,18 @@ REASONING: <your reasoning>
                     capture_output=True,
                     text=True,
                     timeout=30,
-                    cwd=self.workspace
+                    cwd=self.workspace,
                 )
 
                 return {
                     "success": result.returncode == 0,
                     "output": result.stdout,
-                    "error": result.stderr if result.returncode != 0 else None
+                    "error": result.stderr if result.returncode != 0 else None,
                 }
 
             elif tool_name == "search_code":
                 # Format: pattern|path
-                parts = params.split('|')
+                parts = params.split("|")
                 pattern = parts[0].strip()
                 path = parts[1].strip() if len(parts) > 1 else "."
 
@@ -260,7 +259,7 @@ REASONING: <your reasoning>
                     ["grep", "-r", "-n", pattern, path],
                     capture_output=True,
                     text=True,
-                    cwd=self.workspace
+                    cwd=self.workspace,
                 )
 
                 return {"success": True, "output": result.stdout}
@@ -283,34 +282,40 @@ REASONING: <your reasoning>
         actions = []
 
         # Detectar código BioQL
-        bioql_pattern = r'```bioql\n(.+?)\n```'
+        bioql_pattern = r"```bioql\n(.+?)\n```"
         for match in re.finditer(bioql_pattern, text, re.DOTALL):
             code = match.group(1)
             result = self._execute_tool("run_bioql", code)
-            actions.append({
-                "tool": "run_bioql",
-                "params": code,
-                "result": result.get("output"),
-                "success": result.get("success"),
-                "inferred": True
-            })
+            actions.append(
+                {
+                    "tool": "run_bioql",
+                    "params": code,
+                    "result": result.get("output"),
+                    "success": result.get("success"),
+                    "inferred": True,
+                }
+            )
 
         # Detectar código Python
-        python_pattern = r'```python\n(.+?)\n```'
+        python_pattern = r"```python\n(.+?)\n```"
         for match in re.finditer(python_pattern, text, re.DOTALL):
             code = match.group(1)
             result = self._execute_tool("run_python", code)
-            actions.append({
-                "tool": "run_python",
-                "params": code,
-                "result": result.get("output"),
-                "success": result.get("success"),
-                "inferred": True
-            })
+            actions.append(
+                {
+                    "tool": "run_python",
+                    "params": code,
+                    "result": result.get("output"),
+                    "success": result.get("success"),
+                    "inferred": True,
+                }
+            )
 
         return actions
 
-    def _is_task_complete(self, model_response: Dict[str, Any], actions: List[Dict[str, Any]]) -> bool:
+    def _is_task_complete(
+        self, model_response: Dict[str, Any], actions: List[Dict[str, Any]]
+    ) -> bool:
         """Determina si la tarea está completa."""
         text = model_response.get("text", "").lower()
 
@@ -337,7 +342,7 @@ REASONING: <your reasoning>
         result_text = "\nActions taken:\n"
         for i, action in enumerate(actions, 1):
             result_text += f"{i}. {action['tool']}: "
-            if action.get('success'):
+            if action.get("success"):
                 result_text += f"Success - {action.get('result', '')[:100]}\n"
             else:
                 result_text += f"Failed - {action.get('error', '')}\n"
@@ -348,6 +353,7 @@ REASONING: <your reasoning>
 # ============================================================================
 # CLI Interface
 # ============================================================================
+
 
 def main():
     """CLI para usar el agent."""
@@ -381,17 +387,17 @@ def main():
     if result["success"]:
         print(f"\n✅ Task completed in {result['iterations']} iteration(s)")
         print(f"\n📋 Actions taken ({len(result['actions'])}):")
-        for i, action in enumerate(result['actions'], 1):
-            status = "✓" if action.get('success') else "✗"
+        for i, action in enumerate(result["actions"], 1):
+            status = "✓" if action.get("success") else "✗"
             print(f"  {i}. {status} {action['tool']}")
-            if action.get('error'):
+            if action.get("error"):
                 print(f"     Error: {action['error']}")
     else:
         print(f"\n❌ Task failed: {result.get('error')}")
 
     # Guardar log
     log_file = Path(workspace) / "bioql_agent.log"
-    with open(log_file, 'a') as f:
+    with open(log_file, "a") as f:
         f.write(f"\n{'='*60}\n")
         f.write(f"Request: {user_request}\n")
         f.write(f"Result: {json.dumps(result, indent=2)}\n")

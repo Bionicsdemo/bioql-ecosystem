@@ -18,8 +18,9 @@ Each benchmark includes:
 - Expected number of qubits
 """
 
-from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
+from typing import Dict, List, Optional, Tuple
+
 import numpy as np
 
 from .quantum_chemistry import QuantumMolecule, build_molecular_hamiltonian, validate_hamiltonian
@@ -28,6 +29,7 @@ from .quantum_chemistry import QuantumMolecule, build_molecular_hamiltonian, val
 @dataclass
 class BenchmarkResult:
     """Results from a molecular benchmark calculation."""
+
     molecule_name: str
     n_qubits: int
     hf_energy_calc: float  # Calculated HF energy (Hartree)
@@ -41,64 +43,61 @@ class BenchmarkResult:
 
 # Benchmark molecules with experimental geometries and reference energies
 BENCHMARK_MOLECULES = {
-    'H2': {
-        'geometry': [
-            ('H', (0.0, 0.0, 0.0)),
-            ('H', (0.0, 0.0, 0.74))  # Experimental bond length (Å)
+    "H2": {
+        "geometry": [
+            ("H", (0.0, 0.0, 0.0)),
+            ("H", (0.0, 0.0, 0.74)),  # Experimental bond length (Å)
         ],
-        'charge': 0,
-        'multiplicity': 1,
-        'basis': 'sto-3g',
-        'hf_energy_ref': -1.117,  # Reference HF/sto-3g (Hartree)
-        'description': 'Hydrogen molecule - simplest test case'
+        "charge": 0,
+        "multiplicity": 1,
+        "basis": "sto-3g",
+        "hf_energy_ref": -1.117,  # Reference HF/sto-3g (Hartree)
+        "description": "Hydrogen molecule - simplest test case",
     },
-
-    'LiH': {
-        'geometry': [
-            ('Li', (0.0, 0.0, 0.0)),
-            ('H', (0.0, 0.0, 1.596))  # Experimental bond length (Å)
+    "LiH": {
+        "geometry": [
+            ("Li", (0.0, 0.0, 0.0)),
+            ("H", (0.0, 0.0, 1.596)),  # Experimental bond length (Å)
         ],
-        'charge': 0,
-        'multiplicity': 1,
-        'basis': 'sto-3g',
-        'hf_energy_ref': -7.863,  # Reference HF/sto-3g (Hartree)
-        'description': 'Lithium hydride - ionic bond'
+        "charge": 0,
+        "multiplicity": 1,
+        "basis": "sto-3g",
+        "hf_energy_ref": -7.863,  # Reference HF/sto-3g (Hartree)
+        "description": "Lithium hydride - ionic bond",
     },
-
-    'H2O': {
-        'geometry': [
-            ('O', (0.0, 0.0, 0.0)),
-            ('H', (0.0, 0.757, 0.587)),  # Experimental geometry
-            ('H', (0.0, -0.757, 0.587))  # 104.5° angle
+    "H2O": {
+        "geometry": [
+            ("O", (0.0, 0.0, 0.0)),
+            ("H", (0.0, 0.757, 0.587)),  # Experimental geometry
+            ("H", (0.0, -0.757, 0.587)),  # 104.5° angle
         ],
-        'charge': 0,
-        'multiplicity': 1,
-        'basis': 'sto-3g',
-        'hf_energy_ref': -74.963,  # Reference HF/sto-3g (Hartree)
-        'description': 'Water molecule - bent geometry'
+        "charge": 0,
+        "multiplicity": 1,
+        "basis": "sto-3g",
+        "hf_energy_ref": -74.963,  # Reference HF/sto-3g (Hartree)
+        "description": "Water molecule - bent geometry",
     },
-
-    'NH3': {
-        'geometry': [
-            ('N', (0.0, 0.0, 0.0)),
-            ('H', (0.0, 0.937, 0.383)),
-            ('H', (0.812, -0.469, 0.383)),
-            ('H', (-0.812, -0.469, 0.383))
+    "NH3": {
+        "geometry": [
+            ("N", (0.0, 0.0, 0.0)),
+            ("H", (0.0, 0.937, 0.383)),
+            ("H", (0.812, -0.469, 0.383)),
+            ("H", (-0.812, -0.469, 0.383)),
         ],
-        'charge': 0,
-        'multiplicity': 1,
-        'basis': 'sto-3g',
-        'hf_energy_ref': -55.454,  # Reference HF/sto-3g (Hartree)
-        'description': 'Ammonia - pyramidal geometry'
+        "charge": 0,
+        "multiplicity": 1,
+        "basis": "sto-3g",
+        "hf_energy_ref": -55.454,  # Reference HF/sto-3g (Hartree)
+        "description": "Ammonia - pyramidal geometry",
     },
 }
 
 
 def run_benchmark(
     molecule_name: str,
-    basis: str = 'sto-3g',
-    transformation: str = 'jordan_wigner',
-    verbose: bool = True
+    basis: str = "sto-3g",
+    transformation: str = "jordan_wigner",
+    verbose: bool = True,
 ) -> BenchmarkResult:
     """
     Run quantum chemistry benchmark for a specific molecule.
@@ -113,17 +112,19 @@ def run_benchmark(
         BenchmarkResult with calculated and reference values
     """
     if molecule_name not in BENCHMARK_MOLECULES:
-        raise ValueError(f"Unknown molecule: {molecule_name}. Available: {list(BENCHMARK_MOLECULES.keys())}")
+        raise ValueError(
+            f"Unknown molecule: {molecule_name}. Available: {list(BENCHMARK_MOLECULES.keys())}"
+        )
 
     mol_data = BENCHMARK_MOLECULES[molecule_name]
 
     # Create molecule
     molecule = QuantumMolecule(
-        geometry=mol_data['geometry'],
-        charge=mol_data['charge'],
-        multiplicity=mol_data['multiplicity'],
+        geometry=mol_data["geometry"],
+        charge=mol_data["charge"],
+        multiplicity=mol_data["multiplicity"],
         basis=basis,
-        name=molecule_name
+        name=molecule_name,
     )
 
     if verbose:
@@ -140,10 +141,10 @@ def run_benchmark(
     validations = validate_hamiltonian(ham_data)
 
     # Extract results
-    hf_calc = ham_data['hf_energy']
-    ground_calc = ham_data['ground_state_energy']
+    hf_calc = ham_data["hf_energy"]
+    ground_calc = ham_data["ground_state_energy"]
     correlation = ground_calc - hf_calc
-    hf_ref = mol_data.get('hf_energy_ref')
+    hf_ref = mol_data.get("hf_energy_ref")
 
     # Calculate error
     error_kcal = None
@@ -153,14 +154,14 @@ def run_benchmark(
 
     result = BenchmarkResult(
         molecule_name=molecule_name,
-        n_qubits=ham_data['n_qubits'],
+        n_qubits=ham_data["n_qubits"],
         hf_energy_calc=hf_calc,
         hf_energy_ref=hf_ref,
         ground_energy_calc=ground_calc,
         correlation_energy=correlation,
         error_vs_ref=error_kcal,
-        validated=validations['physically_valid'],
-        pauli_terms_count=len(ham_data['pauli_terms'])
+        validated=validations["physically_valid"],
+        pauli_terms_count=len(ham_data["pauli_terms"]),
     )
 
     if verbose:
@@ -180,16 +181,19 @@ def run_benchmark(
         if error_kcal is not None:
             chemical_accuracy = 1.6  # kcal/mol
             if error_kcal < chemical_accuracy:
-                print(f"   ✅ Within chemical accuracy ({error_kcal:.4f} < {chemical_accuracy} kcal/mol)")
+                print(
+                    f"   ✅ Within chemical accuracy ({error_kcal:.4f} < {chemical_accuracy} kcal/mol)"
+                )
             else:
-                print(f"   ⚠️  Outside chemical accuracy ({error_kcal:.4f} > {chemical_accuracy} kcal/mol)")
+                print(
+                    f"   ⚠️  Outside chemical accuracy ({error_kcal:.4f} > {chemical_accuracy} kcal/mol)"
+                )
 
     return result
 
 
 def run_all_benchmarks(
-    basis: str = 'sto-3g',
-    transformation: str = 'jordan_wigner'
+    basis: str = "sto-3g", transformation: str = "jordan_wigner"
 ) -> Dict[str, BenchmarkResult]:
     """
     Run all available benchmarks and return summary.
@@ -203,23 +207,26 @@ def run_all_benchmarks(
     """
     results = {}
 
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("BioQL Quantum Chemistry Benchmark Suite")
-    print("="*80)
+    print("=" * 80)
 
     for mol_name in BENCHMARK_MOLECULES:
         try:
-            result = run_benchmark(mol_name, basis=basis, transformation=transformation, verbose=True)
+            result = run_benchmark(
+                mol_name, basis=basis, transformation=transformation, verbose=True
+            )
             results[mol_name] = result
         except Exception as e:
             print(f"\n❌ Error benchmarking {mol_name}: {e}")
             import traceback
+
             traceback.print_exc()
 
     # Summary
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("BENCHMARK SUMMARY")
-    print("="*80)
+    print("=" * 80)
     print(f"\n{'Molecule':<10} {'Qubits':<8} {'HF Error (kcal/mol)':<20} {'Validated':<10}")
     print("-" * 80)
 
@@ -233,8 +240,8 @@ def run_all_benchmarks(
 
 if __name__ == "__main__":
     # Run all benchmarks
-    results = run_all_benchmarks(basis='sto-3g', transformation='jordan_wigner')
+    results = run_all_benchmarks(basis="sto-3g", transformation="jordan_wigner")
 
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("✅ Benchmark suite completed")
-    print("="*80)
+    print("=" * 80)

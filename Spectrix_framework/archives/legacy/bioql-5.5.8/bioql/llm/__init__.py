@@ -56,10 +56,11 @@ __version__ = "3.1.0-alpha"
 
 # Core agent imports
 try:
+    from .agents.bioinformatics import BioinformaticsAgent
     from .agents.code_generator import CodeGeneratorAgent
     from .agents.optimizer import CircuitOptimizerAgent
-    from .agents.bioinformatics import BioinformaticsAgent
     from .agents.orchestrator import AgentOrchestrator
+
     _agents_available = True
 except ImportError:
     _agents_available = False
@@ -73,6 +74,7 @@ try:
     from .models.claude_adapter import ClaudeAdapter
     from .models.gpt_adapter import GPTAdapter
     from .models.ollama_adapter import OllamaAdapter
+
     _models_available = True
 except ImportError:
     _models_available = False
@@ -82,8 +84,9 @@ except ImportError:
 
 # Hybrid compiler
 try:
-    from .optimizers.hybrid_compiler import HybridCompiler
     from .optimizers.auto_optimizer import AutoOptimizer
+    from .optimizers.hybrid_compiler import HybridCompiler
+
     _optimizer_available = True
 except ImportError:
     _optimizer_available = False
@@ -93,18 +96,15 @@ except ImportError:
 __all__ = [
     # Version
     "__version__",
-
     # Agents
     "CodeGeneratorAgent",
     "CircuitOptimizerAgent",
     "BioinformaticsAgent",
     "AgentOrchestrator",
-
     # Models
     "ClaudeAdapter",
     "GPTAdapter",
     "OllamaAdapter",
-
     # Optimizers
     "HybridCompiler",
     "AutoOptimizer",
@@ -117,5 +117,5 @@ def check_llm_availability() -> dict:
         "agents": _agents_available,
         "models": _models_available,
         "optimizers": _optimizer_available,
-        "version": __version__
+        "version": __version__,
     }

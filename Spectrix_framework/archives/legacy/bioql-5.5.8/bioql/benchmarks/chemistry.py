@@ -13,12 +13,12 @@ Features:
 Compatible con todos los backends existentes de BioQL.
 """
 
-from typing import Dict, List, Optional, Any, Tuple
+import time
 from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, Tuple
+
 import numpy as np
 from loguru import logger
-import time
-
 
 # Literature values from computational chemistry databases
 # Sources: NIST, PubChem, quantum chemistry literature
@@ -173,8 +173,10 @@ class BenchmarkSuite:
             "min_error": np.min(errors),
             "mean_time": np.mean(times),
             "total_time": np.sum(times),
-            "pass_rate_5pct": sum(r.passes_threshold(0.05) for r in self.results) / len(self.results),
-            "pass_rate_1pct": sum(r.passes_threshold(0.01) for r in self.results) / len(self.results),
+            "pass_rate_5pct": sum(r.passes_threshold(0.05) for r in self.results)
+            / len(self.results),
+            "pass_rate_1pct": sum(r.passes_threshold(0.01) for r in self.results)
+            / len(self.results),
         }
 
     def generate_report(self) -> str:
@@ -207,7 +209,9 @@ class BenchmarkSuite:
         # Individual results
         lines.append("INDIVIDUAL RESULTS:")
         lines.append("-" * 80)
-        lines.append(f"{'Molecule':<10} {'Backend':<15} {'Computed':<12} {'Literature':<12} {'Error %':<10} {'Time(s)':<10}")
+        lines.append(
+            f"{'Molecule':<10} {'Backend':<15} {'Computed':<12} {'Literature':<12} {'Error %':<10} {'Time(s)':<10}"
+        )
         lines.append("-" * 80)
 
         for r in self.results:
@@ -227,7 +231,7 @@ class BenchmarkSuite:
     def save_report(self, filename: str):
         """Save benchmark report to file."""
         report = self.generate_report()
-        with open(filename, 'w') as f:
+        with open(filename, "w") as f:
             f.write(report)
         logger.info(f"Saved benchmark report to {filename}")
 
@@ -311,7 +315,9 @@ class ChemistryBenchmark:
             BenchmarkResult with comparison to literature
         """
         if molecule not in LITERATURE_DATA:
-            raise ValueError(f"Molecule {molecule} not in benchmark database. Available: {list(LITERATURE_DATA.keys())}")
+            raise ValueError(
+                f"Molecule {molecule} not in benchmark database. Available: {list(LITERATURE_DATA.keys())}"
+            )
 
         mol_data = LITERATURE_DATA[molecule]
         lit_energy = mol_data["ground_state_energy"]
@@ -339,29 +345,32 @@ class ChemistryBenchmark:
             execution_time = time.time() - start_time
 
             # Apply error mitigation if requested
-            if apply_error_mitigation and hasattr(result, 'counts') and result.counts:
+            if apply_error_mitigation and hasattr(result, "counts") and result.counts:
                 try:
                     from bioql.error_mitigation import mitigate_counts
-                    num_qubits = mol_data['num_qubits']
+
+                    num_qubits = mol_data["num_qubits"]
                     mitigated_counts = mitigate_counts(result.counts, num_qubits=num_qubits)
                     logger.info(f"Applied error mitigation for {molecule}")
                 except ImportError:
                     logger.warning("Error mitigation not available, using raw results")
 
             # Extract computed energy
-            if hasattr(result, 'energy') and result.energy is not None:
+            if hasattr(result, "energy") and result.energy is not None:
                 computed_energy = result.energy
             else:
                 # Estimate from counts (simplified approach)
                 # Real VQE would calculate Hamiltonian expectation value
-                if hasattr(result, 'counts') and result.counts:
+                if hasattr(result, "counts") and result.counts:
                     total = sum(result.counts.values())
-                    ground_state = '0' * mol_data['num_qubits']
+                    ground_state = "0" * mol_data["num_qubits"]
                     ground_prob = result.counts.get(ground_state, 0) / total
 
                     # Simple energy estimate (assumes ground state dominance)
                     # In real VQE, we'd use the actual Hamiltonian
-                    computed_energy = lit_energy * ground_prob + (lit_energy * 0.5) * (1 - ground_prob)
+                    computed_energy = lit_energy * ground_prob + (lit_energy * 0.5) * (
+                        1 - ground_prob
+                    )
                 else:
                     # No counts available, use literature value with small perturbation
                     computed_energy = lit_energy * (1 + np.random.uniform(-0.05, 0.05))
@@ -381,14 +390,16 @@ class ChemistryBenchmark:
                 execution_time=execution_time,
                 shots=shots,
                 seed=seed,
-                counts=result.counts if hasattr(result, 'counts') else None,
-                circuit_depth=result.metadata.get('circuit_depth') if hasattr(result, 'metadata') else None,
-                num_qubits=mol_data['num_qubits'],
+                counts=result.counts if hasattr(result, "counts") else None,
+                circuit_depth=(
+                    result.metadata.get("circuit_depth") if hasattr(result, "metadata") else None
+                ),
+                num_qubits=mol_data["num_qubits"],
                 metadata={
                     "molecule_data": mol_data,
                     "program": program,
                     "backend": backend,
-                }
+                },
             )
 
             logger.info(
@@ -426,9 +437,11 @@ class ChemistryBenchmark:
             molecules = list(LITERATURE_DATA.keys())
 
         if backends is None:
-            backends = ['simulator']
+            backends = ["simulator"]
 
-        logger.info(f"Running benchmark suite: {len(molecules)} molecules x {len(backends)} backends")
+        logger.info(
+            f"Running benchmark suite: {len(molecules)} molecules x {len(backends)} backends"
+        )
 
         self.suite = BenchmarkSuite(suite_name=f"BioQL v3.1.2 Chemistry Benchmark")
 
@@ -482,7 +495,9 @@ class ChemistryBenchmark:
         # Log comparison
         logger.info(f"\nBackend comparison for {molecule}:")
         for backend, result in results.items():
-            logger.info(f"  {backend}: {result.relative_error:.2f}% error, {result.execution_time:.2f}s")
+            logger.info(
+                f"  {backend}: {result.relative_error:.2f}% error, {result.execution_time:.2f}s"
+            )
 
         return results
 

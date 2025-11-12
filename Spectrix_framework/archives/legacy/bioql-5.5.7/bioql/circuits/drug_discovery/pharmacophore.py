@@ -14,23 +14,25 @@ A pharmacophore includes:
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Any, Dict, List, Optional, Tuple
+
 import numpy as np
 
 try:
-    from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+    from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
     from qiskit.circuit import Parameter
-    from qiskit.circuit.library import ZFeatureMap, TwoLocal
+    from qiskit.circuit.library import TwoLocal, ZFeatureMap
+
     QISKIT_AVAILABLE = True
 except ImportError:
     QISKIT_AVAILABLE = False
 
 from ..base import (
-    CircuitTemplate,
     CircuitCategory,
+    CircuitTemplate,
     ComplexityRating,
     ParameterSpec,
-    ResourceEstimate
+    ResourceEstimate,
 )
 
 
@@ -46,6 +48,7 @@ class PharmacophoreFeature:
         importance: Feature importance (0-1)
         optional: Whether feature is optional
     """
+
     feature_type: str
     position: Tuple[float, float, float]
     radius: float = 1.0
@@ -68,6 +71,7 @@ class PharmacophoreModel:
         quantum_enhanced: Whether quantum methods were used
         metadata: Additional metadata
     """
+
     features: List[PharmacophoreFeature] = field(default_factory=list)
     constraints: List[Dict[str, Any]] = field(default_factory=list)
     excluded_volumes: List[Tuple[float, float, float, float]] = field(default_factory=list)
@@ -85,23 +89,23 @@ class PharmacophoreModel:
             Dictionary representation
         """
         return {
-            'features': [
+            "features": [
                 {
-                    'type': f.feature_type,
-                    'position': f.position,
-                    'radius': f.radius,
-                    'importance': f.importance,
-                    'optional': f.optional
+                    "type": f.feature_type,
+                    "position": f.position,
+                    "radius": f.radius,
+                    "importance": f.importance,
+                    "optional": f.optional,
                 }
                 for f in self.features
             ],
-            'constraints': self.constraints,
-            'excluded_volumes': self.excluded_volumes,
-            'score': self.score,
-            'molecule': self.molecule_smiles,
-            'n_conformers': self.n_conformers,
-            'quantum_enhanced': self.quantum_enhanced,
-            'metadata': self.metadata
+            "constraints": self.constraints,
+            "excluded_volumes": self.excluded_volumes,
+            "score": self.score,
+            "molecule": self.molecule_smiles,
+            "n_conformers": self.n_conformers,
+            "quantum_enhanced": self.quantum_enhanced,
+            "metadata": self.metadata,
         }
 
     def matches_molecule(self, molecule_smiles: str, tolerance: float = 1.5) -> bool:
@@ -159,7 +163,7 @@ class PharmacophoreCircuit(CircuitTemplate):
         molecule_smiles: str,
         n_qubits: int = 8,
         n_conformers: int = 10,
-        optimization_depth: int = 2
+        optimization_depth: int = 2,
     ):
         """
         Initialize pharmacophore circuit.
@@ -180,28 +184,28 @@ class PharmacophoreCircuit(CircuitTemplate):
                     name="molecule_smiles",
                     type="str",
                     description="SMILES string of molecule",
-                    required=True
+                    required=True,
                 ),
                 ParameterSpec(
                     name="n_qubits",
                     type="int",
                     description="Number of qubits",
                     default=8,
-                    range=(4, 16)
+                    range=(4, 16),
                 ),
                 ParameterSpec(
                     name="n_conformers",
                     type="int",
                     description="Number of conformers to analyze",
                     default=10,
-                    range=(1, 100)
+                    range=(1, 100),
                 ),
                 ParameterSpec(
                     name="optimization_depth",
                     type="int",
                     description="Optimization circuit depth",
                     default=2,
-                    range=(1, 6)
+                    range=(1, 6),
                 ),
             ],
             tags=["pharmacophore", "drug-design", "3d-structure", "feature-extraction", "qml"],
@@ -210,13 +214,13 @@ class PharmacophoreCircuit(CircuitTemplate):
                 "Virtual screening with pharmacophores",
                 "Lead optimization",
                 "Structure-based drug design",
-                "Identify key binding features"
+                "Identify key binding features",
             ],
             references=[
                 "Quantum Pharmacophore Modeling (J. Chem. Inf. Model., 2023)",
                 "3D Feature Extraction with Quantum Circuits (J. Comp. Chem., 2022)",
-                "Pharmacophore-based Virtual Screening (Drug Discovery Today, 2021)"
-            ]
+                "Pharmacophore-based Virtual Screening (Drug Discovery Today, 2021)",
+            ],
         )
 
         self.molecule_smiles = molecule_smiles
@@ -236,8 +240,8 @@ class PharmacophoreCircuit(CircuitTemplate):
             raise ImportError("Qiskit is required for pharmacophore circuits")
 
         # Create quantum circuit
-        qr = QuantumRegister(self.n_qubits, 'q')
-        cr = ClassicalRegister(self.n_qubits, 'c')
+        qr = QuantumRegister(self.n_qubits, "q")
+        cr = ClassicalRegister(self.n_qubits, "c")
         circuit = QuantumCircuit(qr, cr)
 
         # Extract features using quantum circuit
@@ -266,22 +270,19 @@ class PharmacophoreCircuit(CircuitTemplate):
         conformers = self._generate_conformers()
 
         # Encode conformers into quantum state
-        feature_map = ZFeatureMap(
-            feature_dimension=self.n_qubits,
-            reps=2
-        )
+        feature_map = ZFeatureMap(feature_dimension=self.n_qubits, reps=2)
 
         # Add optimization layer for feature selection
         optimizer = TwoLocal(
             num_qubits=self.n_qubits,
-            rotation_blocks=['ry', 'rz'],
-            entanglement_blocks='cz',
-            entanglement='linear',
-            reps=self.optimization_depth
+            rotation_blocks=["ry", "rz"],
+            entanglement_blocks="cz",
+            entanglement="linear",
+            reps=self.optimization_depth,
         )
 
         # Combine circuits
-        qr = QuantumRegister(self.n_qubits, 'q')
+        qr = QuantumRegister(self.n_qubits, "q")
         circuit = QuantumCircuit(qr)
         circuit.compose(feature_map, inplace=True)
         circuit.compose(optimizer, inplace=True)
@@ -327,8 +328,8 @@ class PharmacophoreCircuit(CircuitTemplate):
             metadata={
                 "n_qubits": self.n_qubits,
                 "optimization_depth": self.optimization_depth,
-                "method": "quantum_circuit"
-            }
+                "method": "quantum_circuit",
+            },
         )
 
     def estimate_resources(self, **kwargs) -> ResourceEstimate:
@@ -361,7 +362,7 @@ class PharmacophoreCircuit(CircuitTemplate):
             measurement_count=self.n_qubits,
             classical_memory=self.n_qubits * 10,
             execution_time_estimate=0.5 * self.n_conformers,
-            error_budget=0.03
+            error_budget=0.03,
         )
 
     def _generate_conformers(self) -> List[np.ndarray]:
@@ -386,11 +387,7 @@ class PharmacophoreCircuit(CircuitTemplate):
             mol = Chem.AddHs(mol)
 
             # Generate conformers
-            AllChem.EmbedMultipleConfs(
-                mol,
-                numConfs=self.n_conformers,
-                randomSeed=42
-            )
+            AllChem.EmbedMultipleConfs(mol, numConfs=self.n_conformers, randomSeed=42)
 
             # Optimize conformers
             for conf_id in range(mol.GetNumConformers()):
@@ -420,10 +417,10 @@ class PharmacophoreCircuit(CircuitTemplate):
         features = []
 
         try:
-            from rdkit import Chem
-            from rdkit.Chem import ChemicalFeatures
-            from rdkit import RDConfig
             import os
+
+            from rdkit import Chem, RDConfig
+            from rdkit.Chem import ChemicalFeatures
 
             mol = Chem.MolFromSmiles(self.molecule_smiles)
             if mol is None:
@@ -432,10 +429,11 @@ class PharmacophoreCircuit(CircuitTemplate):
             # Add hydrogens and generate 3D coordinates
             mol = Chem.AddHs(mol)
             from rdkit.Chem import AllChem
+
             AllChem.EmbedMolecule(mol, randomSeed=42)
 
             # Load feature factory
-            fdef_name = os.path.join(RDConfig.RDDataDir, 'BaseFeatures.fdef')
+            fdef_name = os.path.join(RDConfig.RDDataDir, "BaseFeatures.fdef")
             factory = ChemicalFeatures.BuildFeatureFactory(fdef_name)
 
             # Extract features
@@ -446,24 +444,26 @@ class PharmacophoreCircuit(CircuitTemplate):
 
                 # Map RDKit features to pharmacophore types
                 type_mapping = {
-                    'donor': 'hbond_donor',
-                    'acceptor': 'hbond_acceptor',
-                    'hydrophobe': 'hydrophobic',
-                    'aromatic': 'aromatic',
-                    'posionizable': 'positive_charge',
-                    'negionizable': 'negative_charge',
+                    "donor": "hbond_donor",
+                    "acceptor": "hbond_acceptor",
+                    "hydrophobe": "hydrophobic",
+                    "aromatic": "aromatic",
+                    "posionizable": "positive_charge",
+                    "negionizable": "negative_charge",
                 }
 
                 pharmacophore_type = type_mapping.get(feature_type, feature_type)
 
                 position = feat.GetPos()
-                features.append(PharmacophoreFeature(
-                    feature_type=pharmacophore_type,
-                    position=(position.x, position.y, position.z),
-                    radius=1.0,
-                    importance=0.8,
-                    optional=False
-                ))
+                features.append(
+                    PharmacophoreFeature(
+                        feature_type=pharmacophore_type,
+                        position=(position.x, position.y, position.z),
+                        radius=1.0,
+                        importance=0.8,
+                        optional=False,
+                    )
+                )
 
         except ImportError:
             # Fallback: generate simple features based on SMILES
@@ -482,40 +482,39 @@ class PharmacophoreCircuit(CircuitTemplate):
         smiles = self.molecule_smiles
 
         # Detect hydrogen bond donors (OH, NH)
-        if 'O' in smiles or 'N' in smiles:
-            features.append(PharmacophoreFeature(
-                feature_type='hbond_donor',
-                position=(0.0, 0.0, 0.0),
-                radius=1.0,
-                importance=0.9
-            ))
+        if "O" in smiles or "N" in smiles:
+            features.append(
+                PharmacophoreFeature(
+                    feature_type="hbond_donor", position=(0.0, 0.0, 0.0), radius=1.0, importance=0.9
+                )
+            )
 
         # Detect hydrogen bond acceptors (O, N)
-        if '=O' in smiles or 'N' in smiles:
-            features.append(PharmacophoreFeature(
-                feature_type='hbond_acceptor',
-                position=(2.0, 0.0, 0.0),
-                radius=1.0,
-                importance=0.9
-            ))
+        if "=O" in smiles or "N" in smiles:
+            features.append(
+                PharmacophoreFeature(
+                    feature_type="hbond_acceptor",
+                    position=(2.0, 0.0, 0.0),
+                    radius=1.0,
+                    importance=0.9,
+                )
+            )
 
         # Detect aromatic rings
-        if 'c' in smiles or 'C1=C' in smiles:
-            features.append(PharmacophoreFeature(
-                feature_type='aromatic',
-                position=(1.0, 1.0, 0.0),
-                radius=1.5,
-                importance=0.7
-            ))
+        if "c" in smiles or "C1=C" in smiles:
+            features.append(
+                PharmacophoreFeature(
+                    feature_type="aromatic", position=(1.0, 1.0, 0.0), radius=1.5, importance=0.7
+                )
+            )
 
         # Detect hydrophobic regions
-        if 'C' in smiles:
-            features.append(PharmacophoreFeature(
-                feature_type='hydrophobic',
-                position=(0.0, 2.0, 0.0),
-                radius=1.5,
-                importance=0.6
-            ))
+        if "C" in smiles:
+            features.append(
+                PharmacophoreFeature(
+                    feature_type="hydrophobic", position=(0.0, 2.0, 0.0), radius=1.5, importance=0.6
+                )
+            )
 
         return features
 
@@ -533,18 +532,18 @@ class PharmacophoreCircuit(CircuitTemplate):
 
         # Generate pairwise distance constraints
         for i, feat1 in enumerate(features):
-            for j, feat2 in enumerate(features[i + 1:], start=i + 1):
+            for j, feat2 in enumerate(features[i + 1 :], start=i + 1):
                 pos1 = np.array(feat1.position)
                 pos2 = np.array(feat2.position)
 
                 distance = np.linalg.norm(pos2 - pos1)
 
                 constraint = {
-                    'feature1_idx': i,
-                    'feature2_idx': j,
-                    'distance': float(distance),
-                    'tolerance': 1.5,  # Angstroms
-                    'type': 'distance'
+                    "feature1_idx": i,
+                    "feature2_idx": j,
+                    "distance": float(distance),
+                    "tolerance": 1.5,  # Angstroms
+                    "type": "distance",
                 }
                 constraints.append(constraint)
 
@@ -566,9 +565,7 @@ class PharmacophoreCircuit(CircuitTemplate):
         return excluded_volumes
 
     def _calculate_pharmacophore_score(
-        self,
-        features: List[PharmacophoreFeature],
-        constraints: List[Dict[str, Any]]
+        self, features: List[PharmacophoreFeature], constraints: List[Dict[str, Any]]
     ) -> float:
         """
         Calculate quality score for pharmacophore model.
@@ -593,7 +590,7 @@ class PharmacophoreCircuit(CircuitTemplate):
 
         # 3. Constraint consistency (reasonable distances)
         if constraints:
-            distances = [c['distance'] for c in constraints]
+            distances = [c["distance"] for c in constraints]
             avg_distance = np.mean(distances)
             # Prefer moderate distances (3-10 Angstroms)
             distance_score = 1.0 - abs(avg_distance - 6.5) / 10.0
@@ -602,6 +599,6 @@ class PharmacophoreCircuit(CircuitTemplate):
             distance_score = 0.5
 
         # Weighted average
-        score = (feature_score * 0.4 + diversity_score * 0.3 + distance_score * 0.3)
+        score = feature_score * 0.4 + diversity_score * 0.3 + distance_score * 0.3
 
         return float(np.clip(score, 0.0, 1.0))

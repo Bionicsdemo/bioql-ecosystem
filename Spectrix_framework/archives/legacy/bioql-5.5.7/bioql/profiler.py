@@ -18,24 +18,26 @@ Features:
 - Decorator-based profiling
 """
 
+import json
+import os
+import threading
 import time
 import tracemalloc
-import threading
-from dataclasses import dataclass, field, asdict
-from typing import Dict, List, Optional, Any, Callable, Union
-from enum import Enum
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
+from enum import Enum
 from functools import wraps
-import json
 from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Union
+
 import psutil
-import os
 
 # Optional loguru import
 try:
     from loguru import logger
 except ImportError:
     import logging
+
     logger = logging.getLogger(__name__)
 
 
@@ -43,16 +45,19 @@ except ImportError:
 # ENUMS
 # ============================================================================
 
+
 class ProfilingMode(Enum):
     """Profiling modes with different levels of detail"""
-    MINIMAL = "minimal"          # Basic timing only
-    STANDARD = "standard"        # Timing + circuit metrics
-    DETAILED = "detailed"        # Standard + cost analysis
-    DEBUG = "debug"              # All metrics + memory profiling
+
+    MINIMAL = "minimal"  # Basic timing only
+    STANDARD = "standard"  # Timing + circuit metrics
+    DETAILED = "detailed"  # Standard + cost analysis
+    DEBUG = "debug"  # All metrics + memory profiling
 
 
 class BottleneckSeverity(Enum):
     """Severity levels for detected bottlenecks"""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -61,6 +66,7 @@ class BottleneckSeverity(Enum):
 
 class BottleneckType(Enum):
     """Types of performance bottlenecks"""
+
     CIRCUIT_DEPTH = "circuit_depth"
     GATE_COUNT = "gate_count"
     QUBIT_COUNT = "qubit_count"
@@ -74,9 +80,11 @@ class BottleneckType(Enum):
 # DATACLASSES
 # ============================================================================
 
+
 @dataclass
 class StageMetrics:
     """Metrics for a single profiling stage"""
+
     name: str
     start_time: float = 0.0
     end_time: float = 0.0
@@ -99,6 +107,7 @@ class StageMetrics:
 @dataclass
 class CircuitMetrics:
     """Quantum circuit complexity metrics"""
+
     qubits: int = 0
     depth: int = 0
     gate_count: int = 0
@@ -130,7 +139,9 @@ class CircuitMetrics:
         two_qubit_penalty = two_qubit_ratio * 0.5
 
         # Calculate score (100 = perfect)
-        raw_score = 100.0 - (depth_penalty * 30.0) - (gate_penalty * 20.0) - (two_qubit_penalty * 10.0)
+        raw_score = (
+            100.0 - (depth_penalty * 30.0) - (gate_penalty * 20.0) - (two_qubit_penalty * 10.0)
+        )
         self.optimization_score = max(0.0, min(100.0, raw_score))
 
         return self.optimization_score
@@ -143,6 +154,7 @@ class CircuitMetrics:
 @dataclass
 class CostMetrics:
     """Cost analysis metrics"""
+
     total_cost: float = 0.0
     backend_cost: float = 0.0
     shot_cost: float = 0.0
@@ -174,6 +186,7 @@ class CostMetrics:
 @dataclass
 class Bottleneck:
     """Detected performance bottleneck"""
+
     severity: BottleneckSeverity
     type: BottleneckType
     metric_value: float
@@ -185,19 +198,20 @@ class Bottleneck:
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return {
-            'severity': self.severity.value,
-            'type': self.type.value,
-            'metric_value': self.metric_value,
-            'threshold_value': self.threshold_value,
-            'impact_percentage': self.impact_percentage,
-            'recommendations': self.recommendations,
-            'stage': self.stage
+            "severity": self.severity.value,
+            "type": self.type.value,
+            "metric_value": self.metric_value,
+            "threshold_value": self.threshold_value,
+            "impact_percentage": self.impact_percentage,
+            "recommendations": self.recommendations,
+            "stage": self.stage,
         }
 
 
 # ============================================================================
 # PROFILER CONTEXT
 # ============================================================================
+
 
 class ProfilerContext:
     """Thread-safe profiling context manager"""
@@ -229,7 +243,7 @@ class ProfilerContext:
                 start_time=time.perf_counter(),
                 cpu_percent=self.process.cpu_percent(),
                 memory_mb=self._get_memory_usage(),
-                metadata=metadata or {}
+                metadata=metadata or {},
             )
 
             self.stages[name] = stage
@@ -303,6 +317,7 @@ class ProfilerContext:
 # MAIN PROFILER CLASS
 # ============================================================================
 
+
 class Profiler:
     """Main profiler class for BioQL quantum operations"""
 
@@ -315,11 +330,7 @@ class Profiler:
         self.metadata: Dict[str, Any] = {}
 
     def profile_quantum(
-        self,
-        quantum_func: Callable,
-        *args,
-        extract_metrics: bool = True,
-        **kwargs
+        self, quantum_func: Callable, *args, extract_metrics: bool = True, **kwargs
     ) -> Dict[str, Any]:
         """
         Profile a quantum function execution
@@ -338,17 +349,16 @@ class Profiler:
         with self.context:
             # Stage 1: Pre-execution
             self.context.start_stage("pre_execution")
-            program = args[0] if args else kwargs.get('program', '')
-            backend = kwargs.get('backend', 'simulator')
-            shots = kwargs.get('shots', 1024)
+            program = args[0] if args else kwargs.get("program", "")
+            backend = kwargs.get("backend", "simulator")
+            shots = kwargs.get("shots", 1024)
             self.context.end_stage("pre_execution")
 
             # Stage 2: Execution
-            self.context.start_stage("quantum_execution", {
-                'backend': backend,
-                'shots': shots,
-                'program_length': len(str(program))
-            })
+            self.context.start_stage(
+                "quantum_execution",
+                {"backend": backend, "shots": shots, "program_length": len(str(program))},
+            )
 
             try:
                 result = quantum_func(*args, **kwargs)
@@ -377,10 +387,10 @@ class Profiler:
             self.context.end_stage("bottleneck_analysis")
 
         return {
-            'result': result,
-            'success': success,
-            'error': error,
-            'profiling': self.get_summary()
+            "result": result,
+            "success": success,
+            "error": error,
+            "profiling": self.get_summary(),
         }
 
     def _extract_circuit_metrics(self, result: Any, backend: str, shots: int) -> None:
@@ -388,13 +398,13 @@ class Profiler:
         self.circuit_metrics = CircuitMetrics(backend=backend, shots=shots)
 
         # Try to extract from result metadata
-        if hasattr(result, 'metadata') and result.metadata:
+        if hasattr(result, "metadata") and result.metadata:
             metadata = result.metadata
-            self.circuit_metrics.qubits = metadata.get('qubits', 0)
-            self.circuit_metrics.depth = metadata.get('circuit_depth', 0)
-            self.circuit_metrics.gate_count = metadata.get('gate_count', 0)
-            self.circuit_metrics.two_qubit_gates = metadata.get('two_qubit_gates', 0)
-            self.circuit_metrics.single_qubit_gates = metadata.get('single_qubit_gates', 0)
+            self.circuit_metrics.qubits = metadata.get("qubits", 0)
+            self.circuit_metrics.depth = metadata.get("circuit_depth", 0)
+            self.circuit_metrics.gate_count = metadata.get("gate_count", 0)
+            self.circuit_metrics.two_qubit_gates = metadata.get("two_qubit_gates", 0)
+            self.circuit_metrics.single_qubit_gates = metadata.get("single_qubit_gates", 0)
 
         # Calculate optimization score
         if self.circuit_metrics.qubits > 0:
@@ -403,11 +413,11 @@ class Profiler:
     def _extract_cost_metrics(self, result: Any, program: str, backend: str, shots: int) -> None:
         """Extract cost metrics from quantum result"""
         from .simple_billing import (
+            classify_algorithm,
+            estimate_qubits_from_program,
+            get_algorithm_multiplier,
             get_backend_cost_per_shot,
             get_complexity_multiplier,
-            get_algorithm_multiplier,
-            estimate_qubits_from_program,
-            classify_algorithm
         )
 
         self.cost_metrics = CostMetrics(shots=shots)
@@ -421,12 +431,14 @@ class Profiler:
         self.cost_metrics.algorithm_multiplier = get_algorithm_multiplier(algorithm)
 
         self.cost_metrics.shot_cost = self.cost_metrics.base_cost_per_shot * shots
-        self.cost_metrics.complexity_cost = self.cost_metrics.shot_cost * self.cost_metrics.complexity_multiplier
+        self.cost_metrics.complexity_cost = (
+            self.cost_metrics.shot_cost * self.cost_metrics.complexity_multiplier
+        )
         self.cost_metrics.total_cost = (
-            shots *
-            self.cost_metrics.base_cost_per_shot *
-            self.cost_metrics.complexity_multiplier *
-            self.cost_metrics.algorithm_multiplier
+            shots
+            * self.cost_metrics.base_cost_per_shot
+            * self.cost_metrics.complexity_multiplier
+            * self.cost_metrics.algorithm_multiplier
         )
 
         # Calculate projections
@@ -445,182 +457,206 @@ class Profiler:
             # Circuit depth bottleneck
             if self.circuit_metrics.depth > 100:
                 severity = (
-                    BottleneckSeverity.CRITICAL if self.circuit_metrics.depth > 500 else
-                    BottleneckSeverity.HIGH if self.circuit_metrics.depth > 200 else
-                    BottleneckSeverity.MEDIUM
+                    BottleneckSeverity.CRITICAL
+                    if self.circuit_metrics.depth > 500
+                    else (
+                        BottleneckSeverity.HIGH
+                        if self.circuit_metrics.depth > 200
+                        else BottleneckSeverity.MEDIUM
+                    )
                 )
                 impact = min((self.circuit_metrics.depth / 100.0) * 10, 100)
 
-                self.bottlenecks.append(Bottleneck(
-                    severity=severity,
-                    type=BottleneckType.CIRCUIT_DEPTH,
-                    metric_value=self.circuit_metrics.depth,
-                    threshold_value=100,
-                    impact_percentage=impact,
-                    recommendations=[
-                        "Consider circuit optimization techniques",
-                        "Use gate cancellation and commutation rules",
-                        "Apply circuit compilation with optimization level 3",
-                        "Consider breaking into smaller subcircuits"
-                    ]
-                ))
+                self.bottlenecks.append(
+                    Bottleneck(
+                        severity=severity,
+                        type=BottleneckType.CIRCUIT_DEPTH,
+                        metric_value=self.circuit_metrics.depth,
+                        threshold_value=100,
+                        impact_percentage=impact,
+                        recommendations=[
+                            "Consider circuit optimization techniques",
+                            "Use gate cancellation and commutation rules",
+                            "Apply circuit compilation with optimization level 3",
+                            "Consider breaking into smaller subcircuits",
+                        ],
+                    )
+                )
 
             # Gate count bottleneck
             if self.circuit_metrics.gate_count > 500:
                 severity = (
-                    BottleneckSeverity.HIGH if self.circuit_metrics.gate_count > 1000 else
-                    BottleneckSeverity.MEDIUM
+                    BottleneckSeverity.HIGH
+                    if self.circuit_metrics.gate_count > 1000
+                    else BottleneckSeverity.MEDIUM
                 )
                 impact = min((self.circuit_metrics.gate_count / 500.0) * 15, 100)
 
-                self.bottlenecks.append(Bottleneck(
-                    severity=severity,
-                    type=BottleneckType.GATE_COUNT,
-                    metric_value=self.circuit_metrics.gate_count,
-                    threshold_value=500,
-                    impact_percentage=impact,
-                    recommendations=[
-                        "Reduce gate count through optimization",
-                        "Use native gates for target backend",
-                        "Consider alternative algorithm implementations"
-                    ]
-                ))
+                self.bottlenecks.append(
+                    Bottleneck(
+                        severity=severity,
+                        type=BottleneckType.GATE_COUNT,
+                        metric_value=self.circuit_metrics.gate_count,
+                        threshold_value=500,
+                        impact_percentage=impact,
+                        recommendations=[
+                            "Reduce gate count through optimization",
+                            "Use native gates for target backend",
+                            "Consider alternative algorithm implementations",
+                        ],
+                    )
+                )
 
             # Qubit count bottleneck
             if self.circuit_metrics.qubits > 20:
                 severity = (
-                    BottleneckSeverity.CRITICAL if self.circuit_metrics.qubits > 50 else
-                    BottleneckSeverity.HIGH
+                    BottleneckSeverity.CRITICAL
+                    if self.circuit_metrics.qubits > 50
+                    else BottleneckSeverity.HIGH
                 )
                 impact = min((self.circuit_metrics.qubits / 20.0) * 20, 100)
 
-                self.bottlenecks.append(Bottleneck(
-                    severity=severity,
-                    type=BottleneckType.QUBIT_COUNT,
-                    metric_value=self.circuit_metrics.qubits,
-                    threshold_value=20,
-                    impact_percentage=impact,
-                    recommendations=[
-                        "Consider qubit reduction techniques",
-                        "Use symmetry to reduce problem size",
-                        "Evaluate if all qubits are necessary",
-                        "Consider classical preprocessing"
-                    ]
-                ))
+                self.bottlenecks.append(
+                    Bottleneck(
+                        severity=severity,
+                        type=BottleneckType.QUBIT_COUNT,
+                        metric_value=self.circuit_metrics.qubits,
+                        threshold_value=20,
+                        impact_percentage=impact,
+                        recommendations=[
+                            "Consider qubit reduction techniques",
+                            "Use symmetry to reduce problem size",
+                            "Evaluate if all qubits are necessary",
+                            "Consider classical preprocessing",
+                        ],
+                    )
+                )
 
         # Check execution time
         if self.context:
             exec_stage = self.context.get_stage("quantum_execution")
             if exec_stage and exec_stage.duration > 10.0:
                 severity = (
-                    BottleneckSeverity.CRITICAL if exec_stage.duration > 60.0 else
-                    BottleneckSeverity.HIGH if exec_stage.duration > 30.0 else
-                    BottleneckSeverity.MEDIUM
+                    BottleneckSeverity.CRITICAL
+                    if exec_stage.duration > 60.0
+                    else (
+                        BottleneckSeverity.HIGH
+                        if exec_stage.duration > 30.0
+                        else BottleneckSeverity.MEDIUM
+                    )
                 )
                 impact = min((exec_stage.duration / 10.0) * 25, 100)
 
-                self.bottlenecks.append(Bottleneck(
-                    severity=severity,
-                    type=BottleneckType.EXECUTION_TIME,
-                    metric_value=exec_stage.duration,
-                    threshold_value=10.0,
-                    impact_percentage=impact,
-                    recommendations=[
-                        "Consider using a faster backend",
-                        "Reduce circuit complexity",
-                        "Use caching for repeated executions",
-                        "Parallelize independent circuits"
-                    ],
-                    stage="quantum_execution"
-                ))
+                self.bottlenecks.append(
+                    Bottleneck(
+                        severity=severity,
+                        type=BottleneckType.EXECUTION_TIME,
+                        metric_value=exec_stage.duration,
+                        threshold_value=10.0,
+                        impact_percentage=impact,
+                        recommendations=[
+                            "Consider using a faster backend",
+                            "Reduce circuit complexity",
+                            "Use caching for repeated executions",
+                            "Parallelize independent circuits",
+                        ],
+                        stage="quantum_execution",
+                    )
+                )
 
             # Check memory usage
             if exec_stage and exec_stage.memory_delta_mb > 500:
                 severity = (
-                    BottleneckSeverity.HIGH if exec_stage.memory_delta_mb > 1000 else
-                    BottleneckSeverity.MEDIUM
+                    BottleneckSeverity.HIGH
+                    if exec_stage.memory_delta_mb > 1000
+                    else BottleneckSeverity.MEDIUM
                 )
                 impact = min((exec_stage.memory_delta_mb / 500.0) * 15, 100)
 
-                self.bottlenecks.append(Bottleneck(
-                    severity=severity,
-                    type=BottleneckType.MEMORY_USAGE,
-                    metric_value=exec_stage.memory_delta_mb,
-                    threshold_value=500,
-                    impact_percentage=impact,
-                    recommendations=[
-                        "Reduce shot count if possible",
-                        "Process results in batches",
-                        "Clear intermediate results",
-                        "Use streaming results processing"
-                    ],
-                    stage="quantum_execution"
-                ))
+                self.bottlenecks.append(
+                    Bottleneck(
+                        severity=severity,
+                        type=BottleneckType.MEMORY_USAGE,
+                        metric_value=exec_stage.memory_delta_mb,
+                        threshold_value=500,
+                        impact_percentage=impact,
+                        recommendations=[
+                            "Reduce shot count if possible",
+                            "Process results in batches",
+                            "Clear intermediate results",
+                            "Use streaming results processing",
+                        ],
+                        stage="quantum_execution",
+                    )
+                )
 
         # Check cost metrics
         if self.cost_metrics and self.cost_metrics.total_cost > 1.0:
             severity = (
-                BottleneckSeverity.HIGH if self.cost_metrics.total_cost > 10.0 else
-                BottleneckSeverity.MEDIUM
+                BottleneckSeverity.HIGH
+                if self.cost_metrics.total_cost > 10.0
+                else BottleneckSeverity.MEDIUM
             )
             impact = min((self.cost_metrics.total_cost / 1.0) * 20, 100)
 
-            self.bottlenecks.append(Bottleneck(
-                severity=severity,
-                type=BottleneckType.COST,
-                metric_value=self.cost_metrics.total_cost,
-                threshold_value=1.0,
-                impact_percentage=impact,
-                recommendations=[
-                    "Use simulator for development/testing",
-                    "Reduce shot count if accuracy allows",
-                    "Optimize circuit to reduce complexity multiplier",
-                    f"Projected monthly cost: ${self.cost_metrics.projected_monthly_cost:.2f}"
-                ]
-            ))
+            self.bottlenecks.append(
+                Bottleneck(
+                    severity=severity,
+                    type=BottleneckType.COST,
+                    metric_value=self.cost_metrics.total_cost,
+                    threshold_value=1.0,
+                    impact_percentage=impact,
+                    recommendations=[
+                        "Use simulator for development/testing",
+                        "Reduce shot count if accuracy allows",
+                        "Optimize circuit to reduce complexity multiplier",
+                        f"Projected monthly cost: ${self.cost_metrics.projected_monthly_cost:.2f}",
+                    ],
+                )
+            )
 
     def get_summary(self) -> Dict[str, Any]:
         """Get profiling summary"""
         summary = {
-            'mode': self.mode.value,
-            'timestamp': datetime.utcnow().isoformat(),
-            'total_duration': self.context.get_total_duration() if self.context else 0.0,
-            'stages': {},
-            'circuit_metrics': None,
-            'cost_metrics': None,
-            'bottlenecks': [],
-            'overhead_percentage': 0.0
+            "mode": self.mode.value,
+            "timestamp": datetime.utcnow().isoformat(),
+            "total_duration": self.context.get_total_duration() if self.context else 0.0,
+            "stages": {},
+            "circuit_metrics": None,
+            "cost_metrics": None,
+            "bottlenecks": [],
+            "overhead_percentage": 0.0,
         }
 
         # Add stage metrics
         if self.context:
             for name, stage in self.context.stages.items():
-                summary['stages'][name] = stage.to_dict()
+                summary["stages"][name] = stage.to_dict()
 
             # Calculate profiling overhead
             total_time = self.context.get_total_duration()
-            exec_time = self.context.stages.get('quantum_execution')
+            exec_time = self.context.stages.get("quantum_execution")
             if exec_time and total_time > 0:
                 overhead = ((total_time - exec_time.duration) / total_time) * 100
-                summary['overhead_percentage'] = round(overhead, 2)
+                summary["overhead_percentage"] = round(overhead, 2)
 
         # Add circuit metrics
         if self.circuit_metrics:
-            summary['circuit_metrics'] = self.circuit_metrics.to_dict()
+            summary["circuit_metrics"] = self.circuit_metrics.to_dict()
 
         # Add cost metrics
         if self.cost_metrics:
-            summary['cost_metrics'] = self.cost_metrics.to_dict()
+            summary["cost_metrics"] = self.cost_metrics.to_dict()
 
         # Add bottlenecks
-        summary['bottlenecks'] = [b.to_dict() for b in self.bottlenecks]
+        summary["bottlenecks"] = [b.to_dict() for b in self.bottlenecks]
 
         # Add metadata
-        summary['metadata'] = self.metadata
+        summary["metadata"] = self.metadata
 
         return summary
 
-    def export_report(self, filepath: Union[str, Path], format: str = 'json') -> None:
+    def export_report(self, filepath: Union[str, Path], format: str = "json") -> None:
         """
         Export profiling report to file
 
@@ -631,14 +667,14 @@ class Profiler:
         filepath = Path(filepath)
         summary = self.get_summary()
 
-        if format.lower() == 'json':
-            with open(filepath, 'w') as f:
+        if format.lower() == "json":
+            with open(filepath, "w") as f:
                 json.dump(summary, f, indent=2)
             logger.info(f"Exported JSON report to {filepath}")
 
-        elif format.lower() == 'markdown':
+        elif format.lower() == "markdown":
             md_content = self._generate_markdown_report(summary)
-            with open(filepath, 'w') as f:
+            with open(filepath, "w") as f:
                 f.write(md_content)
             logger.info(f"Exported Markdown report to {filepath}")
 
@@ -656,16 +692,18 @@ class Profiler:
             f"**Profiling Overhead:** {summary['overhead_percentage']:.2f}%",
             "",
             "## Stage Breakdown",
-            ""
+            "",
         ]
 
         # Stages table
-        if summary['stages']:
-            lines.extend([
-                "| Stage | Duration (s) | CPU % | Memory (MB) | Memory Delta (MB) |",
-                "|-------|-------------|--------|-------------|-------------------|"
-            ])
-            for name, stage in summary['stages'].items():
+        if summary["stages"]:
+            lines.extend(
+                [
+                    "| Stage | Duration (s) | CPU % | Memory (MB) | Memory Delta (MB) |",
+                    "|-------|-------------|--------|-------------|-------------------|",
+                ]
+            )
+            for name, stage in summary["stages"].items():
                 lines.append(
                     f"| {name} | {stage['duration']:.3f} | "
                     f"{stage['cpu_percent']:.1f} | {stage['memory_mb']:.1f} | "
@@ -674,82 +712,73 @@ class Profiler:
             lines.append("")
 
         # Circuit metrics
-        if summary['circuit_metrics']:
-            cm = summary['circuit_metrics']
-            lines.extend([
-                "## Circuit Metrics",
-                "",
-                f"- **Qubits:** {cm['qubits']}",
-                f"- **Circuit Depth:** {cm['depth']}",
-                f"- **Total Gates:** {cm['gate_count']}",
-                f"- **Single-Qubit Gates:** {cm['single_qubit_gates']}",
-                f"- **Two-Qubit Gates:** {cm['two_qubit_gates']}",
-                f"- **Optimization Score:** {cm['optimization_score']:.1f}/100",
-                f"- **Backend:** {cm['backend']}",
-                f"- **Shots:** {cm['shots']}",
-                ""
-            ])
+        if summary["circuit_metrics"]:
+            cm = summary["circuit_metrics"]
+            lines.extend(
+                [
+                    "## Circuit Metrics",
+                    "",
+                    f"- **Qubits:** {cm['qubits']}",
+                    f"- **Circuit Depth:** {cm['depth']}",
+                    f"- **Total Gates:** {cm['gate_count']}",
+                    f"- **Single-Qubit Gates:** {cm['single_qubit_gates']}",
+                    f"- **Two-Qubit Gates:** {cm['two_qubit_gates']}",
+                    f"- **Optimization Score:** {cm['optimization_score']:.1f}/100",
+                    f"- **Backend:** {cm['backend']}",
+                    f"- **Shots:** {cm['shots']}",
+                    "",
+                ]
+            )
 
         # Cost metrics
-        if summary['cost_metrics']:
-            cost = summary['cost_metrics']
-            lines.extend([
-                "## Cost Analysis",
-                "",
-                f"- **Total Cost:** ${cost['total_cost']:.4f}",
-                f"- **Base Cost per Shot:** ${cost['base_cost_per_shot']:.4f}",
-                f"- **Complexity Multiplier:** {cost['complexity_multiplier']:.2f}x",
-                f"- **Algorithm Multiplier:** {cost['algorithm_multiplier']:.2f}x",
-                f"- **Projected Monthly Cost:** ${cost['projected_monthly_cost']:.2f}",
-                f"- **Projected Annual Cost:** ${cost['projected_annual_cost']:.2f}",
-                ""
-            ])
+        if summary["cost_metrics"]:
+            cost = summary["cost_metrics"]
+            lines.extend(
+                [
+                    "## Cost Analysis",
+                    "",
+                    f"- **Total Cost:** ${cost['total_cost']:.4f}",
+                    f"- **Base Cost per Shot:** ${cost['base_cost_per_shot']:.4f}",
+                    f"- **Complexity Multiplier:** {cost['complexity_multiplier']:.2f}x",
+                    f"- **Algorithm Multiplier:** {cost['algorithm_multiplier']:.2f}x",
+                    f"- **Projected Monthly Cost:** ${cost['projected_monthly_cost']:.2f}",
+                    f"- **Projected Annual Cost:** ${cost['projected_annual_cost']:.2f}",
+                    "",
+                ]
+            )
 
         # Bottlenecks
-        if summary['bottlenecks']:
-            lines.extend([
-                "## Detected Bottlenecks",
-                ""
-            ])
-            for i, bottleneck in enumerate(summary['bottlenecks'], 1):
-                severity_emoji = {
-                    'low': '🟢',
-                    'medium': '🟡',
-                    'high': '🟠',
-                    'critical': '🔴'
-                }
-                emoji = severity_emoji.get(bottleneck['severity'], '⚪')
+        if summary["bottlenecks"]:
+            lines.extend(["## Detected Bottlenecks", ""])
+            for i, bottleneck in enumerate(summary["bottlenecks"], 1):
+                severity_emoji = {"low": "🟢", "medium": "🟡", "high": "🟠", "critical": "🔴"}
+                emoji = severity_emoji.get(bottleneck["severity"], "⚪")
 
-                lines.extend([
-                    f"### {i}. {emoji} {bottleneck['type'].upper()} ({bottleneck['severity'].upper()})",
-                    "",
-                    f"- **Metric Value:** {bottleneck['metric_value']:.2f}",
-                    f"- **Threshold:** {bottleneck['threshold_value']:.2f}",
-                    f"- **Impact:** {bottleneck['impact_percentage']:.1f}%",
-                    ""
-                ])
+                lines.extend(
+                    [
+                        f"### {i}. {emoji} {bottleneck['type'].upper()} ({bottleneck['severity'].upper()})",
+                        "",
+                        f"- **Metric Value:** {bottleneck['metric_value']:.2f}",
+                        f"- **Threshold:** {bottleneck['threshold_value']:.2f}",
+                        f"- **Impact:** {bottleneck['impact_percentage']:.1f}%",
+                        "",
+                    ]
+                )
 
-                if bottleneck['recommendations']:
+                if bottleneck["recommendations"]:
                     lines.append("**Recommendations:**")
-                    for rec in bottleneck['recommendations']:
+                    for rec in bottleneck["recommendations"]:
                         lines.append(f"- {rec}")
                     lines.append("")
         else:
-            lines.extend([
-                "## Performance Status",
-                "",
-                "✅ No significant bottlenecks detected!",
-                ""
-            ])
+            lines.extend(
+                ["## Performance Status", "", "✅ No significant bottlenecks detected!", ""]
+            )
 
         return "\n".join(lines)
 
     def compare_backends(
-        self,
-        quantum_func: Callable,
-        backends: List[str],
-        *args,
-        **kwargs
+        self, quantum_func: Callable, backends: List[str], *args, **kwargs
     ) -> Dict[str, Any]:
         """
         Compare performance across multiple backends
@@ -773,18 +802,18 @@ class Profiler:
 
             # Update kwargs with current backend
             backend_kwargs = kwargs.copy()
-            backend_kwargs['backend'] = backend
+            backend_kwargs["backend"] = backend
 
             # Profile execution
             result = profiler.profile_quantum(quantum_func, *args, **backend_kwargs)
-            results[backend] = result['profiling']
+            results[backend] = result["profiling"]
 
         # Generate comparison summary
         comparison = {
-            'backends': backends,
-            'comparison_timestamp': datetime.utcnow().isoformat(),
-            'results': results,
-            'winner': self._determine_best_backend(results)
+            "backends": backends,
+            "comparison_timestamp": datetime.utcnow().isoformat(),
+            "results": results,
+            "winner": self._determine_best_backend(results),
         }
 
         return comparison
@@ -792,45 +821,45 @@ class Profiler:
     def _determine_best_backend(self, results: Dict[str, Any]) -> Dict[str, str]:
         """Determine best backend based on different criteria"""
         winner = {
-            'fastest': None,
-            'cheapest': None,
-            'best_optimization': None,
-            'least_bottlenecks': None
+            "fastest": None,
+            "cheapest": None,
+            "best_optimization": None,
+            "least_bottlenecks": None,
         }
 
-        fastest_time = float('inf')
-        lowest_cost = float('inf')
+        fastest_time = float("inf")
+        lowest_cost = float("inf")
         best_opt_score = 0.0
-        fewest_bottlenecks = float('inf')
+        fewest_bottlenecks = float("inf")
 
         for backend, data in results.items():
             # Fastest
-            duration = data.get('total_duration', float('inf'))
+            duration = data.get("total_duration", float("inf"))
             if duration < fastest_time:
                 fastest_time = duration
-                winner['fastest'] = backend
+                winner["fastest"] = backend
 
             # Cheapest
-            cost_metrics = data.get('cost_metrics')
+            cost_metrics = data.get("cost_metrics")
             if cost_metrics:
-                cost = cost_metrics.get('total_cost', float('inf'))
+                cost = cost_metrics.get("total_cost", float("inf"))
                 if cost < lowest_cost:
                     lowest_cost = cost
-                    winner['cheapest'] = backend
+                    winner["cheapest"] = backend
 
             # Best optimization
-            circuit_metrics = data.get('circuit_metrics')
+            circuit_metrics = data.get("circuit_metrics")
             if circuit_metrics:
-                opt_score = circuit_metrics.get('optimization_score', 0.0)
+                opt_score = circuit_metrics.get("optimization_score", 0.0)
                 if opt_score > best_opt_score:
                     best_opt_score = opt_score
-                    winner['best_optimization'] = backend
+                    winner["best_optimization"] = backend
 
             # Least bottlenecks
-            bottleneck_count = len(data.get('bottlenecks', []))
+            bottleneck_count = len(data.get("bottlenecks", []))
             if bottleneck_count < fewest_bottlenecks:
                 fewest_bottlenecks = bottleneck_count
-                winner['least_bottlenecks'] = backend
+                winner["least_bottlenecks"] = backend
 
         return winner
 
@@ -839,10 +868,11 @@ class Profiler:
 # DECORATOR
 # ============================================================================
 
+
 def profile_quantum(
     mode: ProfilingMode = ProfilingMode.STANDARD,
     export_path: Optional[Union[str, Path]] = None,
-    export_format: str = 'json'
+    export_format: str = "json",
 ):
     """
     Decorator for profiling quantum functions
@@ -857,6 +887,7 @@ def profile_quantum(
         def my_quantum_function(program, api_key, **kwargs):
             return enhanced_quantum(program, api_key, **kwargs)
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -874,12 +905,13 @@ def profile_quantum(
                 f"Overhead: {summary['overhead_percentage']:.2f}%"
             )
 
-            if summary['bottlenecks']:
+            if summary["bottlenecks"]:
                 logger.warning(f"Detected {len(summary['bottlenecks'])} bottlenecks")
 
             return result
 
         return wrapper
+
     return decorator
 
 
@@ -888,14 +920,14 @@ def profile_quantum(
 # ============================================================================
 
 __all__ = [
-    'Profiler',
-    'ProfilerContext',
-    'ProfilingMode',
-    'BottleneckSeverity',
-    'BottleneckType',
-    'StageMetrics',
-    'CircuitMetrics',
-    'CostMetrics',
-    'Bottleneck',
-    'profile_quantum'
+    "Profiler",
+    "ProfilerContext",
+    "ProfilingMode",
+    "BottleneckSeverity",
+    "BottleneckType",
+    "StageMetrics",
+    "CircuitMetrics",
+    "CostMetrics",
+    "Bottleneck",
+    "profile_quantum",
 ]

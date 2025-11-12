@@ -11,12 +11,11 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
-from qiskit import QuantumCircuit
 import matplotlib.pyplot as plt
 import numpy as np
-
+from bioql.qec import ShorCodeQEC, SteaneCodeQEC, SurfaceCodeQEC
 from bioql.visualization import QECVisualizer, ResourceEstimator
-from bioql.qec import SurfaceCodeQEC, SteaneCodeQEC, ShorCodeQEC
+from qiskit import QuantumCircuit
 
 
 def create_test_circuit(num_qubits: int = 15, depth: int = 150) -> QuantumCircuit:
@@ -75,16 +74,13 @@ def compare_qec_overhead():
 
     # Define different QEC configurations
     qec_configs = [
-        {'type': 'surface', 'distance': 5, 'error_rate': 0.001},
-        {'type': 'steane', 'distance': 7, 'error_rate': 0.001},
-        {'type': 'shor', 'distance': 9, 'error_rate': 0.001},
+        {"type": "surface", "distance": 5, "error_rate": 0.001},
+        {"type": "steane", "distance": 7, "error_rate": 0.001},
+        {"type": "shor", "distance": 9, "error_rate": 0.001},
     ]
 
     # Create overhead comparison plot
-    fig = viz.plot_qubit_overhead(
-        qec_configs,
-        logical_qubits_range=[5, 10, 20, 50, 100, 200, 500]
-    )
+    fig = viz.plot_qubit_overhead(qec_configs, logical_qubits_range=[5, 10, 20, 50, 100, 200, 500])
 
     # Save figure
     output_dir = Path(__file__).parent / "output"
@@ -121,20 +117,20 @@ def compare_error_rates():
     # Prepare results for plotting
     results = [
         {
-            'qec_type': 'Surface (d=5)',
-            'raw_error': 0.001,
-            'corrected_error': surface_overhead['logical_error_rate']
+            "qec_type": "Surface (d=5)",
+            "raw_error": 0.001,
+            "corrected_error": surface_overhead["logical_error_rate"],
         },
         {
-            'qec_type': 'Steane (7-qubit)',
-            'raw_error': 0.001,
-            'corrected_error': steane_overhead['logical_error_rate']
+            "qec_type": "Steane (7-qubit)",
+            "raw_error": 0.001,
+            "corrected_error": steane_overhead["logical_error_rate"],
         },
         {
-            'qec_type': 'Shor (9-qubit)',
-            'raw_error': 0.001,
-            'corrected_error': shor_overhead['logical_error_rate']
-        }
+            "qec_type": "Shor (9-qubit)",
+            "raw_error": 0.001,
+            "corrected_error": shor_overhead["logical_error_rate"],
+        },
     ]
 
     # Create visualizer
@@ -157,7 +153,7 @@ def compare_error_rates():
     print("-" * 70)
 
     for result in results:
-        suppression = result['raw_error'] / result['corrected_error']
+        suppression = result["raw_error"] / result["corrected_error"]
         print(f"{result['qec_type']:20s}: {suppression:8.1f}x error suppression")
 
     plt.show()
@@ -187,9 +183,9 @@ def compare_resources_detailed():
 
     # Test different QEC codes
     qec_configs = [
-        {'type': 'surface', 'distance': 5, 'error_rate': 0.001},
-        {'type': 'steane', 'distance': 7, 'error_rate': 0.001},
-        {'type': 'shor', 'distance': 9, 'error_rate': 0.001},
+        {"type": "surface", "distance": 5, "error_rate": 0.001},
+        {"type": "steane", "distance": 7, "error_rate": 0.001},
+        {"type": "shor", "distance": 9, "error_rate": 0.001},
     ]
 
     print("\n" + "=" * 70)
@@ -208,18 +204,18 @@ def compare_resources_detailed():
 
     # Compare metrics
     metrics = [
-        ('Physical Qubits', 'physical_qubits', ','),
-        ('Overhead Factor', 'overhead_factor', '.1f'),
-        ('T-Gates', 't_gates', ','),
-        ('Magic States', 'magic_states', ','),
-        ('Circuit Depth', 'circuit_depth', ','),
-        ('Error Rate', 'error_rate', '.2e'),
-        ('Time (ms)', 'time_to_solution_ms', '.2f'),
+        ("Physical Qubits", "physical_qubits", ","),
+        ("Overhead Factor", "overhead_factor", ".1f"),
+        ("T-Gates", "t_gates", ","),
+        ("Magic States", "magic_states", ","),
+        ("Circuit Depth", "circuit_depth", ","),
+        ("Error Rate", "error_rate", ".2e"),
+        ("Time (ms)", "time_to_solution_ms", ".2f"),
     ]
 
     for metric_name, metric_attr, fmt in metrics:
         values = [getattr(est, metric_attr) for est in estimations]
-        if ',' in fmt:
+        if "," in fmt:
             formatted = [f"{v:,}" for v in values]
         else:
             formatted = [f"{v:{fmt}}" for v in values]
@@ -233,7 +229,7 @@ def compare_resources_detailed():
     print("Best QEC Code by Metric:")
     print("=" * 70)
 
-    code_names = ['Surface (d=5)', 'Steane (7-qubit)', 'Shor (9-qubit)']
+    code_names = ["Surface (d=5)", "Steane (7-qubit)", "Shor (9-qubit)"]
 
     # Physical qubits (lower is better)
     phys_qubits = [est.physical_qubits for est in estimations]
@@ -267,18 +263,15 @@ def compare_multiple_distances():
 
     # Define configurations
     qec_configs = [
-        {'type': 'surface', 'distance': 3, 'error_rate': 0.001},
-        {'type': 'surface', 'distance': 5, 'error_rate': 0.001},
-        {'type': 'surface', 'distance': 7, 'error_rate': 0.001},
-        {'type': 'steane', 'distance': 7, 'error_rate': 0.001},
-        {'type': 'shor', 'distance': 9, 'error_rate': 0.001},
+        {"type": "surface", "distance": 3, "error_rate": 0.001},
+        {"type": "surface", "distance": 5, "error_rate": 0.001},
+        {"type": "surface", "distance": 7, "error_rate": 0.001},
+        {"type": "steane", "distance": 7, "error_rate": 0.001},
+        {"type": "shor", "distance": 9, "error_rate": 0.001},
     ]
 
     # Create comparison plot
-    fig = viz.plot_qubit_overhead(
-        qec_configs,
-        logical_qubits_range=[10, 20, 50, 100, 200, 500]
-    )
+    fig = viz.plot_qubit_overhead(qec_configs, logical_qubits_range=[10, 20, 50, 100, 200, 500])
 
     # Save figure
     output_dir = Path(__file__).parent / "output"
@@ -305,17 +298,16 @@ def create_comparison_report():
 
     # Define all configurations to compare
     qec_configs = [
-        {'type': 'surface', 'distance': 3, 'error_rate': 0.001},
-        {'type': 'surface', 'distance': 5, 'error_rate': 0.001},
-        {'type': 'surface', 'distance': 7, 'error_rate': 0.001},
-        {'type': 'steane', 'distance': 7, 'error_rate': 0.001},
-        {'type': 'shor', 'distance': 9, 'error_rate': 0.001},
+        {"type": "surface", "distance": 3, "error_rate": 0.001},
+        {"type": "surface", "distance": 5, "error_rate": 0.001},
+        {"type": "surface", "distance": 7, "error_rate": 0.001},
+        {"type": "steane", "distance": 7, "error_rate": 0.001},
+        {"type": "shor", "distance": 9, "error_rate": 0.001},
     ]
 
     # Create interactive plot
     fig = viz.create_interactive_plot(
-        qec_configs,
-        logical_qubits_range=[5, 10, 20, 50, 100, 200, 500, 1000]
+        qec_configs, logical_qubits_range=[5, 10, 20, 50, 100, 200, 500, 1000]
     )
 
     # Save as HTML
@@ -343,11 +335,11 @@ def analyze_qec_tradeoffs():
 
     # Test configurations
     configs = [
-        {'type': 'surface', 'distance': 3, 'error_rate': 0.001},
-        {'type': 'surface', 'distance': 5, 'error_rate': 0.001},
-        {'type': 'surface', 'distance': 7, 'error_rate': 0.001},
-        {'type': 'steane', 'distance': 7, 'error_rate': 0.001},
-        {'type': 'shor', 'distance': 9, 'error_rate': 0.001},
+        {"type": "surface", "distance": 3, "error_rate": 0.001},
+        {"type": "surface", "distance": 5, "error_rate": 0.001},
+        {"type": "surface", "distance": 7, "error_rate": 0.001},
+        {"type": "steane", "distance": 7, "error_rate": 0.001},
+        {"type": "shor", "distance": 9, "error_rate": 0.001},
     ]
 
     print("\n" + "-" * 70)
@@ -383,11 +375,11 @@ def analyze_qec_tradeoffs():
             print(f"  ⚠ Slow execution ({est.time_to_solution_ms:.2f} ms)")
 
         # Overall recommendation
-        if config['type'] == 'surface' and config['distance'] == 5:
+        if config["type"] == "surface" and config["distance"] == 5:
             print(f"  → RECOMMENDED: Best balance for most applications")
-        elif config['type'] == 'steane':
+        elif config["type"] == "steane":
             print(f"  → SUITABLE: Good for moderate-scale circuits")
-        elif config['type'] == 'shor':
+        elif config["type"] == "shor":
             print(f"  → SUITABLE: Good for small-scale, high-fidelity needs")
 
 

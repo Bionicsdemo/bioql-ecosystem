@@ -8,23 +8,25 @@ molecular chemistry and materials science.
 
 from dataclasses import dataclass
 from typing import Callable, Dict, List, Optional, Tuple, Union
+
 import numpy as np
 
 try:
     from loguru import logger
 except ImportError:
     import logging
+
     logger = logging.getLogger(__name__)
 
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit import Parameter, ParameterVector
-from qiskit.circuit.library import TwoLocal, RealAmplitudes, EfficientSU2
+from qiskit.circuit.library import EfficientSU2, RealAmplitudes, TwoLocal
 from qiskit.quantum_info import SparsePauliOp
-from qiskit_aer import AerSimulator
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+from qiskit_aer import AerSimulator
 from scipy.optimize import minimize
 
-from ..templates.base import CircuitTemplate, CircuitBackend
+from ..templates.base import CircuitBackend, CircuitTemplate
 
 
 @dataclass
@@ -44,15 +46,15 @@ class VQEResult:
     def to_dict(self) -> Dict:
         """Convert to dictionary."""
         return {
-            'success': self.success,
-            'optimal_energy': self.optimal_energy,
-            'optimal_parameters': self.optimal_parameters,
-            'iterations': self.iterations,
-            'function_evaluations': self.function_evaluations,
-            'convergence_history': self.convergence_history,
-            'final_counts': self.final_counts,
-            'metadata': self.metadata,
-            'error_message': self.error_message
+            "success": self.success,
+            "optimal_energy": self.optimal_energy,
+            "optimal_parameters": self.optimal_parameters,
+            "iterations": self.iterations,
+            "function_evaluations": self.function_evaluations,
+            "convergence_history": self.convergence_history,
+            "final_counts": self.final_counts,
+            "metadata": self.metadata,
+            "error_message": self.error_message,
         }
 
 
@@ -99,10 +101,10 @@ class VQECircuit(CircuitTemplate):
     def __init__(
         self,
         hamiltonian: Union[SparsePauliOp, str, List[Tuple[str, float]]],
-        ansatz: str = 'RealAmplitudes',
-        optimizer: str = 'COBYLA',
+        ansatz: str = "RealAmplitudes",
+        optimizer: str = "COBYLA",
         num_layers: int = 2,
-        backend: CircuitBackend = CircuitBackend.SIMULATOR
+        backend: CircuitBackend = CircuitBackend.SIMULATOR,
     ):
         """
         Initialize VQE circuit.
@@ -141,17 +143,15 @@ class VQECircuit(CircuitTemplate):
             name=f"VQE ({self.num_qubits} qubits, {ansatz})",
             description=f"VQE with {ansatz} ansatz for {self.num_qubits}-qubit Hamiltonian",
             num_qubits=self.num_qubits,
-            backend=backend
+            backend=backend,
         )
 
         logger.info(
-            f"Initialized VQE: {self.num_qubits} qubits, "
-            f"{ansatz} ansatz, {num_layers} layers"
+            f"Initialized VQE: {self.num_qubits} qubits, " f"{ansatz} ansatz, {num_layers} layers"
         )
 
     def _parse_hamiltonian(
-        self,
-        hamiltonian: Union[SparsePauliOp, str, List[Tuple[str, float]]]
+        self, hamiltonian: Union[SparsePauliOp, str, List[Tuple[str, float]]]
     ) -> SparsePauliOp:
         """Parse various Hamiltonian formats to SparsePauliOp."""
         if isinstance(hamiltonian, SparsePauliOp):
@@ -179,10 +179,7 @@ class VQECircuit(CircuitTemplate):
         """
         return self.build_ansatz()
 
-    def build_ansatz(
-        self,
-        parameters: Optional[List[float]] = None
-    ) -> QuantumCircuit:
+    def build_ansatz(self, parameters: Optional[List[float]] = None) -> QuantumCircuit:
         """
         Build the variational ansatz circuit.
 
@@ -200,26 +197,22 @@ class VQECircuit(CircuitTemplate):
             >>> circuit = vqe.build_ansatz([0.5, 1.0, 0.3, 0.7])
             >>> print(circuit)
         """
-        if self.ansatz_type == 'RealAmplitudes':
+        if self.ansatz_type == "RealAmplitudes":
             ansatz = RealAmplitudes(
-                num_qubits=self.num_qubits,
-                reps=self.num_layers,
-                insert_barriers=False
+                num_qubits=self.num_qubits, reps=self.num_layers, insert_barriers=False
             )
-        elif self.ansatz_type == 'EfficientSU2':
+        elif self.ansatz_type == "EfficientSU2":
             ansatz = EfficientSU2(
-                num_qubits=self.num_qubits,
-                reps=self.num_layers,
-                insert_barriers=False
+                num_qubits=self.num_qubits, reps=self.num_layers, insert_barriers=False
             )
-        elif self.ansatz_type == 'TwoLocal':
+        elif self.ansatz_type == "TwoLocal":
             ansatz = TwoLocal(
                 num_qubits=self.num_qubits,
-                rotation_blocks=['ry', 'rz'],
-                entanglement_blocks='cx',
-                entanglement='linear',
+                rotation_blocks=["ry", "rz"],
+                entanglement_blocks="cx",
+                entanglement="linear",
                 reps=self.num_layers,
-                insert_barriers=False
+                insert_barriers=False,
             )
         else:
             raise ValueError(f"Unknown ansatz type: {self.ansatz_type}")
@@ -228,19 +221,14 @@ class VQECircuit(CircuitTemplate):
         if parameters is not None:
             if len(parameters) != ansatz.num_parameters:
                 raise ValueError(
-                    f"Expected {ansatz.num_parameters} parameters, "
-                    f"got {len(parameters)}"
+                    f"Expected {ansatz.num_parameters} parameters, " f"got {len(parameters)}"
                 )
             param_dict = dict(zip(ansatz.parameters, parameters))
             ansatz = ansatz.bind_parameters(param_dict)
 
         return ansatz
 
-    def measure_energy(
-        self,
-        parameters: List[float],
-        shots: int = 1024
-    ) -> float:
+    def measure_energy(self, parameters: List[float], shots: int = 1024) -> float:
         """
         Measure the expectation value of the Hamiltonian.
 
@@ -268,10 +256,7 @@ class VQECircuit(CircuitTemplate):
             # Compute expectation value for each Pauli term
             total_energy = 0.0
 
-            for pauli_string, coeff in zip(
-                self.hamiltonian.paulis,
-                self.hamiltonian.coeffs
-            ):
+            for pauli_string, coeff in zip(self.hamiltonian.paulis, self.hamiltonian.coeffs):
                 # Create measurement circuit for this Pauli term
                 meas_circuit = circuit.copy()
                 meas_circuit = self._add_pauli_measurement(meas_circuit, str(pauli_string))
@@ -297,21 +282,17 @@ class VQECircuit(CircuitTemplate):
 
         except Exception as e:
             logger.error(f"Energy measurement failed: {e}")
-            return float('inf')
+            return float("inf")
 
-    def _add_pauli_measurement(
-        self,
-        circuit: QuantumCircuit,
-        pauli_string: str
-    ) -> QuantumCircuit:
+    def _add_pauli_measurement(self, circuit: QuantumCircuit, pauli_string: str) -> QuantumCircuit:
         """Add measurement basis rotation for Pauli string."""
         meas_circuit = circuit.copy()
 
         # Add basis rotation and measurement
         for i, pauli in enumerate(reversed(pauli_string)):
-            if pauli == 'X':
+            if pauli == "X":
                 meas_circuit.h(i)
-            elif pauli == 'Y':
+            elif pauli == "Y":
                 meas_circuit.sdg(i)
                 meas_circuit.h(i)
             # Z basis is computational basis (no rotation needed)
@@ -319,17 +300,13 @@ class VQECircuit(CircuitTemplate):
         meas_circuit.measure_all()
         return meas_circuit
 
-    def _calculate_expectation(
-        self,
-        counts: Dict[str, int],
-        shots: int
-    ) -> float:
+    def _calculate_expectation(self, counts: Dict[str, int], shots: int) -> float:
         """Calculate expectation value from measurement counts."""
         expectation = 0.0
 
         for bitstring, count in counts.items():
             # Calculate parity (number of 1s)
-            parity = bitstring.count('1') % 2
+            parity = bitstring.count("1") % 2
             sign = 1 if parity == 0 else -1
             expectation += sign * count / shots
 
@@ -339,7 +316,7 @@ class VQECircuit(CircuitTemplate):
         self,
         initial_parameters: Optional[List[float]] = None,
         shots: int = 1024,
-        maxiter: int = 100
+        maxiter: int = 100,
     ) -> VQEResult:
         """
         Run VQE optimization to find ground state energy.
@@ -362,6 +339,7 @@ class VQECircuit(CircuitTemplate):
             >>> print(f"Converged in {result.iterations} iterations")
         """
         import time
+
         start_time = time.time()
 
         # Reset tracking
@@ -376,13 +354,10 @@ class VQECircuit(CircuitTemplate):
 
             # Initialize parameters
             if initial_parameters is None:
-                initial_parameters = np.random.uniform(
-                    0, 2 * np.pi, num_params
-                ).tolist()
+                initial_parameters = np.random.uniform(0, 2 * np.pi, num_params).tolist()
             elif len(initial_parameters) != num_params:
                 raise ValueError(
-                    f"Expected {num_params} parameters, "
-                    f"got {len(initial_parameters)}"
+                    f"Expected {num_params} parameters, " f"got {len(initial_parameters)}"
                 )
 
             logger.info(f"Starting VQE optimization with {num_params} parameters")
@@ -391,10 +366,7 @@ class VQECircuit(CircuitTemplate):
             def objective(params):
                 self._iteration_count += 1
                 energy = self.measure_energy(params.tolist(), shots=shots)
-                logger.info(
-                    f"Iteration {self._iteration_count}: "
-                    f"Energy = {energy:.6f}"
-                )
+                logger.info(f"Iteration {self._iteration_count}: " f"Energy = {energy:.6f}")
                 return energy
 
             # Run optimization
@@ -402,7 +374,7 @@ class VQECircuit(CircuitTemplate):
                 objective,
                 x0=np.array(initial_parameters),
                 method=self.optimizer_type,
-                options={'maxiter': maxiter}
+                options={"maxiter": maxiter},
             )
 
             # Get final counts for analysis
@@ -433,13 +405,13 @@ class VQECircuit(CircuitTemplate):
                 convergence_history=self._energy_history,
                 final_counts=final_counts,
                 metadata={
-                    'ansatz': self.ansatz_type,
-                    'optimizer': self.optimizer_type,
-                    'num_layers': self.num_layers,
-                    'num_parameters': num_params,
-                    'execution_time_s': execution_time,
-                    'shots_per_eval': shots
-                }
+                    "ansatz": self.ansatz_type,
+                    "optimizer": self.optimizer_type,
+                    "num_layers": self.num_layers,
+                    "num_parameters": num_params,
+                    "execution_time_s": execution_time,
+                    "shots_per_eval": shots,
+                },
             )
 
         except Exception as e:
@@ -448,14 +420,14 @@ class VQECircuit(CircuitTemplate):
 
             return VQEResult(
                 success=False,
-                optimal_energy=float('inf'),
+                optimal_energy=float("inf"),
                 optimal_parameters=[],
                 iterations=self._iteration_count,
                 function_evaluations=self._function_evals,
                 convergence_history=self._energy_history,
                 final_counts={},
-                metadata={'execution_time_s': execution_time},
-                error_message=str(e)
+                metadata={"execution_time_s": execution_time},
+                error_message=str(e),
             )
 
     def get_exact_ground_state_energy(self) -> float:
@@ -477,8 +449,7 @@ class VQECircuit(CircuitTemplate):
         """
         if self.num_qubits > 12:
             logger.warning(
-                f"Computing exact ground state for {self.num_qubits} "
-                f"qubits may be slow"
+                f"Computing exact ground state for {self.num_qubits} " f"qubits may be slow"
             )
 
         # Convert to matrix and find minimum eigenvalue
@@ -487,4 +458,4 @@ class VQECircuit(CircuitTemplate):
         return float(min(eigenvalues))
 
 
-__all__ = ['VQECircuit', 'VQEResult']
+__all__ = ["VQECircuit", "VQEResult"]

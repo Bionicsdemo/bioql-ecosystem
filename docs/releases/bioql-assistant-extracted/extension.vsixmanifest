@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+	<PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
+		<Metadata>
+			<Identity Language="en-US" Id="bioql-assistant" Version="7.0.0" Publisher="SpectrixRD" />
+			<DisplayName>BioQL Code Assistant v7.0.0</DisplayName>
+			<Description xml:space="preserve">Interactive AI agent for BioQL 7.0.0 Multi-Omics Platform - PROTEOMICS (Protein Analysis, PTM Prediction, PPI), METABOLOMICS (Pathway Analysis, FBA), MULTI-OMICS (Quantum Integration), GENOMICS (Variant Calling, RNA-Seq, Epigenetics) + Full Drug Discovery Pipeline with Quillow Quantum Error Correction (QEC) - Google Willow-Style Surface Codes (d=3,5,7,9), Below-Threshold Operation, Real-Time MWPM Decoding - PRODUCTION VPS: api.bioql.bio, IBM Quantum verified, Stripe billing, SSL, 24/7 uptime!</Description>
+			<Tags>bioql,quantum,biology,genomics,proteomics,metabolomics,multi-omics,drug discovery,crispr,quillow,qec,error correction,surface code,snippet,keybindings,chat-participant,python</Tags>
+			<Categories>Programming Languages,Machine Learning,Snippets,AI</Categories>
+			<GalleryFlags>Public</GalleryFlags>
+			
+			<Properties>
+				<Property Id="Microsoft.VisualStudio.Code.Engine" Value="^1.90.0" />
+				<Property Id="Microsoft.VisualStudio.Code.ExtensionDependencies" Value="" />
+				<Property Id="Microsoft.VisualStudio.Code.ExtensionPack" Value="" />
+				<Property Id="Microsoft.VisualStudio.Code.ExtensionKind" Value="workspace" />
+				<Property Id="Microsoft.VisualStudio.Code.LocalizedLanguages" Value="" />
+				<Property Id="Microsoft.VisualStudio.Code.EnabledApiProposals" Value="" />
+				
+				<Property Id="Microsoft.VisualStudio.Code.ExecutesCode" Value="true" />
+				
+				
+				
+				
+				
+				
+				<Property Id="Microsoft.VisualStudio.Services.GitHubFlavoredMarkdown" Value="true" />
+				<Property Id="Microsoft.VisualStudio.Services.Content.Pricing" Value="Free"/>
+
+				
+				
+			</Properties>
+			
+			
+		</Metadata>
+		<Installation>
+			<InstallationTarget Id="Microsoft.VisualStudio.Code"/>
+		</Installation>
+		<Dependencies/>
+		<Assets>
+			<Asset Type="Microsoft.VisualStudio.Code.Manifest" Path="extension/package.json" Addressable="true" />
+			<Asset Type="Microsoft.VisualStudio.Services.Content.Details" Path="extension/readme.md" Addressable="true" />
+		</Assets>
+	</PackageManifest>

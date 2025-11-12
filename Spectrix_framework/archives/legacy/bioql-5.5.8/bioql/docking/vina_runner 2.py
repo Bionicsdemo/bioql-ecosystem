@@ -5,12 +5,12 @@ Executes molecular docking using AutoDock Vina external binary.
 """
 
 import os
+import shutil
 import subprocess
 import tempfile
-import shutil
-from pathlib import Path
-from typing import Optional, Union, Dict, Any, List, Tuple
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from ..logger import get_logger
 
@@ -170,17 +170,28 @@ class VinaRunner:
         # Build Vina command
         cmd = [
             self.vina_executable,
-            "--receptor", str(receptor_pdbqt),
-            "--ligand", str(ligand_pdbqt),
-            "--out", str(output_pdbqt),
-            "--center_x", str(center[0]),
-            "--center_y", str(center[1]),
-            "--center_z", str(center[2]),
-            "--size_x", str(box_size[0]),
-            "--size_y", str(box_size[1]),
-            "--size_z", str(box_size[2]),
-            "--exhaustiveness", str(exhaustiveness),
-            "--num_modes", str(num_modes),
+            "--receptor",
+            str(receptor_pdbqt),
+            "--ligand",
+            str(ligand_pdbqt),
+            "--out",
+            str(output_pdbqt),
+            "--center_x",
+            str(center[0]),
+            "--center_y",
+            str(center[1]),
+            "--center_z",
+            str(center[2]),
+            "--size_x",
+            str(box_size[0]),
+            "--size_y",
+            str(box_size[1]),
+            "--size_z",
+            str(box_size[2]),
+            "--exhaustiveness",
+            str(exhaustiveness),
+            "--num_modes",
+            str(num_modes),
         ]
 
         logger.debug(f"Vina command: {' '.join(cmd)}")
@@ -195,7 +206,7 @@ class VinaRunner:
             )
 
             # Save log
-            with open(log_file, 'w') as f:
+            with open(log_file, "w") as f:
                 f.write(result.stdout)
                 f.write(result.stderr)
 
@@ -273,7 +284,7 @@ class VinaRunner:
         current_pose = []
 
         try:
-            with open(output_file, 'r') as f:
+            with open(output_file, "r") as f:
                 for line in f:
                     if line.startswith("REMARK VINA RESULT:"):
                         # Extract score from REMARK line

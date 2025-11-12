@@ -7,8 +7,9 @@ Inspired by CUDA for GPUs, but for quantum computers.
 """
 
 try:
-    from .hybrid_compiler import HybridCompiler
     from .auto_optimizer import AutoOptimizer
+    from .hybrid_compiler import HybridCompiler
+
     _available = True
 except ImportError:
     _available = False

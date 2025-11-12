@@ -12,15 +12,16 @@ Provides:
 - Quantum circuit optimization suggestions
 """
 
+import json
 import os
 from pathlib import Path
-from typing import Optional, Dict, Any, List
-import json
+from typing import Any, Dict, List, Optional
 
 try:
     from loguru import logger
 except ImportError:
     import logging
+
     logger = logging.getLogger(__name__)
 
 
@@ -43,7 +44,7 @@ class BioQLCodeAssistant:
         self,
         mode: str = "local",  # "local", "modal", "ollama"
         model_path: Optional[str] = None,
-        modal_url: Optional[str] = None
+        modal_url: Optional[str] = None,
     ):
         """
         Initialize BioQL code assistant.
@@ -77,8 +78,8 @@ class BioQLCodeAssistant:
         """Initialize local model with BioQL LoRA v1."""
         try:
             import torch
-            from transformers import AutoTokenizer, AutoModelForCausalLM
             from peft import PeftModel
+            from transformers import AutoModelForCausalLM, AutoTokenizer
 
             logger.info("Loading BioQL LoRA v1 (trained on 10K examples, 3 epochs)...")
 
@@ -86,10 +87,7 @@ class BioQLCodeAssistant:
             base_model = "Qwen/Qwen2.5-7B-Instruct"
 
             # Load tokenizer
-            self.tokenizer = AutoTokenizer.from_pretrained(
-                base_model,
-                trust_remote_code=True
-            )
+            self.tokenizer = AutoTokenizer.from_pretrained(base_model, trust_remote_code=True)
 
             # Load base model
             logger.info("Loading base model...")
@@ -98,15 +96,13 @@ class BioQLCodeAssistant:
                 torch_dtype=torch.float16,
                 device_map="auto",
                 trust_remote_code=True,
-                low_cpu_mem_usage=True
+                low_cpu_mem_usage=True,
             )
 
             # Load LoRA adapter (BioQL v1)
             logger.info(f"Loading LoRA adapter from {self.model_path}...")
             self.model = PeftModel.from_pretrained(
-                model,
-                self.model_path,
-                torch_dtype=torch.float16
+                model, self.model_path, torch_dtype=torch.float16
             )
 
             logger.info("✅ BioQL LoRA v1 loaded successfully!")
@@ -125,6 +121,7 @@ class BioQLCodeAssistant:
         """Initialize Ollama client."""
         try:
             import requests
+
             # Check if Ollama is running
             response = requests.get("http://localhost:11434/api/tags")
             if response.status_code == 200:
@@ -134,12 +131,7 @@ class BioQLCodeAssistant:
         except Exception as e:
             logger.error(f"Cannot connect to Ollama: {e}")
 
-    def complete(
-        self,
-        prompt: str,
-        max_length: int = 300,
-        temperature: float = 0.7
-    ) -> str:
+    def complete(self, prompt: str, max_length: int = 300, temperature: float = 0.7) -> str:
         """
         Generate BioQL code from natural language.
 
@@ -184,7 +176,7 @@ Code:
                 max_new_tokens=max_length,
                 temperature=temperature,
                 do_sample=True,
-                pad_token_id=self.tokenizer.eos_token_id
+                pad_token_id=self.tokenizer.eos_token_id,
             )
 
         generated = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
@@ -208,12 +200,8 @@ Code:
         try:
             response = requests.post(
                 self.modal_url,
-                json={
-                    "prompt": prompt,
-                    "max_length": max_length,
-                    "temperature": temperature
-                },
-                timeout=30
+                json={"prompt": prompt, "max_length": max_length, "temperature": temperature},
+                timeout=30,
             )
 
             if response.status_code == 200:
@@ -236,9 +224,9 @@ Code:
                 json={
                     "model": "bioql",  # Your custom model name
                     "prompt": f"Generate BioQL code: {prompt}",
-                    "stream": False
+                    "stream": False,
                 },
-                timeout=30
+                timeout=30,
             )
 
             if response.status_code == 200:
@@ -256,9 +244,12 @@ Code:
         prompt_lower = prompt.lower()
 
         # Check for drug discovery keywords
-        if any(kw in prompt_lower for kw in ['dock', 'binding', 'adme', 'toxic', 'pharmaco', 'protein fold']):
+        if any(
+            kw in prompt_lower
+            for kw in ["dock", "binding", "adme", "toxic", "pharmaco", "protein fold"]
+        ):
             try:
-                from bioql.drug_discovery_templates import get_template, LIGAND_SMILES, RECEPTOR_PDB
+                from bioql.drug_discovery_templates import LIGAND_SMILES, RECEPTOR_PDB, get_template
 
                 # Extract ligand and receptor from prompt
                 ligand = None
@@ -271,37 +262,37 @@ Code:
                         break
 
                 for rec_name in RECEPTOR_PDB.keys():
-                    if rec_name in prompt_lower or rec_name.replace('-', '') in prompt_lower:
+                    if rec_name in prompt_lower or rec_name.replace("-", "") in prompt_lower:
                         receptor = rec_name
                         break
 
                 # Defaults
-                ligand = ligand or 'metformin'
-                receptor = receptor or 'ampk'
+                ligand = ligand or "metformin"
+                receptor = receptor or "ampk"
 
                 # Determine task type
-                if 'dock' in prompt_lower:
-                    task_type = 'docking'
-                elif 'binding' in prompt_lower or 'affinity' in prompt_lower:
-                    task_type = 'binding_affinity'
-                elif 'adme' in prompt_lower:
-                    task_type = 'adme'
-                elif 'toxic' in prompt_lower:
-                    task_type = 'toxicity'
-                elif 'pharmaco' in prompt_lower:
-                    task_type = 'pharmacophore'
-                elif 'fold' in prompt_lower:
-                    task_type = 'protein_folding'
+                if "dock" in prompt_lower:
+                    task_type = "docking"
+                elif "binding" in prompt_lower or "affinity" in prompt_lower:
+                    task_type = "binding_affinity"
+                elif "adme" in prompt_lower:
+                    task_type = "adme"
+                elif "toxic" in prompt_lower:
+                    task_type = "toxicity"
+                elif "pharmaco" in prompt_lower:
+                    task_type = "pharmacophore"
+                elif "fold" in prompt_lower:
+                    task_type = "protein_folding"
                 else:
-                    task_type = 'docking'
+                    task_type = "docking"
 
                 # Generate code directly without using buggy templates
                 # Simpler approach: return working code based on task type
                 smiles_val = LIGAND_SMILES[ligand]
                 pdb_val = RECEPTOR_PDB[receptor]
 
-                if task_type == 'docking':
-                    return f'''from bioql import quantum
+                if task_type == "docking":
+                    return f"""from bioql import quantum
 import os
 
 api_key = os.getenv('BIOQL_API_KEY', 'your_api_key_here')
@@ -329,10 +320,10 @@ if hasattr(result, 'interactions'):
     print("\\nInteractions:")
     for interaction in result.interactions[:5]:
         print(f"  • {{interaction}}")
-'''
+"""
                 else:
                     # For other types, use basic template
-                    return f'''from bioql import quantum
+                    return f"""from bioql import quantum
 import os
 
 result = quantum(
@@ -343,13 +334,15 @@ result = quantum(
 )
 
 print(result)
-'''
+"""
             except Exception as e:
-                logger.warning(f"Could not use drug_discovery_templates: {e}, falling back to basic templates")
+                logger.warning(
+                    f"Could not use drug_discovery_templates: {e}, falling back to basic templates"
+                )
 
         # Basic quantum templates
         templates = {
-            "bell": '''from bioql import quantum
+            "bell": """from bioql import quantum
 
 # Create a Bell state
 result = quantum(
@@ -360,8 +353,8 @@ result = quantum(
 )
 
 print(f"Results: {result.counts}")
-''',
-            "qft": '''from bioql import quantum
+""",
+            "qft": """from bioql import quantum
 
 # Quantum Fourier Transform
 result = quantum(
@@ -372,8 +365,8 @@ result = quantum(
 )
 
 print(f"QFT results: {result.counts}")
-''',
-            "protein": '''from bioql import quantum
+""",
+            "protein": """from bioql import quantum
 
 # Protein folding simulation
 result = quantum(
@@ -384,7 +377,7 @@ result = quantum(
 )
 
 print(f"Folding: {result.bio_interpretation}")
-'''
+""",
         }
 
         # Simple keyword matching

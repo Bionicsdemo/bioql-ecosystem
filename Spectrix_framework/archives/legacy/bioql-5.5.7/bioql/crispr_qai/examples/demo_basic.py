@@ -10,8 +10,8 @@ Demonstrates:
 
 from bioql.crispr_qai import (
     estimate_energy_collapse_simulator,
-    rank_guides_batch,
     infer_offtarget_phenotype,
+    rank_guides_batch,
 )
 
 
@@ -26,11 +26,7 @@ def demo_single_guide():
     print()
 
     # Estimate binding energy
-    result = estimate_energy_collapse_simulator(
-        guide_seq=guide,
-        shots=1000,
-        seed=42
-    )
+    result = estimate_energy_collapse_simulator(guide_seq=guide, shots=1000, seed=42)
 
     print(f"Energy estimate: {result['energy_estimate']:.4f}")
     print(f"Confidence: {result['confidence']:.4f}")
@@ -58,10 +54,7 @@ def demo_rank_guides():
     print()
 
     # Rank guides
-    ranked = rank_guides_batch(
-        guide_sequences=guides,
-        shots=1000
-    )
+    ranked = rank_guides_batch(guide_sequences=guides, shots=1000)
 
     # Display top 3
     print("Top 3 guides:")
@@ -84,17 +77,14 @@ def demo_offtarget_prediction():
     print()
 
     # Predict off-targets (heuristic, no genome provided)
-    result = infer_offtarget_phenotype(
-        guide_seq=guide,
-        genome_regions=None
-    )
+    result = infer_offtarget_phenotype(guide_seq=guide, genome_regions=None)
 
     print(f"Off-target risk: {result['offtarget_risk'].upper()}")
     print(f"Risk score: {result['risk_score']:.3f}")
     print()
 
     print("Recommendations:")
-    for rec in result['recommendations']:
+    for rec in result["recommendations"]:
         print(f"  {rec}")
     print()
 

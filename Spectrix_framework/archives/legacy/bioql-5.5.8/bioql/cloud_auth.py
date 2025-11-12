@@ -4,22 +4,28 @@ BioQL Cloud Authentication - Required for all executions
 Users must have valid API key from bioql.com
 """
 
-import requests
 import os
-from typing import Optional, Dict, Any
 from datetime import datetime
+from typing import Any, Dict, Optional
+
+import requests
 
 # Your authentication service URL (replace with your production URL)
-BIOQL_AUTH_URL = os.getenv('BIOQL_AUTH_URL', 'https://77007dcfe345.ngrok-free.app')
-BIOQL_LOCAL_AUTH = os.getenv('BIOQL_LOCAL_AUTH', 'http://localhost:5001')
+BIOQL_AUTH_URL = os.getenv("BIOQL_AUTH_URL", "https://77007dcfe345.ngrok-free.app")
+BIOQL_LOCAL_AUTH = os.getenv("BIOQL_LOCAL_AUTH", "http://localhost:5001")
+
 
 class BioQLAuthError(Exception):
     """Authentication error for BioQL"""
+
     pass
+
 
 class BioQLUsageLimitError(Exception):
     """Usage limit exceeded for BioQL"""
+
     pass
+
 
 def authenticate_api_key(api_key: str) -> Dict[str, Any]:
     """
@@ -33,13 +39,13 @@ def authenticate_api_key(api_key: str) -> Dict[str, Any]:
         )
 
     # DEV MODE: Allow development keys (bypass authentication)
-    if api_key.startswith('bioql_dev_'):
+    if api_key.startswith("bioql_dev_"):
         return {
-            'user_id': 'dev_user',
-            'email': 'dev@bioql.local',
-            'plan': 'enterprise',
-            'api_key_id': 'dev_key',
-            'tier': 'unlimited'
+            "user_id": "dev_user",
+            "email": "dev@bioql.local",
+            "plan": "enterprise",
+            "api_key_id": "dev_key",
+            "tier": "unlimited",
         }
 
     # Try local first (faster), then production
@@ -53,10 +59,10 @@ def authenticate_api_key(api_key: str) -> Dict[str, Any]:
                 headers={
                     "Content-Type": "application/json",
                     "User-Agent": "BioQL/2.1.0",
-                    "ngrok-skip-browser-warning": "true"
+                    "ngrok-skip-browser-warning": "true",
                 },
                 timeout=10,
-                verify=True
+                verify=True,
             )
 
             if response.status_code == 200:
@@ -81,6 +87,7 @@ def authenticate_api_key(api_key: str) -> Dict[str, Any]:
         "If the problem persists, contact support at support@bioql.com"
     )
 
+
 def check_usage_limits(api_key: str, shots: int, backend: str) -> Dict[str, Any]:
     """
     Check if user can execute the requested operation
@@ -89,14 +96,14 @@ def check_usage_limits(api_key: str, shots: int, backend: str) -> Dict[str, Any]
         raise BioQLAuthError("API key required")
 
     # DEV MODE: Allow unlimited usage for development keys
-    if api_key.startswith('bioql_dev_'):
+    if api_key.startswith("bioql_dev_"):
         # Calculate dev cost (for testing billing logic)
-        cost_per_shot = 3.00 if 'ibm_' in backend else 0.01
+        cost_per_shot = 3.00 if "ibm_" in backend else 0.01
         return {
-            'allowed': True,
-            'cost': shots * cost_per_shot,
-            'remaining_shots': 999999,
-            'plan': 'enterprise'
+            "allowed": True,
+            "cost": shots * cost_per_shot,
+            "remaining_shots": 999999,
+            "plan": "enterprise",
         }
 
     # Try local first (faster), then production
@@ -106,18 +113,14 @@ def check_usage_limits(api_key: str, shots: int, backend: str) -> Dict[str, Any]
         try:
             response = requests.post(
                 f"{auth_url}/billing/check-limits",
-                json={
-                    "api_key": api_key,
-                    "requested_shots": shots,
-                    "backend": backend
-                },
+                json={"api_key": api_key, "requested_shots": shots, "backend": backend},
                 headers={
                     "Content-Type": "application/json",
                     "User-Agent": "BioQL/2.1.0",
-                    "ngrok-skip-browser-warning": "true"
+                    "ngrok-skip-browser-warning": "true",
                 },
                 timeout=10,
-                verify=True
+                verify=True,
             )
 
             if response.status_code == 200:
@@ -126,10 +129,10 @@ def check_usage_limits(api_key: str, shots: int, backend: str) -> Dict[str, Any]
                 limit_data = response.json()
                 error_msg = f"Usage limit exceeded: {limit_data.get('reason', 'Unknown limit')}"
 
-                if limit_data.get('upgrade_required'):
+                if limit_data.get("upgrade_required"):
                     error_msg += f"\nUpgrade your plan at https://bioql.com/pricing"
 
-                if 'shots_remaining' in limit_data:
+                if "shots_remaining" in limit_data:
                     error_msg += f"\nShots remaining this month: {limit_data['shots_remaining']}"
 
                 raise BioQLUsageLimitError(error_msg)
@@ -139,7 +142,10 @@ def check_usage_limits(api_key: str, shots: int, backend: str) -> Dict[str, Any]
 
     raise BioQLAuthError("Unable to verify usage limits. Please try again.")
 
-def record_usage(api_key: str, shots_executed: int, backend: str, cost: float, success: bool) -> None:
+
+def record_usage(
+    api_key: str, shots_executed: int, backend: str, cost: float, success: bool
+) -> None:
     """
     Record quantum execution for billing
     """
@@ -147,7 +153,7 @@ def record_usage(api_key: str, shots_executed: int, backend: str, cost: float, s
         return
 
     # DEV MODE: Skip usage recording for development keys
-    if api_key.startswith('bioql_dev_'):
+    if api_key.startswith("bioql_dev_"):
         return
 
     # Try local first (faster), then production
@@ -162,15 +168,15 @@ def record_usage(api_key: str, shots_executed: int, backend: str, cost: float, s
                     "backend": backend,
                     "shots": shots_executed,
                     "time_seconds": 0.1,
-                    "notes": f"Quantum execution - {'success' if success else 'failed'}"
+                    "notes": f"Quantum execution - {'success' if success else 'failed'}",
                 },
                 headers={
                     "Content-Type": "application/json",
                     "User-Agent": "BioQL/2.1.0",
-                    "ngrok-skip-browser-warning": "true"  # Skip ngrok welcome page
+                    "ngrok-skip-browser-warning": "true",  # Skip ngrok welcome page
                 },
                 timeout=3,  # Shorter timeout for faster fallback
-                verify=True  # Verify SSL certificates
+                verify=True,  # Verify SSL certificates
             )
 
             if response.status_code == 200:
@@ -182,6 +188,7 @@ def record_usage(api_key: str, shots_executed: int, backend: str, cost: float, s
 
     # Billing recording failed silently - don't prevent execution
     pass  # Silent fail - billing is optional for execution
+
 
 def get_pricing_info() -> Dict[str, Any]:
     """Get current pricing information"""
@@ -196,5 +203,5 @@ def get_pricing_info() -> Dict[str, Any]:
         "message": "Visit https://bioql.com/pricing for current pricing",
         "free_tier": "1000 shots/month on simulator",
         "pro_tier": "$29/month - Real quantum hardware access",
-        "enterprise": "$299/month - Unlimited access + priority support"
+        "enterprise": "$299/month - Unlimited access + priority support",
     }

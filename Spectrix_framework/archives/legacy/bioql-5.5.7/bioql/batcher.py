@@ -17,19 +17,21 @@ Author: BioQL Development Team
 Version: 1.0.0
 """
 
-from typing import Dict, List, Optional, Union, Any, Tuple, Set
-from dataclasses import dataclass, field
-from enum import Enum
-from uuid import uuid4
-import logging
 import hashlib
-import numpy as np
-from datetime import datetime
+import logging
 from collections import defaultdict
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from uuid import uuid4
+
+import numpy as np
 
 try:
     from qiskit import QuantumCircuit, transpile
     from qiskit.quantum_info import Operator
+
     QISKIT_AVAILABLE = True
 except ImportError:
     QISKIT_AVAILABLE = False
@@ -38,6 +40,7 @@ except ImportError:
 # Optional imports for advanced features
 try:
     import networkx as nx
+
     NETWORKX_AVAILABLE = True
 except ImportError:
     NETWORKX_AVAILABLE = False
@@ -45,12 +48,13 @@ except ImportError:
 # Import billing module for cost estimation
 try:
     from .simple_billing import (
+        classify_algorithm,
+        estimate_qubits_from_program,
+        get_algorithm_multiplier,
         get_backend_cost_per_shot,
         get_complexity_multiplier,
-        get_algorithm_multiplier,
-        estimate_qubits_from_program,
-        classify_algorithm
     )
+
     BILLING_AVAILABLE = True
 except ImportError:
     BILLING_AVAILABLE = False
@@ -70,6 +74,7 @@ class BatchingStrategy(Enum):
     - TIME_OPTIMAL: Minimize total execution time
     - ADAPTIVE: Dynamically choose best strategy based on job characteristics
     """
+
     SIMILAR_CIRCUITS = "similar_circuits"
     SAME_BACKEND = "same_backend"
     COST_OPTIMAL = "cost_optimal"
@@ -93,6 +98,7 @@ class QuantumJob:
         program_text: Original program text (optional)
         algorithm_type: Detected algorithm type
     """
+
     job_id: str = field(default_factory=lambda: str(uuid4()))
     circuit: Optional[QuantumCircuit] = None
     shots: int = 1024
@@ -156,6 +162,7 @@ class JobBatch:
         strategy: Batching strategy used
         metadata: Batch metadata
     """
+
     batch_id: str = field(default_factory=lambda: str(uuid4()))
     jobs: List[QuantumJob] = field(default_factory=list)
     combined_circuit: Optional[QuantumCircuit] = None
@@ -204,6 +211,7 @@ class SavingsEstimate:
         batched_cost: Cost with batching
         batched_time: Time with batching
     """
+
     cost_saved: float
     time_saved_seconds: float
     api_calls_reduced: int
@@ -217,7 +225,9 @@ class SavingsEstimate:
         """String representation of savings."""
         # Calculate percentages safely (avoid division by zero)
         cost_pct = (self.cost_saved / self.baseline_cost * 100) if self.baseline_cost > 0 else 0.0
-        time_pct = (self.time_saved_seconds / self.baseline_time * 100) if self.baseline_time > 0 else 0.0
+        time_pct = (
+            (self.time_saved_seconds / self.baseline_time * 100) if self.baseline_time > 0 else 0.0
+        )
 
         return (
             f"Savings Estimate:\n"
@@ -242,6 +252,7 @@ class BatchResults:
         error_message: Error message if failed
         metadata: Additional result metadata
     """
+
     batch_id: str
     job_results: Dict[str, Dict[str, Any]] = field(default_factory=dict)
     execution_time: float = 0.0
@@ -270,7 +281,7 @@ class SmartBatcher:
         self,
         max_batch_size: int = 10,
         max_qubits_per_batch: int = 100,
-        default_backend: str = "simulator"
+        default_backend: str = "simulator",
     ):
         """
         Initialize the SmartBatcher.
@@ -287,8 +298,10 @@ class SmartBatcher:
         self._jobs: Dict[str, QuantumJob] = {}
         self._batches: Dict[str, JobBatch] = {}
 
-        logger.info(f"Initialized SmartBatcher (max_batch_size={max_batch_size}, "
-                   f"max_qubits={max_qubits_per_batch})")
+        logger.info(
+            f"Initialized SmartBatcher (max_batch_size={max_batch_size}, "
+            f"max_qubits={max_qubits_per_batch})"
+        )
 
     def add_job(self, job: QuantumJob) -> str:
         """
@@ -301,14 +314,13 @@ class SmartBatcher:
             Job ID for tracking
         """
         self._jobs[job.job_id] = job
-        logger.info(f"Added job {job.job_id} ({job.num_qubits} qubits, "
-                   f"{job.shots} shots, backend={job.backend})")
+        logger.info(
+            f"Added job {job.job_id} ({job.num_qubits} qubits, "
+            f"{job.shots} shots, backend={job.backend})"
+        )
         return job.job_id
 
-    def get_batches(
-        self,
-        strategy: BatchingStrategy = BatchingStrategy.ADAPTIVE
-    ) -> List[JobBatch]:
+    def get_batches(self, strategy: BatchingStrategy = BatchingStrategy.ADAPTIVE) -> List[JobBatch]:
         """
         Generate batches of jobs using the specified strategy.
 
@@ -351,9 +363,7 @@ class SmartBatcher:
         return batches
 
     def execute_batches(
-        self,
-        batches: List[JobBatch],
-        api_key: Optional[str] = None
+        self, batches: List[JobBatch], api_key: Optional[str] = None
     ) -> BatchResults:
         """
         Execute a list of job batches.
@@ -367,9 +377,7 @@ class SmartBatcher:
         """
         if not batches:
             return BatchResults(
-                batch_id="empty",
-                success=False,
-                error_message="No batches to execute"
+                batch_id="empty", success=False, error_message="No batches to execute"
             )
 
         all_results = BatchResults(batch_id="combined")
@@ -395,16 +403,18 @@ class SmartBatcher:
 
         all_results.execution_time = total_time
         all_results.actual_cost = total_cost
-        all_results.metadata['num_batches'] = len(batches)
-        all_results.metadata['total_jobs'] = sum(b.num_jobs for b in batches)
+        all_results.metadata["num_batches"] = len(batches)
+        all_results.metadata["total_jobs"] = sum(b.num_jobs for b in batches)
 
-        logger.info(f"Executed {len(batches)} batches in {total_time:.2f}s, cost: ${total_cost:.4f}")
+        logger.info(
+            f"Executed {len(batches)} batches in {total_time:.2f}s, cost: ${total_cost:.4f}"
+        )
         return all_results
 
     def estimate_batch_savings(
         self,
         jobs: Optional[List[QuantumJob]] = None,
-        strategy: BatchingStrategy = BatchingStrategy.ADAPTIVE
+        strategy: BatchingStrategy = BatchingStrategy.ADAPTIVE,
     ) -> SavingsEstimate:
         """
         Estimate cost and time savings from batching.
@@ -424,7 +434,7 @@ class SmartBatcher:
                 cost_saved=0.0,
                 time_saved_seconds=0.0,
                 api_calls_reduced=0,
-                efficiency_improvement=0.0
+                efficiency_improvement=0.0,
             )
 
         # Calculate baseline (no batching)
@@ -474,7 +484,7 @@ class SmartBatcher:
             baseline_cost=baseline_cost,
             baseline_time=baseline_time,
             batched_cost=batched_cost,
-            batched_time=batched_time
+            batched_time=batched_time,
         )
 
     # ===== Private Methods =====
@@ -494,7 +504,7 @@ class SmartBatcher:
 
         # Add edges for similar circuits
         for i, job1 in enumerate(jobs):
-            for job2 in jobs[i+1:]:
+            for job2 in jobs[i + 1 :]:
                 similarity = self._calculate_similarity(job1, job2)
                 if similarity > 0.5:  # Threshold for similarity
                     G.add_edge(job1.job_id, job2.job_id, weight=similarity)
@@ -534,8 +544,7 @@ class SmartBatcher:
 
     def _batch_by_time(self) -> List[JobBatch]:
         """Batch jobs to minimize total execution time."""
-        jobs = sorted(self._jobs.values(),
-                     key=lambda j: (j.circuit_depth, j.num_qubits))
+        jobs = sorted(self._jobs.values(), key=lambda j: (j.circuit_depth, j.num_qubits))
         return self._split_into_batches(jobs)
 
     def _batch_adaptive(self) -> List[JobBatch]:
@@ -560,9 +569,7 @@ class SmartBatcher:
         return self._batch_by_time()
 
     def _split_into_batches(
-        self,
-        jobs: List[QuantumJob],
-        backend: Optional[str] = None
+        self, jobs: List[QuantumJob], backend: Optional[str] = None
     ) -> List[JobBatch]:
         """Split jobs into batches respecting size and qubit constraints."""
         batches = []
@@ -570,8 +577,10 @@ class SmartBatcher:
 
         for job in jobs:
             # Check if adding this job exceeds limits
-            if (current_batch.num_jobs >= self.max_batch_size or
-                current_batch.total_qubits + job.num_qubits > self.max_qubits_per_batch):
+            if (
+                current_batch.num_jobs >= self.max_batch_size
+                or current_batch.total_qubits + job.num_qubits > self.max_qubits_per_batch
+            ):
 
                 if current_batch.num_jobs > 0:
                     batches.append(current_batch)
@@ -633,12 +642,12 @@ class SmartBatcher:
         batch.combined_circuit = max(
             (job.circuit for job in batch.jobs if job.circuit),
             key=lambda c: c.num_qubits,
-            default=None
+            default=None,
         )
 
-        batch.metadata['circuit_combination'] = 'sequential'
-        batch.metadata['total_qubits'] = batch.total_qubits
-        batch.metadata['max_qubits_per_job'] = max(job.num_qubits for job in batch.jobs)
+        batch.metadata["circuit_combination"] = "sequential"
+        batch.metadata["total_qubits"] = batch.total_qubits
+        batch.metadata["max_qubits_per_job"] = max(job.num_qubits for job in batch.jobs)
 
     def _estimate_batch_cost_time(self, batch: JobBatch) -> None:
         """Estimate cost and time for a batch."""
@@ -654,10 +663,10 @@ class SmartBatcher:
         batch.estimated_cost = total_cost * 0.9
         batch.estimated_time = max_time * 0.8
 
-        batch.metadata['baseline_cost'] = total_cost
-        batch.metadata['baseline_time'] = max_time
-        batch.metadata['cost_discount'] = 0.1
-        batch.metadata['time_discount'] = 0.2
+        batch.metadata["baseline_cost"] = total_cost
+        batch.metadata["baseline_time"] = max_time
+        batch.metadata["cost_discount"] = 0.1
+        batch.metadata["time_discount"] = 0.2
 
     def _estimate_single_job(self, job: QuantumJob) -> Tuple[float, float]:
         """Estimate cost and time for a single job."""
@@ -678,11 +687,7 @@ class SmartBatcher:
 
         return cost, time
 
-    def _execute_single_batch(
-        self,
-        batch: JobBatch,
-        api_key: Optional[str]
-    ) -> BatchResults:
+    def _execute_single_batch(self, batch: JobBatch, api_key: Optional[str]) -> BatchResults:
         """Execute a single batch of jobs."""
         from time import time
 
@@ -697,10 +702,7 @@ class SmartBatcher:
                 results.job_results[job.job_id] = job_result
             except Exception as e:
                 logger.error(f"Job {job.job_id} failed: {e}")
-                results.job_results[job.job_id] = {
-                    'success': False,
-                    'error': str(e)
-                }
+                results.job_results[job.job_id] = {"success": False, "error": str(e)}
                 results.success = False
 
         results.execution_time = time() - start_time
@@ -709,16 +711,11 @@ class SmartBatcher:
         return results
 
     def _execute_single_job_in_batch(
-        self,
-        job: QuantumJob,
-        api_key: Optional[str]
+        self, job: QuantumJob, api_key: Optional[str]
     ) -> Dict[str, Any]:
         """Execute a single job within a batch."""
         if not QISKIT_AVAILABLE or not job.circuit:
-            return {
-                'success': False,
-                'error': 'Qiskit not available or no circuit'
-            }
+            return {"success": False, "error": "Qiskit not available or no circuit"}
 
         try:
             from qiskit_aer import AerSimulator
@@ -730,16 +727,13 @@ class SmartBatcher:
             result = qobj.result()
 
             return {
-                'success': True,
-                'counts': result.get_counts(),
-                'shots': job.shots,
-                'backend': job.backend
+                "success": True,
+                "counts": result.get_counts(),
+                "shots": job.shots,
+                "backend": job.backend,
             }
         except Exception as e:
-            return {
-                'success': False,
-                'error': str(e)
-            }
+            return {"success": False, "error": str(e)}
 
     def clear_jobs(self) -> None:
         """Clear all pending jobs."""
@@ -757,17 +751,18 @@ class SmartBatcher:
     def get_stats(self) -> Dict[str, Any]:
         """Get batcher statistics."""
         return {
-            'total_jobs': len(self._jobs),
-            'total_batches': len(self._batches),
-            'max_batch_size': self.max_batch_size,
-            'max_qubits_per_batch': self.max_qubits_per_batch,
-            'backends': list(set(job.backend for job in self._jobs.values())),
-            'total_qubits': sum(job.num_qubits for job in self._jobs.values()),
-            'total_shots': sum(job.shots for job in self._jobs.values())
+            "total_jobs": len(self._jobs),
+            "total_batches": len(self._batches),
+            "max_batch_size": self.max_batch_size,
+            "max_qubits_per_batch": self.max_qubits_per_batch,
+            "backends": list(set(job.backend for job in self._jobs.values())),
+            "total_qubits": sum(job.num_qubits for job in self._jobs.values()),
+            "total_shots": sum(job.shots for job in self._jobs.values()),
         }
 
 
 # ===== Helper Functions =====
+
 
 def create_quantum_job(
     circuit: Optional[QuantumCircuit] = None,
@@ -775,7 +770,7 @@ def create_quantum_job(
     shots: int = 1024,
     backend: str = "simulator",
     priority: int = 0,
-    **metadata
+    **metadata,
 ) -> QuantumJob:
     """
     Convenience function to create a QuantumJob.
@@ -797,14 +792,14 @@ def create_quantum_job(
         shots=shots,
         backend=backend,
         priority=priority,
-        metadata=metadata
+        metadata=metadata,
     )
 
 
 def batch_and_execute(
     jobs: List[QuantumJob],
     strategy: BatchingStrategy = BatchingStrategy.ADAPTIVE,
-    api_key: Optional[str] = None
+    api_key: Optional[str] = None,
 ) -> Tuple[BatchResults, SavingsEstimate]:
     """
     Convenience function to batch and execute jobs in one call.
@@ -835,14 +830,14 @@ def batch_and_execute(
 # ===== Module Info =====
 
 __all__ = [
-    'BatchingStrategy',
-    'QuantumJob',
-    'JobBatch',
-    'SavingsEstimate',
-    'BatchResults',
-    'SmartBatcher',
-    'create_quantum_job',
-    'batch_and_execute'
+    "BatchingStrategy",
+    "QuantumJob",
+    "JobBatch",
+    "SavingsEstimate",
+    "BatchResults",
+    "SmartBatcher",
+    "create_quantum_job",
+    "batch_and_execute",
 ]
 
 
@@ -863,10 +858,7 @@ def main():
         circuit.measure_all()
 
         job = QuantumJob(
-            circuit=circuit,
-            shots=1024,
-            backend="simulator",
-            program_text=f"Bell state {i}"
+            circuit=circuit, shots=1024, backend="simulator", program_text=f"Bell state {i}"
         )
         jobs.append(job)
 
@@ -884,15 +876,19 @@ def main():
         print(f"Generated {len(batches)} batches:")
 
         for i, batch in enumerate(batches, 1):
-            print(f"  Batch {i}: {batch.num_jobs} jobs, "
-                  f"cost=${batch.estimated_cost:.4f}, "
-                  f"time={batch.estimated_time:.1f}s")
+            print(
+                f"  Batch {i}: {batch.num_jobs} jobs, "
+                f"cost=${batch.estimated_cost:.4f}, "
+                f"time={batch.estimated_time:.1f}s"
+            )
 
         savings = batcher.estimate_batch_savings()
-        print(f"\nSavings: ${savings.cost_saved:.4f}, "
-              f"{savings.time_saved_seconds:.1f}s, "
-              f"{savings.api_calls_reduced} API calls\n")
+        print(
+            f"\nSavings: ${savings.cost_saved:.4f}, "
+            f"{savings.time_saved_seconds:.1f}s, "
+            f"{savings.api_calls_reduced} API calls\n"
+        )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

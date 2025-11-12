@@ -1,0 +1,32 @@
+{
+  "patient_id": "GENIKA-PT-2025-001",
+  "age": 54,
+  "gender": "female",
+  "bmi": 31.2,
+  "diagnosis": "Type 2 Diabetes Mellitus",
+  "lab_values": {
+    "fasting_glucose_mgdl": 156,
+    "hba1c_percent": 7.8,
+    "total_cholesterol_mgdl": 245,
+    "ldl_cholesterol_mgdl": 158,
+    "hdl_cholesterol_mgdl": 42,
+    "triglycerides_mgdl": 225,
+    "creatinine_mgdl": 0.9,
+    "alt_ul": 28,
+    "ast_ul": 24
+  },
+  "medications": [
+    "Metformin 1000mg BID",
+    "Atorvastatin 20mg daily"
+  ],
+  "family_history": {
+    "diabetes": true,
+    "cardiovascular_disease": true,
+    "cancer": false
+  },
+  "lifestyle": {
+    "smoking": "never",
+    "alcohol": "occasional",
+    "exercise": "sedentary"
+  }
+}

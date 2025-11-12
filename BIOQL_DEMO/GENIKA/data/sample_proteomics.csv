@@ -1,0 +1,11 @@
+protein_id,gene_name,protein_name,expression_level,p_value,ptm_sites,confidence
+P35568,IRS1,Insulin receptor substrate 1,2.34,0.001,"Y612;Y632;S307",0.95
+P04150,GCG,Glucagon,1.87,0.003,"S61",0.92
+P01308,INS,Insulin,-1.45,0.002,"",0.89
+P10275,AR,Androgen receptor,0.87,0.045,"S213;S791",0.76
+P35354,PTGS2,Prostaglandin G/H synthase 2,3.21,0.0001,"Y385",0.97
+P05067,APP,Amyloid beta precursor protein,1.23,0.012,"T668;S655",0.85
+P04637,TP53,Cellular tumor antigen p53,2.11,0.004,"S15;S20;T55",0.91
+P01112,HRAS,GTPase HRas,0.94,0.038,"",0.72
+P42574,CASP3,Caspase-3,-2.34,0.001,"",0.93
+P31751,AKT1,RAC-alpha serine/threonine-protein kinase,1.67,0.007,"S473;T308",0.88

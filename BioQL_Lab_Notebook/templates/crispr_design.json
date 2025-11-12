@@ -1,0 +1,218 @@
+{
+  "metadata": {
+    "title": "CRISPR Guide Sequence Design",
+    "description": "Comprehensive CRISPR/Cas9 guide RNA design pipeline with off-target analysis, specificity scoring, and experimental validation predictions",
+    "category": "Genome Engineering",
+    "difficulty": "Intermediate",
+    "estimated_runtime": "30-60 minutes",
+    "estimated_cost": "$5-15 per target",
+    "tags": ["CRISPR", "Cas9", "genome-editing", "sgRNA", "guide-design", "off-target"],
+    "version": "1.0",
+    "created": "2025-10-25"
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "source": "# CRISPR/Cas9 Guide RNA Design\n\n## Objective\nDesign highly specific and efficient guide RNAs (gRNAs) for CRISPR/Cas9-mediated genome editing with minimal off-target effects.\n\n## Scientific Background\n\n### CRISPR/Cas9 System\nThe CRISPR/Cas9 system consists of:\n- **Cas9 nuclease**: Programmable DNA endonuclease\n- **Guide RNA (gRNA)**: 20-nucleotide sequence directing Cas9 to target\n- **PAM sequence**: Protospacer adjacent motif (NGG for SpCas9) required adjacent to target\n\n### Guide RNA Design Criteria\n\n**On-target efficiency:**\n- Position in gene (early exons better for knockouts)\n- GC content (40-60% optimal)\n- Sequence features (avoid poly-T, repeats)\n- Chromatin accessibility\n- Secondary structure avoidance\n\n**Off-target specificity:**\n- Genome-wide mismatch tolerance\n- CFD (cutting frequency determination) score\n- Position-dependent mismatch effects\n- Seed region importance (8-12 bp closest to PAM)\n\n**Experimental success factors:**\n- No SNPs in target site\n- Avoid repetitive regions\n- Consider homopolymer runs\n- Validate in relevant cell type\n\n## This Workflow Provides\n- Optimized guide designs ranked by on-target efficiency\n- Comprehensive off-target analysis\n- Primer design for validation\n- Homology arm design for HDR\n- Predicted outcomes (NHEJ, HDR efficiency)"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Input: Define Target\n\nSpecify what you want to edit.\n\n**Options:**\n1. Gene name (will find optimal cutting sites)\n2. Genomic coordinates\n3. DNA sequence (custom target)\n4. Mutation to introduce/correct\n\n**Customize**: Replace with your target gene or sequence."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql define_target --gene TP53 --species human --genome hg38 --objective knockout --exon 5",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected:\n- Gene TP53 (tumor suppressor) identified\n- Genome: Human GRCh38/hg38\n- Target: Exon 5 (contains DNA binding domain)\n- Genomic coordinates: chr17:7,676,154-7,676,594\n- Transcript: ENST00000269305.9\n- Coding sequence loaded\n\n**Objective:** Knockout by frameshift in early functional domain"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Step 1: Find All Potential Guide Sites\n\nScan target region for all possible guide sequences with valid PAM.\n\n**Cas9 variants supported:**\n- SpCas9 (PAM: NGG) - most common\n- SpCas9-NG (PAM: NG) - relaxed PAM\n- xCas9 (PAM: NG, GAA, GAT)\n- Cas12a/Cpf1 (PAM: TTTV)\n- SaCas9 (PAM: NNGRRT)\n\n**Customize**: Choose Cas9 variant based on your system."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql find_guides --cas_type SpCas9 --pam NGG --region exon5 --include_strand both --min_distance_from_boundary 10",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: All potential guides identified\n\n**Results:**\n- 47 potential guide sequences found\n- 23 on forward strand\n- 24 on reverse strand\n- All with valid NGG PAM\n- Filtered: >10 bp from exon boundaries\n\n**Next:** Score and rank guides by predicted performance"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Step 2: On-Target Efficiency Scoring\n\nPredict cutting efficiency using multiple algorithms.\n\n**Scoring methods:**\n- **Doench 2016 (Rule Set 2)**: ML model trained on large dataset\n- **Moreno-Mateos**: Zebrafish-trained, generalizes well\n- **DeepHF**: Deep learning model for high-fidelity Cas9\n- **CRISPRscan**: Position-specific scoring\n- **Azimuth**: Web-based comprehensive scoring\n\n**Customize**: Choose methods or use consensus ranking."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql score_ontarget --methods doench2016,deepHF,azimuth --weights 0.4,0.3,0.3 --filter_low_scorers cutoff:0.3",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Guides scored and ranked\n\n**Top 10 guides by on-target efficiency:**\n\n| Rank | Guide ID | Sequence (5'→3') | PAM | Doench | DeepHF | Azimuth | Consensus | GC% |\n|------|----------|------------------|-----|--------|--------|---------|-----------|-----|\n| 1 | TP53_E5_G12 | GGAGGAGCCGCAGTCAGATC | CGG | 0.78 | 0.82 | 0.75 | 0.78 | 60% |\n| 2 | TP53_E5_G08 | CTTGCCACAGGTCTCCCCAA | GGG | 0.72 | 0.75 | 0.71 | 0.73 | 55% |\n| 3 | TP53_E5_G23 | TCCCAGCTACTCCCCGCCGG | GGG | 0.70 | 0.73 | 0.68 | 0.70 | 70% |\n| 4 | TP53_E5_G15 | AGTTGCAAACCAGACCTCAG | GGG | 0.68 | 0.69 | 0.66 | 0.68 | 50% |\n| 5 | TP53_E5_G31 | GTCAGATCCTAGCGTCGAGC | CGG | 0.66 | 0.70 | 0.64 | 0.67 | 60% |\n\n**Filtered out:** 12 guides with consensus score <0.3"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Step 3: Off-Target Analysis\n\nComprehensive genome-wide search for potential off-target sites.\n\n**Analysis includes:**\n- 0-4 mismatch tolerance\n- DNA and RNA bulges\n- Position-weighted scoring (seed region critical)\n- CFD (Cutting Frequency Determination) scores\n- Chromatin accessibility at off-targets\n\n**Customize**: Adjust stringency based on application (research vs clinical)."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql analyze_offtargets --genome hg38 --mismatches 0:4 --include_bulges --score_method cfd --filter_noncoding --annotate_genes --specificity_threshold 50",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Off-target analysis for top guides\n\n**Guide: TP53_E5_G12 (Top on-target)**\n\n**Off-target summary:**\n- 0 mismatches: 1 (on-target only) ✓\n- 1 mismatch: 0 ✓\n- 2 mismatches: 3 (all in intergenic regions) ✓\n- 3 mismatches: 47 (2 in exons, 45 intergenic)\n- 4 mismatches: 234 (mostly low CFD scores)\n\n**High-risk off-targets (CFD > 0.2):**\n1. chr11:47,234,567 - 2mm (GG→AA) - Intron of MYBPC3 - CFD: 0.31\n2. chr7:92,134,221 - 3mm (seed +1) - Intergenic - CFD: 0.23\n\n**Specificity Score:** 87/100 (high specificity)\n\n**Guide: TP53_E5_G08 (Rank 2)**\n\n**Off-target summary:**\n- 0 mismatches: 1 ✓\n- 1 mismatch: 2 (both intergenic, low CFD) ⚠\n- 2 mismatches: 12\n- 3 mismatches: 89\n\n**High-risk off-targets:**\n1. chr9:34,567,123 - 1mm (position 15) - Intron of CDKN2A - CFD: 0.45 ⚠\n\n**Specificity Score:** 72/100 (moderate)\n\n**Recommendation:** G12 has better specificity than G08 despite similar on-target scores"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Step 4: Sequence Feature Analysis\n\nCheck for sequence features that may affect performance.\n\n**Evaluated features:**\n- Homopolymer runs (≥4 identical bases)\n- Secondary structure (gRNA folding)\n- GC content distribution\n- Microsatellite repeats\n- Common SNPs in target site\n\n**Customize**: Adjust thresholds based on your tolerance."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql check_sequence_features --check_snps dbSNP155 --check_repeats --secondary_structure --homopolymers max:4 --flag_issues",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Feature analysis results\n\n**Guide TP53_E5_G12:**\n- Homopolymers: None ✓\n- GC content: 60% (optimal) ✓\n- Secondary structure: ΔG = -2.1 kcal/mol (minimal) ✓\n- Common SNPs (MAF >1%): None ✓\n- Repeats: None ✓\n- **Overall: PASS - No issues detected**\n\n**Guide TP53_E5_G08:**\n- Homopolymers: CCCC at positions 12-15 ⚠\n- GC content: 55% ✓\n- Secondary structure: ΔG = -1.8 kcal/mol ✓\n- SNPs: rs1234567 (MAF 2.3%) at position 18 ⚠\n- **Overall: CAUTION - Poly-C stretch and SNP may affect efficiency**"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Step 5: Multi-Parameter Ranking\n\nCombine all criteria to select best guides.\n\n**Scoring components:**\n- On-target efficiency (40%)\n- Off-target specificity (40%)\n- Sequence features (10%)\n- Position in gene (10%)\n\n**Customize**: Adjust weights based on priorities."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql rank_guides --criteria ontarget:0.4,specificity:0.4,features:0.1,position:0.1 --select_top 5 --diversity_filter 50bp",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Final ranked guide list\n\n**Top 5 Recommended Guides:**\n\n| Rank | Guide | Sequence | Position | Ontarget | Specificity | Features | Overall |\n|------|-------|----------|----------|----------|-------------|----------|----------|\n| 1 | TP53_E5_G12 | GGAGGAGCCGCAGTCAGATC | chr17:7,676,234 | 0.78 | 0.87 | 1.0 | 0.85 |\n| 2 | TP53_E5_G31 | GTCAGATCCTAGCGTCGAGC | chr17:7,676,305 | 0.67 | 0.91 | 1.0 | 0.81 |\n| 3 | TP53_E5_G23 | TCCCAGCTACTCCCCGCCGG | chr17:7,676,278 | 0.70 | 0.82 | 0.9 | 0.78 |\n| 4 | TP53_E5_G15 | AGTTGCAAACCAGACCTCAG | chr17:7,676,256 | 0.68 | 0.85 | 0.95 | 0.77 |\n| 5 | TP53_E5_G08 | CTTGCCACAGGTCTCCCCAA | chr17:7,676,198 | 0.73 | 0.72 | 0.75 | 0.73 |\n\n**Recommendation:** Test guides 1, 2, and 3 experimentally\n\n**Expected outcomes:**\n- All three should produce indels\n- G12 likely highest efficiency\n- G31 highest specificity\n- G23 good balance"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Step 6: Design Oligonucleotides\n\nGenerate oligo sequences for cloning into expression vectors.\n\n**Vector options:**\n- pSpCas9(BB)-2A-GFP (PX458)\n- pSpCas9(BB)-2A-Puro (PX459)\n- pLentiCRISPR v2\n- Custom vector\n\n**Customize**: Specify your vector and overhangs."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql design_oligos --guides top_3 --vector px459 --overhangs_forward CACCG --overhangs_reverse AAAC --phosphorylate_5prime --output_format idtorder",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Cloning oligos ready to order\n\n**Guide 1 (TP53_E5_G12):**\n- Forward: 5'-CACCG**GGAGGAGCCGCAGTCAGATC**-3'\n- Reverse: 5'-AAAC**GATCTGACTGCGGCTCCTCC**-3'\n- Length: 25 bp + overhangs\n- Tm: 72°C\n- Desalt purification recommended\n\n**Guide 2 (TP53_E5_G31):**\n- Forward: 5'-CACCG**GTCAGATCCTAGCGTCGAGC**-3'\n- Reverse: 5'-AAAC**GCTCGACGCTAGGATCTGAC**-3'\n\n**Guide 3 (TP53_E5_G23):**\n- Forward: 5'-CACCG**TCCCAGCTACTCCCCGCCGG**-3'\n- Reverse: 5'-AAAC**CCGGCGGGGAGTAGCTGGGA**-3'\n\n**IDT Order format exported:** guides_for_ordering.xlsx\n\n**Cloning protocol:**\n1. Anneal complementary oligos (95°C → 25°C)\n2. Digest pX459 with BbsI\n3. Ligate annealed oligos into vector\n4. Transform and verify by sequencing"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Step 7: Validation Primer Design\n\nDesign primers for PCR amplification and Sanger sequencing to validate editing.\n\n**Primer requirements:**\n- Flank target site (250-500 bp amplicon)\n- Avoid primer sites with common SNPs\n- Tm 58-62°C\n- GC content 40-60%\n- Compatible with Sanger sequencing\n\n**Customize**: Adjust amplicon size based on needs."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql design_primers --purpose validation --amplicon_size 400-500 --primers_distance_from_cut 150-200 --tm_range 58:62 --avoid_snps --output_format benchling",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Validation primer pairs\n\n**Primer Set for TP53 Exon 5 Editing:**\n\n**Forward Primer (TP53_E5_Val_F):**\n- Sequence: 5'-TCCCAAGCAATGGATGATTTGA-3'\n- Position: chr17:7,676,084 (150 bp upstream of G12)\n- Length: 22 bp\n- Tm: 60.2°C\n- GC: 45%\n\n**Reverse Primer (TP53_E5_Val_R):**\n- Sequence: 5'-TGGAGGAGCCACAAGTCTGT-3'\n- Position: chr17:7,676,530 (180 bp downstream)\n- Length: 20 bp\n- Tm: 59.8°C\n- GC: 55%\n\n**Amplicon:**\n- Size: 446 bp\n- Cut site: 234 bp from 5' end (good for sequencing)\n- No SNPs in primer binding sites ✓\n\n**Sequencing Primer (uses Forward primer):**\nSequence from 5' end will reveal indels clearly\n\n**Protocol:**\n1. PCR amplify edited region\n2. Run on gel to check amplicon size\n3. Sanger sequence with forward primer\n4. Analyze chromatogram for double peaks (indels)"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Step 8: Predict Editing Outcomes\n\nPredict likely indel patterns and consequences.\n\n**Analysis:**\n- Microhomology-mediated deletions\n- Frequency of different indel sizes\n- Frameshift vs in-frame predictions\n- Protein consequences\n\n**Models used:**\n- inDelphi: Deep learning indel prediction\n- FORECasT: Frameshift frequency\n- Lindel: Microhomology-based prediction\n\n**Customize**: Choose model based on cell type data availability."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql predict_outcomes --guide TP53_E5_G12 --model indelphi --cell_type HEK293T --top_outcomes 10 --translate_frame",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Predicted editing outcomes\n\n**Predicted Indel Spectrum (Top 10):**\n\n| Rank | Indel | Frequency | Type | Frame | Protein Effect |\n|------|-------|-----------|------|-------|----------------|\n| 1 | +1 A | 24% | Insertion | -1 | Frameshift → PTC at +15 aa |\n| 2 | Δ1 | 18% | Deletion | -1 | Frameshift → PTC at +22 aa |\n| 3 | Δ3 | 12% | Deletion | 0 | In-frame, Δ1 aa (may retain function) |\n| 4 | +1 T | 11% | Insertion | -1 | Frameshift → PTC at +15 aa |\n| 5 | Δ7 | 8% | Deletion | -1 | Frameshift → PTC at +8 aa |\n| 6 | Δ2 | 7% | Deletion | +1 | Frameshift → PTC at +35 aa |\n| 7 | Δ9 | 5% | Deletion | 0 | In-frame, Δ3 aa |\n| 8 | Δ11 | 4% | Deletion | +1 | Frameshift → PTC at +12 aa |\n| 9 | +1 G | 3% | Insertion | -1 | Frameshift → PTC at +15 aa |\n| 10 | Δ4 | 3% | Deletion | -1 | Frameshift → PTC at +18 aa |\n\n**Summary:**\n- **Frameshift indels: 77%** (desired for knockout)\n- **In-frame indels: 17%** (may retain partial function)\n- **WT: ~6%** (no editing or precise HDR)\n\n**Protein prediction:**\n- Most frameshifts introduce premature termination codons (PTC)\n- mRNA likely degraded by nonsense-mediated decay (NMD)\n- Expected result: Loss of TP53 protein (knockout)\n\n**Interpretation:** This guide is excellent for knockout (high frameshift rate)"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Step 9: HDR Template Design (Optional)\n\nIf performing knock-in or precise correction, design homology-directed repair template.\n\n**Template types:**\n- ssODN (single-strand oligonucleotide, <200 bp)\n- dsDNA donor (plasmid or PCR product)\n- AAV vector (for in vivo)\n\n**Design parameters:**\n- Homology arm length (40-90 bp for ssODN, 500-1000 bp for dsDNA)\n- Silent mutations to prevent re-cutting\n- Orientation (sense vs antisense for ssODN)\n\n**Customize**: Skip if doing knockout only."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql design_hdr_template --guide TP53_E5_G12 --template_type ssODN --homology_arms 60bp --edit_type point_mutation --mutation R175H --block_recut --strand antisense",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: HDR donor template design\n\n**HDR Template (ssODN) for R175H Mutation:**\n\n**Target:** Introduce R175H hotspot mutation (CGC → CAC)\n\n**Template sequence (180 bp total):**\n```\n5'-[60 bp left homology]---[EDIT + PAM disruption]---[60 bp right homology]-3'\n\n5'-TCACTTGTGCCCTGACTTTCAACTCTGTCTCCTTCCTCTTCCTACAGTACTCCCCTGCCCTCAAC\n   AAGATGTTTTGCCAACTGGCC**CAC**GAGACGCCTCACATCCTCACCATCATCACACTGGAAGAC\n   TCCAGTGGGAACCTTCTGGGACGGGACAGCTTTGAGGTGCGTGTTTGTGCCTGTCCTGGGAGAG-3'\n```\n\n**Key features:**\n- Mutation: CG**C** → CA**C** (R175H)\n- Silent PAM disruption: C**CGG** → C**TGG** (prevents re-cutting)\n- Additional silent mutations at positions +3, +6 to increase HDR over NHEJ\n- Antisense strand (better HDR efficiency)\n- Total length: 180 nt (within ssODN optimal range)\n\n**Expected HDR efficiency:** 5-15% (typical for ssODN)\n\n**Controls needed:**\n- Guide without donor (NHEJ only)\n- Donor without guide (no editing)\n- Untreated cells\n\n**Analysis:**\n- PCR + Sanger sequencing (R175H = HindIII site loss)\n- Restriction fragment length polymorphism (RFLP)\n- NGS for precise quantification"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Step 10: Delivery Strategy Recommendations\n\nOptimal delivery method based on cell type and application.\n\n**Delivery formats:**\n- Plasmid (transient expression)\n- mRNA + synthetic gRNA (RNP)\n- Lentiviral (stable expression)\n- AAV (in vivo)\n- Electroporation (RNP or plasmid)\n\n**Customize**: Specify your cell type."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql recommend_delivery --cell_type HEK293T --application knockout --duration transient --optimize_for efficiency",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Delivery recommendations\n\n**Recommended Method: RNP Electroporation**\n\n**Rationale:**\n- HEK293T are easily transfectable\n- RNP = fastest editing kinetics (minutes vs hours)\n- Lower off-target activity (transient presence)\n- No plasmid integration concerns\n\n**Protocol:**\n1. **Prepare RNP:**\n   - Cas9 protein: 1 μg (61 pmol)\n   - gRNA: 120 ng (60 pmol)\n   - Molar ratio 1:1\n   - Incubate 10 min at RT\n\n2. **Electroporation:**\n   - 200,000 cells in 20 μL\n   - Neon system: 1400V, 20ms, 2 pulses\n   - Or Lonza 4D: Program CA-137\n\n3. **Recovery:**\n   - Plate in antibiotic-free media\n   - Incubate 48-72h before analysis\n\n**Expected Results:**\n- Editing efficiency: 60-80%\n- Cell viability: >85%\n- Clonal isolation ready after 7 days\n\n**Alternative (cheaper but lower efficiency): Plasmid Transfection**\n- Use Lipofectamine 3000 or PEI\n- 2 μg pX459 plasmid\n- Puromycin selection (1 μg/mL, 48h)\n- Expected efficiency: 40-60%"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Step 11: Experimental Timeline & Checklist\n\nComplete workflow from design to validation.\n\n**Customize**: Adjust timeline for your specific project."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql generate_protocol --guides selected_guides --include_timeline --include_materials --include_controls --format pdf",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Comprehensive experimental protocol\n\n## Experimental Timeline (3-4 weeks)\n\n### Week 1: Preparation\n- **Day 1-2:** Order oligos and primers (IDT, 2-day delivery)\n- **Day 3:** Receive and resuspend oligos\n- **Day 4:** Anneal oligos, digest vector, ligate\n- **Day 5:** Transform, mini-prep 3 colonies per guide\n- **Day 6-7:** Sanger sequence to verify inserts\n\n### Week 2: Transfection & Editing\n- **Day 8:** Seed cells for transfection\n- **Day 9:** Transfect with validated guide plasmids\n- **Day 10-11:** Incubate, add selection if using puromycin\n- **Day 12:** Remove selection, expand cells\n- **Day 13-14:** Expand edited pool\n\n### Week 3: Analysis\n- **Day 15:** Harvest cells, extract genomic DNA\n- **Day 16:** PCR amplify target region\n- **Day 17:** Run gel, purify PCR products\n- **Day 18:** Send for Sanger sequencing\n- **Day 19:** Receive sequences, analyze TIDE or ICE\n- **Day 20-21:** NGS if needed for detailed analysis\n\n### Week 4: Clonal Isolation (if needed)\n- **Day 22:** Single-cell sort or limiting dilution\n- **Day 23-28:** Expand clones (7-10 days)\n- **Day 29-30:** Screen clones by PCR + sequencing\n\n## Materials Needed\n\n**Molecular Biology:**\n- [ ] Guide oligos (ordered)\n- [ ] pX459 or other CRISPR vector\n- [ ] BbsI restriction enzyme\n- [ ] T4 DNA ligase\n- [ ] Competent cells (Stbl3 or DH5α)\n- [ ] Miniprep kit\n- [ ] Validation primers\n- [ ] PCR master mix\n- [ ] Gel extraction kit\n\n**Cell Culture:**\n- [ ] HEK293T cells\n- [ ] DMEM + 10% FBS\n- [ ] Transfection reagent (Lipofectamine 3000 or RNP electroporation)\n- [ ] Puromycin (if using pX459)\n- [ ] 6-well and 96-well plates\n\n**Analysis:**\n- [ ] Genomic DNA extraction kit\n- [ ] Sanger sequencing service\n- [ ] TIDE or ICE analysis software (web-based, free)\n- [ ] Optional: NGS library prep kit\n\n## Controls\n\n**Essential:**\n1. Untransfected cells (negative control)\n2. Empty vector or non-targeting guide (transfection control)\n3. Known working guide (positive control)\n\n**Optional:**\n4. Multiple independent guide RNAs (validates phenotype)\n5. Rescue experiment (re-express WT gene)"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Step 12: Analysis of Results\n\nAfter experiments, analyze editing efficiency.\n\n**Analysis methods:**\n- TIDE (Tracking of Indels by Decomposition)\n- ICE (Inference of CRISPR Edits)\n- NGS (Next-generation sequencing - most accurate)\n- Sanger + manual inspection\n\n**Customize**: Upload your Sanger data for analysis."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql analyze_editing --method TIDE --control_trace WT_sequence.ab1 --edited_traces edited_*.ab1 --guide_location 234 --calculate_frameshift",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Editing efficiency results\n\n**TIDE Analysis Results:**\n\n**Guide 1 (TP53_E5_G12):**\n- Editing efficiency: 72%\n- Frameshift indels: 68%\n- In-frame indels: 4%\n- Wild-type: 28%\n- Most common indel: +1A (28%), Δ1 (22%), Δ3 (8%)\n- **Conclusion: Excellent knockout efficiency**\n\n**Guide 2 (TP53_E5_G31):**\n- Editing efficiency: 58%\n- Frameshift indels: 54%\n- In-frame indels: 4%\n- Wild-type: 42%\n- **Conclusion: Good efficiency, high specificity maintained**\n\n**Guide 3 (TP53_E5_G23):**\n- Editing efficiency: 45%\n- Frameshift indels: 41%\n- In-frame indels: 4%\n- Wild-type: 55%\n- **Conclusion: Moderate efficiency**\n\n**Recommendation:** Use Guide 1 (G12) for further experiments\n\n**Next steps:**\n- Isolate single-cell clones\n- Screen ~20 clones by PCR + sequencing\n- Identify homozygous knockouts (typically 10-30% of clones)\n- Validate protein knockout by Western blot"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Advanced: Multiplex CRISPR Design\n\nDesign guides for simultaneous editing of multiple targets.\n\n**Applications:**\n- Large deletions (2 guides flanking region)\n- Multi-gene knockouts\n- Complex genomic rearrangements\n\n**Customize**: Add additional targets if needed."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql design_multiplex --targets TP53:exon5,MDM2:exon3 --ensure_compatibility --avoid_guide_interactions --optimize_order",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Compatible guide pairs for multiplexing\n\n**Multiplex Design: TP53 + MDM2 Knockout**\n\n**Selected Guides:**\n1. TP53_E5_G12 (from above)\n2. MDM2_E3_G05: GAAGAAGCTCGTTGCACGCT (CGG)\n\n**Compatibility Analysis:**\n- No sequence similarity (prevents cross-reactivity) ✓\n- Different PAM locations (reduces competition) ✓\n- No predicted guide-guide interactions ✓\n- Similar predicted efficiencies (balanced editing) ✓\n\n**Delivery:**\n- Clone both guides into dual-guide vector (pX462)\n- Or deliver as two separate plasmids (50:50 ratio)\n- Or RNP with both guides simultaneously\n\n**Expected:**\n- Double-edited cells: 30-50% (TP53⁻/⁻ MDM2⁻/⁻)\n- Single-edited: 20-30% each\n- Unedited: 10-20%\n\n**Screening:**\n- PCR both loci simultaneously\n- Sanger sequence or NGS\n- Confirm genotype of clones"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Generate Comprehensive Guide Report\n\nCreate final report with all designs and protocols.\n\n**Customize**: Choose sections for your report."
+    },
+    {
+      "cell_type": "code",
+      "source": "@bioql generate_guide_report --format pdf --include_sequences --include_offtargets --include_protocols --include_ordering_info",
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Expected: Professional CRISPR design report containing:\n\n1. **Executive Summary**\n   - Target gene and objective\n   - Top 3 recommended guides\n   - Expected outcomes\n\n2. **Guide Designs**\n   - Complete sequences\n   - Scoring metrics\n   - Off-target analysis\n   - Feature flags\n\n3. **Ordering Information**\n   - Oligo sequences (ready to copy-paste to IDT)\n   - Primer sequences\n   - HDR templates if applicable\n   - Estimated costs\n\n4. **Protocols**\n   - Cloning protocol\n   - Transfection protocol\n   - Validation protocol\n   - Timeline and checklist\n\n5. **Analysis Tools**\n   - TIDE/ICE instructions\n   - Expected indel patterns\n   - Troubleshooting guide\n\n6. **Appendices**\n   - Full off-target tables\n   - Vector maps\n   - References"
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Troubleshooting & Optimization\n\n### Low Editing Efficiency (<20%)\n\n**Possible causes:**\n1. Poor guide design → Try alternative guides\n2. Low transfection efficiency → Optimize delivery method\n3. Cell type resistant → Try RNP electroporation\n4. Chromatin accessibility → Add HDAC inhibitors\n\n### High Off-Target Activity\n\n**Solutions:**\n1. Use high-fidelity Cas9 variants (SpCas9-HF1, eSpCas9)\n2. Reduce Cas9/gRNA concentration\n3. Truncated guides (17-18 nt instead of 20 nt)\n4. Deliver as RNP (faster clearance)\n\n### Biallelic Editing Needed but Getting Monoallelic\n\n**Solutions:**\n1. Increase Cas9/gRNA dose\n2. Extend incubation time before clonal isolation\n3. Screen more clones (binomial distribution)\n4. Use mRNA/RNP for faster kinetics\n\n### Want Knock-in but Getting Mostly NHEJ\n\n**Solutions:**\n1. Use longer homology arms (90 bp ssODN or dsDNA donor)\n2. Add cell cycle modifiers (RS-1, L755507)\n3. Inhibit NHEJ (SCR7, DNA Ligase IV inhibitors)\n4. Time delivery to S/G2 phase\n5. Use Cas9 nickase (D10A) + paired guides\n\n## Resources & References\n\n**Design Tools:**\n- Benchling CRISPR Design (free, web-based)\n- CRISPOR (off-target analysis)\n- Cas-OFFinder (off-target search)\n- CHOPCHOP (comprehensive design)\n\n**Analysis Tools:**\n- TIDE: https://tide.nki.nl\n- ICE: https://ice.synthego.com\n- CRISPResso2 (NGS analysis)\n\n**Protocols:**\n- Addgene CRISPR guides\n- Broad Institute GPP protocols\n- Synthego CRISPR guides\n\n**Key Papers:**\n- Doench et al. (2016). Optimized sgRNA design. Nat Biotech.\n- Hsu et al. (2013). DNA targeting specificity. Nat Biotech.\n- Allen et al. (2018). Predicting the mutations generated by repair. Nat Biotech.\n- Concordet & Haeussler (2018). CRISPOR: intuitive guide selection. NAR.\n- Richardson et al. (2016). Enhancing HDR with small molecules. Nat Biotech."
+    }
+  ]
+}

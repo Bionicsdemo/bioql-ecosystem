@@ -3,18 +3,20 @@
 Tiered billing system with rate limiting and usage analytics
 """
 
-import sqlite3
+import calendar
 import hashlib
+import sqlite3
 import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional, Dict, Any, Tuple
-import calendar
+from typing import Any, Dict, Optional, Tuple
+
 
 def get_database_path() -> Path:
     """Get the path to the billing database"""
     db_path = Path(__file__).parent.parent / "data" / "databases" / "bioql_billing.db"
     return db_path
+
 
 def authenticate_user(api_key: str) -> Optional[Dict[str, Any]]:
     """Authenticate user by API key and load tier information"""
@@ -29,7 +31,8 @@ def authenticate_user(api_key: str) -> Optional[Dict[str, Any]]:
         cursor = conn.cursor()
 
         # Get user with tier information
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 u.id, u.email, u.name,
                 u.current_plan, u.is_active, u.tier_id,
@@ -43,28 +46,30 @@ def authenticate_user(api_key: str) -> Optional[Dict[str, Any]]:
             JOIN api_keys ak ON u.id = ak.user_id
             LEFT JOIN pricing_tiers t ON u.tier_id = t.id
             WHERE ak.key_hash = ? AND ak.is_active = 1 AND u.is_active = 1
-        """, (api_key_hash,))
+        """,
+            (api_key_hash,),
+        )
 
         result = cursor.fetchone()
         conn.close()
 
         if result:
             return {
-                'user_id': result['id'],
-                'email': result['email'],
-                'name': result['name'] or 'Unknown',
-                'plan': result['current_plan'],
-                'api_key_id': result['api_key_id'],
-                'tier_id': result['tier_id'] or 'tier_free',
-                'tier_name': result['tier_name'] or 'free',
-                'tier_display_name': result['tier_display_name'] or 'Free Trial',
-                'quota_simulator': result['quota_simulator'] or 50,
-                'quota_gpu': result['quota_gpu'] or 10,
-                'quota_quantum': result['quota_quantum'] or 3,
-                'rate_limit_per_minute': result['rate_limit_per_minute'] or 10,
-                'overage_simulator': result['overage_simulator'] or 0.0,
-                'overage_gpu': result['overage_gpu'] or 0.0,
-                'overage_quantum': result['overage_quantum'] or 0.0
+                "user_id": result["id"],
+                "email": result["email"],
+                "name": result["name"] or "Unknown",
+                "plan": result["current_plan"],
+                "api_key_id": result["api_key_id"],
+                "tier_id": result["tier_id"] or "tier_free",
+                "tier_name": result["tier_name"] or "free",
+                "tier_display_name": result["tier_display_name"] or "Free Trial",
+                "quota_simulator": result["quota_simulator"] or 50,
+                "quota_gpu": result["quota_gpu"] or 10,
+                "quota_quantum": result["quota_quantum"] or 3,
+                "rate_limit_per_minute": result["rate_limit_per_minute"] or 10,
+                "overage_simulator": result["overage_simulator"] or 0.0,
+                "overage_gpu": result["overage_gpu"] or 0.0,
+                "overage_quantum": result["overage_quantum"] or 0.0,
             }
 
         return None
@@ -72,6 +77,7 @@ def authenticate_user(api_key: str) -> Optional[Dict[str, Any]]:
     except Exception as e:
         print(f"Authentication error: {e}")
         return None
+
 
 def check_rate_limit(user_id: str, rate_limit: int) -> Tuple[bool, int]:
     """
@@ -86,17 +92,23 @@ def check_rate_limit(user_id: str, rate_limit: int) -> Tuple[bool, int]:
         window_start = now - timedelta(minutes=1)
 
         # Clean old entries
-        cursor.execute("""
+        cursor.execute(
+            """
             DELETE FROM rate_limit_tracker
             WHERE window_end < ?
-        """, (window_start.isoformat(),))
+        """,
+            (window_start.isoformat(),),
+        )
 
         # Get current window count
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT requests_count
             FROM rate_limit_tracker
             WHERE user_id = ? AND window_start >= ?
-        """, (user_id, window_start.isoformat()))
+        """,
+            (user_id, window_start.isoformat()),
+        )
 
         result = cursor.fetchone()
         current_count = result[0] if result else 0
@@ -107,14 +119,21 @@ def check_rate_limit(user_id: str, rate_limit: int) -> Tuple[bool, int]:
 
         # Increment counter
         tracker_id = str(uuid.uuid4())
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT OR REPLACE INTO rate_limit_tracker
             (id, user_id, window_start, window_end, requests_count, created_at)
             VALUES (?, ?, ?, ?, ?, ?)
-        """, (
-            tracker_id, user_id, window_start.isoformat(),
-            now.isoformat(), current_count + 1, now.isoformat()
-        ))
+        """,
+            (
+                tracker_id,
+                user_id,
+                window_start.isoformat(),
+                now.isoformat(),
+                current_count + 1,
+                now.isoformat(),
+            ),
+        )
 
         conn.commit()
         conn.close()
@@ -124,6 +143,7 @@ def check_rate_limit(user_id: str, rate_limit: int) -> Tuple[bool, int]:
     except Exception as e:
         print(f"Rate limit check error: {e}")
         return True, rate_limit  # Fail open
+
 
 def get_monthly_usage(user_id: str) -> Dict[str, int]:
     """Get current month's usage"""
@@ -136,27 +156,31 @@ def get_monthly_usage(user_id: str) -> Dict[str, int]:
         year = now.year
         month = now.month
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT simulator_used, gpu_used, quantum_used
             FROM monthly_usage_summary
             WHERE user_id = ? AND year = ? AND month = ?
-        """, (user_id, year, month))
+        """,
+            (user_id, year, month),
+        )
 
         result = cursor.fetchone()
         conn.close()
 
         if result:
             return {
-                'simulator': result['simulator_used'],
-                'gpu': result['gpu_used'],
-                'quantum': result['quantum_used']
+                "simulator": result["simulator_used"],
+                "gpu": result["gpu_used"],
+                "quantum": result["quantum_used"],
             }
 
-        return {'simulator': 0, 'gpu': 0, 'quantum': 0}
+        return {"simulator": 0, "gpu": 0, "quantum": 0}
 
     except Exception as e:
         print(f"Get usage error: {e}")
-        return {'simulator': 0, 'gpu': 0, 'quantum': 0}
+        return {"simulator": 0, "gpu": 0, "quantum": 0}
+
 
 def check_quota(user_id: str, backend_type: str, user_info: Dict) -> Tuple[bool, str]:
     """
@@ -165,18 +189,18 @@ def check_quota(user_id: str, backend_type: str, user_info: Dict) -> Tuple[bool,
     """
     usage = get_monthly_usage(user_id)
 
-    if backend_type == 'simulator':
-        quota = user_info['quota_simulator']
-        used = usage['simulator']
-        backend_name = 'simulator'
-    elif backend_type == 'gpu':
-        quota = user_info['quota_gpu']
-        used = usage['gpu']
-        backend_name = 'GPU'
-    elif backend_type == 'quantum':
-        quota = user_info['quota_quantum']
-        used = usage['quantum']
-        backend_name = 'quantum'
+    if backend_type == "simulator":
+        quota = user_info["quota_simulator"]
+        used = usage["simulator"]
+        backend_name = "simulator"
+    elif backend_type == "gpu":
+        quota = user_info["quota_gpu"]
+        used = usage["gpu"]
+        backend_name = "GPU"
+    elif backend_type == "quantum":
+        quota = user_info["quota_quantum"]
+        used = usage["quantum"]
+        backend_name = "quantum"
     else:
         return True, ""  # Unknown backend type, allow
 
@@ -185,16 +209,20 @@ def check_quota(user_id: str, backend_type: str, user_info: Dict) -> Tuple[bool,
         return True, ""
 
     if used >= quota:
-        overage_key = f'overage_{backend_type}'
+        overage_key = f"overage_{backend_type}"
         overage_price = user_info.get(overage_key, 0.0)
 
         if overage_price > 0:
             return True, f"⚠️  Quota exceeded. Overage billing at ${overage_price}/request"
         else:
-            return False, f"❌ Monthly {backend_name} quota exceeded ({used}/{quota}). Upgrade tier or wait for next billing cycle."
+            return (
+                False,
+                f"❌ Monthly {backend_name} quota exceeded ({used}/{quota}). Upgrade tier or wait for next billing cycle.",
+            )
 
     remaining = quota - used
     return True, f"✅ Quota remaining: {remaining}/{quota}"
+
 
 def increment_usage(user_id: str, backend_type: str, count: int = 1) -> None:
     """Increment monthly usage counter"""
@@ -209,19 +237,23 @@ def increment_usage(user_id: str, backend_type: str, count: int = 1) -> None:
         summary_id = str(uuid.uuid4())
 
         # Get current tier quotas
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT quota_simulator, quota_gpu, quota_quantum
             FROM pricing_tiers t
             JOIN users u ON u.tier_id = t.id
             WHERE u.id = ?
-        """, (user_id,))
+        """,
+            (user_id,),
+        )
 
         quotas = cursor.fetchone()
         if not quotas:
             quotas = (50, 10, 3)  # Default free tier
 
         # Update or insert monthly summary
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO monthly_usage_summary (
                 id, user_id, year, month,
                 simulator_used, gpu_used, quantum_used,
@@ -233,18 +265,26 @@ def increment_usage(user_id: str, backend_type: str, count: int = 1) -> None:
                 gpu_used = gpu_used + ?,
                 quantum_used = quantum_used + ?,
                 updated_at = ?
-        """, (
-            summary_id, user_id, year, month,
-            count if backend_type == 'simulator' else 0,
-            count if backend_type == 'gpu' else 0,
-            count if backend_type == 'quantum' else 0,
-            quotas[0], quotas[1], quotas[2],
-            now.isoformat(), now.isoformat(),
-            count if backend_type == 'simulator' else 0,
-            count if backend_type == 'gpu' else 0,
-            count if backend_type == 'quantum' else 0,
-            now.isoformat()
-        ))
+        """,
+            (
+                summary_id,
+                user_id,
+                year,
+                month,
+                count if backend_type == "simulator" else 0,
+                count if backend_type == "gpu" else 0,
+                count if backend_type == "quantum" else 0,
+                quotas[0],
+                quotas[1],
+                quotas[2],
+                now.isoformat(),
+                now.isoformat(),
+                count if backend_type == "simulator" else 0,
+                count if backend_type == "gpu" else 0,
+                count if backend_type == "quantum" else 0,
+                now.isoformat(),
+            ),
+        )
 
         conn.commit()
         conn.close()
@@ -252,26 +292,27 @@ def increment_usage(user_id: str, backend_type: str, count: int = 1) -> None:
     except Exception as e:
         print(f"Increment usage error: {e}")
 
+
 def calculate_backend_cost(backend: str, backend_type: str, shots: int, user_info: Dict) -> float:
     """Calculate cost based on backend type and pricing tier from database"""
 
     # Base pricing per shot (within quota) - 50% of overage price
     base_pricing = {
-        'simulator': 0.00005,  # Half of overage ($0.0001)
-        'gpu': 0.005,  # Half of overage ($0.01)
-        'quantum': 2.5,  # Half of overage ($5.0)
+        "simulator": 0.00005,  # Half of overage ($0.0001)
+        "gpu": 0.005,  # Half of overage ($0.01)
+        "quantum": 2.5,  # Half of overage ($5.0)
     }
 
     # Check for overage
-    usage = get_monthly_usage(user_info['user_id'])
-    quota_key = f'quota_{backend_type}'
+    usage = get_monthly_usage(user_info["user_id"])
+    quota_key = f"quota_{backend_type}"
     usage_key = backend_type
 
     quota = user_info.get(quota_key, 0)
     used = usage.get(usage_key, 0)
 
     if used >= quota and quota < 999999:  # Over quota - use overage pricing
-        overage_key = f'overage_{backend_type}'
+        overage_key = f"overage_{backend_type}"
         # Get overage price from user's tier (from database)
         cost_per_shot = user_info.get(overage_key, base_pricing.get(backend_type, 0.0))
     else:
@@ -282,9 +323,20 @@ def calculate_backend_cost(backend: str, backend_type: str, shots: int, user_inf
     total_cost = cost_per_shot * shots
     return total_cost
 
-def log_usage(user_id: str, api_key_id: str, program: str, backend: str, shots: int,
-              success: bool, execution_time: float, error_message: str = None,
-              cost: float = 0.0, result_data: Dict = None, user_info: Dict = None) -> None:
+
+def log_usage(
+    user_id: str,
+    api_key_id: str,
+    program: str,
+    backend: str,
+    shots: int,
+    success: bool,
+    execution_time: float,
+    error_message: str = None,
+    cost: float = 0.0,
+    result_data: Dict = None,
+    user_info: Dict = None,
+) -> None:
     """Log quantum usage with tier-aware pricing"""
 
     try:
@@ -309,15 +361,25 @@ def log_usage(user_id: str, api_key_id: str, program: str, backend: str, shots: 
         algorithm = classify_algorithm(program)
 
         # Insert usage log (using only columns that exist in the table)
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO usage_logs (
                 id, user_id, api_key_id, shots_executed, backend_used,
                 algorithm_type, total_cost, execution_time, created_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            usage_id, user_id, api_key_id, shots if success else 0, backend,
-            algorithm, real_cost, execution_time, now
-        ))
+        """,
+            (
+                usage_id,
+                user_id,
+                api_key_id,
+                shots if success else 0,
+                backend,
+                algorithm,
+                real_cost,
+                execution_time,
+                now,
+            ),
+        )
 
         # Increment usage counter
         if success:
@@ -329,14 +391,16 @@ def log_usage(user_id: str, api_key_id: str, program: str, backend: str, shots: 
         conn.commit()
         conn.close()
 
-        tier_name = user_info.get('tier_display_name', 'Unknown') if user_info else 'Unknown'
+        tier_name = user_info.get("tier_display_name", "Unknown") if user_info else "Unknown"
         print(f"💰 [{tier_name}] {user_id[:8]}... | {backend_type} | ${real_cost:.4f}")
 
     except Exception as e:
         print(f"Billing error: {e}")
 
-def update_usage_analytics(user_id: str, backend_type: str, success: bool,
-                          execution_time: float, cost: float) -> None:
+
+def update_usage_analytics(
+    user_id: str, backend_type: str, success: bool, execution_time: float, cost: float
+) -> None:
     """Update usage analytics for the current period"""
     try:
         conn = sqlite3.connect(str(get_database_path()), timeout=10.0)
@@ -350,7 +414,8 @@ def update_usage_analytics(user_id: str, backend_type: str, success: bool,
 
         analytics_id = str(uuid.uuid4())
 
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO usage_analytics (
                 id, user_id, period_start, period_end,
                 total_requests, simulator_requests, gpu_requests, quantum_requests,
@@ -372,40 +437,47 @@ def update_usage_analytics(user_id: str, backend_type: str, success: bool,
                 gpu_cost = gpu_cost + ?,
                 quantum_cost = quantum_cost + ?,
                 updated_at = ?
-        """, (
-            analytics_id, user_id,
-            period_start.isoformat(), period_end.isoformat(),
-            1,  # total_requests
-            1 if backend_type == 'simulator' else 0,
-            1 if backend_type == 'gpu' else 0,
-            1 if backend_type == 'quantum' else 0,
-            1 if success else 0,
-            0 if success else 1,
-            execution_time, execution_time,
-            cost,
-            cost if backend_type == 'simulator' else 0,
-            cost if backend_type == 'gpu' else 0,
-            cost if backend_type == 'quantum' else 0,
-            now.isoformat(), now.isoformat(),
-            # ON CONFLICT updates
-            1 if backend_type == 'simulator' else 0,
-            1 if backend_type == 'gpu' else 0,
-            1 if backend_type == 'quantum' else 0,
-            1 if success else 0,
-            0 if success else 1,
-            execution_time,
-            cost,
-            cost if backend_type == 'simulator' else 0,
-            cost if backend_type == 'gpu' else 0,
-            cost if backend_type == 'quantum' else 0,
-            now.isoformat()
-        ))
+        """,
+            (
+                analytics_id,
+                user_id,
+                period_start.isoformat(),
+                period_end.isoformat(),
+                1,  # total_requests
+                1 if backend_type == "simulator" else 0,
+                1 if backend_type == "gpu" else 0,
+                1 if backend_type == "quantum" else 0,
+                1 if success else 0,
+                0 if success else 1,
+                execution_time,
+                execution_time,
+                cost,
+                cost if backend_type == "simulator" else 0,
+                cost if backend_type == "gpu" else 0,
+                cost if backend_type == "quantum" else 0,
+                now.isoformat(),
+                now.isoformat(),
+                # ON CONFLICT updates
+                1 if backend_type == "simulator" else 0,
+                1 if backend_type == "gpu" else 0,
+                1 if backend_type == "quantum" else 0,
+                1 if success else 0,
+                0 if success else 1,
+                execution_time,
+                cost,
+                cost if backend_type == "simulator" else 0,
+                cost if backend_type == "gpu" else 0,
+                cost if backend_type == "quantum" else 0,
+                now.isoformat(),
+            ),
+        )
 
         conn.commit()
         conn.close()
 
     except Exception as e:
         print(f"Analytics update error: {e}")
+
 
 def estimate_qubits_from_program(program: str) -> int:
     """Estimate number of qubits from program description"""
@@ -427,6 +499,7 @@ def estimate_qubits_from_program(program: str) -> int:
 
     return 2
 
+
 def classify_algorithm(program: str) -> str:
     """Classify algorithm type from program description"""
     program_lower = program.lower()
@@ -442,18 +515,20 @@ def classify_algorithm(program: str) -> str:
     else:
         return "basic"
 
+
 def classify_backend_type(backend: str) -> str:
     """Classify backend type"""
     backend_lower = backend.lower()
 
-    if 'simulator' in backend_lower or 'aer' in backend_lower or backend_lower == 'sim':
-        return 'simulator'
-    elif 'gpu' in backend_lower or 'vina' in backend_lower or 'modal' in backend_lower:
-        return 'gpu'
-    elif 'ibm' in backend_lower or 'ionq' in backend_lower or 'quantum' in backend_lower:
-        return 'quantum'
+    if "simulator" in backend_lower or "aer" in backend_lower or backend_lower == "sim":
+        return "simulator"
+    elif "gpu" in backend_lower or "vina" in backend_lower or "modal" in backend_lower:
+        return "gpu"
+    elif "ibm" in backend_lower or "ionq" in backend_lower or "quantum" in backend_lower:
+        return "quantum"
     else:
-        return 'simulator'  # Default to simulator
+        return "simulator"  # Default to simulator
+
 
 def get_user_analytics(user_id: str) -> Dict[str, Any]:
     """Get user's usage analytics for current month"""
@@ -465,10 +540,13 @@ def get_user_analytics(user_id: str) -> Dict[str, Any]:
         now = datetime.utcnow()
         period_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT * FROM usage_analytics
             WHERE user_id = ? AND period_start >= ?
-        """, (user_id, period_start.isoformat()))
+        """,
+            (user_id, period_start.isoformat()),
+        )
 
         result = cursor.fetchone()
         conn.close()

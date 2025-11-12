@@ -23,10 +23,10 @@ Physical Constants:
 - Hartree to kcal/mol conversion: 627.509 kcal/mol per Hartree
 """
 
-import numpy as np
-from typing import Dict, List, Tuple, Optional, Any
 import re
+from typing import Any, Dict, List, Optional, Tuple
 
+import numpy as np
 
 # Physical constants
 R_KCAL = 0.001987  # Gas constant in kcal/(mol·K)
@@ -53,47 +53,44 @@ def interpret_bio_results(counts: Dict[str, int], context: Dict[str, Any]) -> Di
     Returns:
         Dictionary with interpreted results specific to the biological application
     """
-    application = context.get('application', 'unknown')
+    application = context.get("application", "unknown")
 
     # DE NOVO DRUG DESIGN - generates new molecules
-    if application == 'drug_design':
-        disease = context.get('disease')
-        target = context.get('target')
-        pdb_id = context.get('pdb_id', '')
-        num_candidates = context.get('num_candidates', 5)
+    if application == "drug_design":
+        disease = context.get("disease")
+        target = context.get("target")
+        pdb_id = context.get("pdb_id", "")
+        num_candidates = context.get("num_candidates", 5)
 
         return interpret_drug_design(
             counts=counts,
             disease=disease,
             target=target,
             pdb_id=pdb_id,
-            num_candidates=num_candidates
+            num_candidates=num_candidates,
         )
 
     # DRUG DOCKING - docks existing molecules
-    elif application in ['drug_discovery', 'molecular_docking']:
-        smiles = context.get('smiles', '')
-        pdb_id = context.get('pdb_id', '')
-        hamiltonian = context.get('hamiltonian', None)
+    elif application in ["drug_discovery", "molecular_docking"]:
+        smiles = context.get("smiles", "")
+        pdb_id = context.get("pdb_id", "")
+        hamiltonian = context.get("hamiltonian", None)
 
         return interpret_drug_docking(
-            counts=counts,
-            smiles=smiles,
-            pdb_id=pdb_id,
-            hamiltonian=hamiltonian
+            counts=counts, smiles=smiles, pdb_id=pdb_id, hamiltonian=hamiltonian
         )
 
-    elif application == 'protein_folding':
+    elif application == "protein_folding":
         return interpret_protein_folding(counts, context)
 
     else:
         # Generic interpretation for unknown contexts
         return {
-            'application': application,
-            'most_probable_state': max(counts.items(), key=lambda x: x[1])[0],
-            'total_shots': sum(counts.values()),
-            'unique_states': len(counts),
-            'raw_counts': counts
+            "application": application,
+            "most_probable_state": max(counts.items(), key=lambda x: x[1])[0],
+            "total_shots": sum(counts.values()),
+            "unique_states": len(counts),
+            "raw_counts": counts,
         }
 
 
@@ -102,7 +99,7 @@ def interpret_drug_design(
     disease: Optional[str] = None,
     target: Optional[str] = None,
     pdb_id: Optional[str] = None,
-    num_candidates: int = 5
+    num_candidates: int = 5,
 ) -> Dict[str, Any]:
     """
     Interpret drug design results - generates novel molecules de novo.
@@ -138,10 +135,7 @@ def interpret_drug_design(
 
     # 2. Generate candidate molecules
     candidates = designer.design_molecule(
-        disease=disease,
-        target=target,
-        pdb_id=pdb_id,
-        num_candidates=num_candidates
+        disease=disease, target=target, pdb_id=pdb_id, num_candidates=num_candidates
     )
 
     print(f"\n✅ Generated {len(candidates)} candidate molecules")
@@ -152,14 +146,15 @@ def interpret_drug_design(
     if pdb_id:
         print(f"\n🚀 Performing REAL AutoDock Vina docking for candidates...")
 
+        from pathlib import Path
+
         from bioql.docking.real_vina import (
+            HAVE_RDKIT,
+            VINA_BIN,
+            detect_binding_site,
             dock_smiles_to_receptor,
             prepare_receptor_pdbqt,
-            detect_binding_site,
-            HAVE_RDKIT,
-            VINA_BIN
         )
-        from pathlib import Path
         from bioql.molecular_utils import download_pdb
 
         if not (HAVE_RDKIT and VINA_BIN):
@@ -195,80 +190,84 @@ def interpret_drug_design(
                             box_size=box_size,
                             output_dir=output_dir / f"candidate_{i+1}",
                             exhaustiveness=8,
-                            num_modes=9
+                            num_modes=9,
                         )
 
-                        docking_results.append({
-                            'molecule_name': candidate.name,
-                            'smiles': candidate.smiles,
-                            'binding_affinity': vina_result.best_affinity,
-                            'ki_nm': vina_result.calculate_ki(),
-                            'ic50_nm': vina_result.calculate_ic50(),
-                            'num_poses': vina_result.num_poses
-                        })
+                        docking_results.append(
+                            {
+                                "molecule_name": candidate.name,
+                                "smiles": candidate.smiles,
+                                "binding_affinity": vina_result.best_affinity,
+                                "ki_nm": vina_result.calculate_ki(),
+                                "ic50_nm": vina_result.calculate_ic50(),
+                                "num_poses": vina_result.num_poses,
+                            }
+                        )
 
                     except Exception as e:
                         print(f"   ❌ Docking failed for {candidate.name}: {e}")
-                        docking_results.append({
-                            'molecule_name': candidate.name,
-                            'smiles': candidate.smiles,
-                            'binding_affinity': candidate.predicted_affinity,
-                            'ki_nm': None,
-                            'ic50_nm': None,
-                            'error': str(e)
-                        })
+                        docking_results.append(
+                            {
+                                "molecule_name": candidate.name,
+                                "smiles": candidate.smiles,
+                                "binding_affinity": candidate.predicted_affinity,
+                                "ki_nm": None,
+                                "ic50_nm": None,
+                                "error": str(e),
+                            }
+                        )
 
     # 4. Find best candidate
     if docking_results:
         # Sort by real binding affinity
-        docking_results.sort(key=lambda x: x.get('binding_affinity', 0))
+        docking_results.sort(key=lambda x: x.get("binding_affinity", 0))
         best = docking_results[0]
     else:
         # Use predicted affinities
         best = {
-            'molecule_name': candidates[0].name,
-            'smiles': candidates[0].smiles,
-            'binding_affinity': candidates[0].predicted_affinity,
-            'ki_nm': None,
-            'ic50_nm': None
+            "molecule_name": candidates[0].name,
+            "smiles": candidates[0].smiles,
+            "binding_affinity": candidates[0].predicted_affinity,
+            "ki_nm": None,
+            "ic50_nm": None,
         }
 
     print(f"\n✅ BEST CANDIDATE: {best['molecule_name']}")
     print(f"   SMILES: {best['smiles']}")
     print(f"   Affinity: {best['binding_affinity']:.2f} kcal/mol")
-    if best.get('ki_nm'):
+    if best.get("ki_nm"):
         print(f"   Ki: {best['ki_nm']:.2f} nM")
 
     # 5. Return results
     return {
-        'designed_molecules': [c.smiles for c in candidates],
-        'best_molecule': best['smiles'],
-        'best_molecule_name': best['molecule_name'],
-        'binding_affinity': best['binding_affinity'],
-        'ki': best.get('ki_nm'),
-        'ic50': best.get('ic50_nm'),
-        'docking_results': docking_results,
-        'all_candidates': [
+        "designed_molecules": [c.smiles for c in candidates],
+        "best_molecule": best["smiles"],
+        "best_molecule_name": best["molecule_name"],
+        "binding_affinity": best["binding_affinity"],
+        "ki": best.get("ki_nm"),
+        "ic50": best.get("ic50_nm"),
+        "docking_results": docking_results,
+        "all_candidates": [
             {
-                'name': c.name,
-                'smiles': c.smiles,
-                'scaffold_type': c.scaffold_type,
-                'predicted_affinity': c.predicted_affinity,
-                'lipinski_compliant': c.lipinski_compliant,
-                'pains_alert': c.pains_alert,
-                'properties': c.properties,
-                'design_rationale': c.design_rationale
+                "name": c.name,
+                "smiles": c.smiles,
+                "scaffold_type": c.scaffold_type,
+                "predicted_affinity": c.predicted_affinity,
+                "lipinski_compliant": c.lipinski_compliant,
+                "pains_alert": c.pains_alert,
+                "properties": c.properties,
+                "design_rationale": c.design_rationale,
             }
             for c in candidates
-        ]
+        ],
     }
 
 
 def interpret_drug_docking(
     counts: Dict[str, int],
-    smiles: str = '',
-    pdb_id: str = '',
-    hamiltonian: Optional[np.ndarray] = None
+    smiles: str = "",
+    pdb_id: str = "",
+    hamiltonian: Optional[np.ndarray] = None,
 ) -> Dict[str, Any]:
     """
     Interpret drug-protein docking results from QUANTUM computation on real hardware.
@@ -304,14 +303,15 @@ def interpret_drug_docking(
     vina_num_poses = None
 
     if smiles and pdb_id:
+        from pathlib import Path
+
         from bioql.docking.real_vina import (
+            HAVE_RDKIT,
+            VINA_BIN,
+            detect_binding_site,
             dock_smiles_to_receptor,
             prepare_receptor_pdbqt,
-            detect_binding_site,
-            HAVE_RDKIT,
-            VINA_BIN
         )
-        from pathlib import Path
         from bioql.molecular_utils import download_pdb
 
         # Verificar que Vina está disponible
@@ -331,6 +331,7 @@ def interpret_drug_docking(
         # ⚡ NEUTRALIZE CHARGED MOLECULES (Vina doesn't support N+, O-, etc.)
         try:
             from bioql.chem.neutralize import neutralize_smiles
+
             smiles_original = smiles
             smiles = neutralize_smiles(smiles)
             if smiles != smiles_original:
@@ -378,7 +379,7 @@ def interpret_drug_docking(
             box_size=box_size,
             output_dir=output_dir,
             exhaustiveness=8,
-            num_modes=9
+            num_modes=9,
         )
 
         # 5. ✅ EXTRACT REAL BINDING AFFINITY
@@ -399,7 +400,7 @@ def interpret_drug_docking(
     else:
         # Estimate energy from bitstring pattern if no Hamiltonian provided
         # Lower energy correlates with fewer '1' bits (more stable configuration)
-        num_ones = ground_state_bitstring.count('1')
+        num_ones = ground_state_bitstring.count("1")
         num_qubits = len(ground_state_bitstring)
         # Empirical mapping: normalized hamming weight to energy range
         # Typical drug binding energies: -0.01 to -0.05 Hartree
@@ -425,9 +426,7 @@ def interpret_drug_docking(
 
     # Predict molecular interactions based on energy and structure
     interactions = predict_molecular_interactions(
-        ground_state_bitstring,
-        binding_affinity_kcal,
-        smiles
+        ground_state_bitstring, binding_affinity_kcal, smiles
     )
 
     # Calculate pharmaceutical scores if SMILES provided
@@ -435,34 +434,43 @@ def interpret_drug_docking(
     if smiles:
         try:
             from bioql.chem.pharma_scores import calculate_pharmaceutical_scores
+
             pharma_scores = calculate_pharmaceutical_scores(smiles)
             print(f"\n💊 PHARMACEUTICAL SCORES:")
-            print(f"   Lipinski Rule of 5: {'✅ PASS' if pharma_scores.get('lipinski_compliant') else '❌ FAIL'} ({pharma_scores.get('lipinski_violations', 0)} violations)")
-            print(f"   QED (Drug-likeness): {pharma_scores.get('qed_score', 0):.3f} ({pharma_scores.get('qed_rating', 'N/A')})")
-            print(f"   SA Score (Synthesis): {pharma_scores.get('sa_score', 0):.2f}/10 ({pharma_scores.get('sa_rating', 'N/A')})")
-            print(f"   PAINS Alerts: {pharma_scores.get('pains_alerts', 0)} ({'✅ Clean' if pharma_scores.get('pains_alerts', 0) == 0 else '⚠️  Flagged'})")
+            print(
+                f"   Lipinski Rule of 5: {'✅ PASS' if pharma_scores.get('lipinski_compliant') else '❌ FAIL'} ({pharma_scores.get('lipinski_violations', 0)} violations)"
+            )
+            print(
+                f"   QED (Drug-likeness): {pharma_scores.get('qed_score', 0):.3f} ({pharma_scores.get('qed_rating', 'N/A')})"
+            )
+            print(
+                f"   SA Score (Synthesis): {pharma_scores.get('sa_score', 0):.2f}/10 ({pharma_scores.get('sa_rating', 'N/A')})"
+            )
+            print(
+                f"   PAINS Alerts: {pharma_scores.get('pains_alerts', 0)} ({'✅ Clean' if pharma_scores.get('pains_alerts', 0) == 0 else '⚠️  Flagged'})"
+            )
             print(f"   Overall: {pharma_scores.get('pharmaceutical_viability', 'N/A')}")
         except Exception as e:
             print(f"⚠️  Could not calculate pharmaceutical scores: {e}")
 
     # Compile QUANTUM results (with REAL Vina data if available)
     results = {
-        'application': 'drug_docking',
-        'smiles': smiles,
-        'pdb_id': pdb_id,
-        'ground_state': ground_state_bitstring,
-        'binding_energy_hartree': round(energy_hartree, 6),
-        'binding_affinity_kcal_mol': round(binding_affinity_kcal, 3),  # REAL Vina if available
-        'ki_molar': f"{ki_molar:.2e}",
-        'ki_nanomolar': round(ki_molar * 1e9, 2),  # REAL Ki if Vina used
-        'ic50_nanomolar': round(ic50_nanomolar, 2),  # REAL IC50 if Vina used
-        'poses_explored': poses_explored,  # REAL poses if Vina used
-        'total_shots': total_shots,
-        'confidence': round(confidence, 4),
-        'molecular_interactions': interactions,
-        'energy_distribution': calculate_energy_distribution(counts, hamiltonian),
-        'vina_used': vina_affinity is not None,  # Flag indicating if REAL Vina was used
-        'pharmaceutical_scores': pharma_scores  # NEW: Lipinski, QED, SA scores
+        "application": "drug_docking",
+        "smiles": smiles,
+        "pdb_id": pdb_id,
+        "ground_state": ground_state_bitstring,
+        "binding_energy_hartree": round(energy_hartree, 6),
+        "binding_affinity_kcal_mol": round(binding_affinity_kcal, 3),  # REAL Vina if available
+        "ki_molar": f"{ki_molar:.2e}",
+        "ki_nanomolar": round(ki_molar * 1e9, 2),  # REAL Ki if Vina used
+        "ic50_nanomolar": round(ic50_nanomolar, 2),  # REAL IC50 if Vina used
+        "poses_explored": poses_explored,  # REAL poses if Vina used
+        "total_shots": total_shots,
+        "confidence": round(confidence, 4),
+        "molecular_interactions": interactions,
+        "energy_distribution": calculate_energy_distribution(counts, hamiltonian),
+        "vina_used": vina_affinity is not None,  # Flag indicating if REAL Vina was used
+        "pharmaceutical_scores": pharma_scores,  # NEW: Lipinski, QED, SA scores
     }
 
     return results
@@ -503,7 +511,7 @@ def compute_vqe_energy(bitstring: str, hamiltonian: np.ndarray) -> float:
 
     # Determine Hilbert space dimension
     n_qubits = len(bitstring)
-    hilbert_dim = 2 ** n_qubits
+    hilbert_dim = 2**n_qubits
 
     # Validate Hamiltonian dimensions
     if hamiltonian.shape != (hilbert_dim, hilbert_dim):
@@ -663,9 +671,7 @@ def calculate_ic50(ki_value: float, competitive_factor: float = 2.0) -> float:
 
 
 def predict_molecular_interactions(
-    bitstring: str,
-    binding_affinity: float,
-    smiles: str = ''
+    bitstring: str, binding_affinity: float, smiles: str = ""
 ) -> Dict[str, Any]:
     """
     Predict types of molecular interactions based on quantum state and energy.
@@ -697,36 +703,34 @@ def predict_molecular_interactions(
         h_bonds = 1
 
     # Analyze SMILES for aromatic rings (π-π stacking potential)
-    aromatic_rings = smiles.count('c') // 6 if smiles else 1  # lowercase c = aromatic
+    aromatic_rings = smiles.count("c") // 6 if smiles else 1  # lowercase c = aromatic
     pi_stacking = min(aromatic_rings, 2)  # Typically 0-2 π-π interactions
 
     # Analyze for charged groups (salt bridges)
-    charged_groups = smiles.count('+') + smiles.count('-') if smiles else 0
+    charged_groups = smiles.count("+") + smiles.count("-") if smiles else 0
     salt_bridges = min(charged_groups // 2, 2)
 
     # Hydrophobic interactions based on bitstring pattern
     # More complex patterns suggest more conformational contacts
-    num_transitions = sum(
-        1 for i in range(len(bitstring) - 1)
-        if bitstring[i] != bitstring[i + 1]
-    )
+    num_transitions = sum(1 for i in range(len(bitstring) - 1) if bitstring[i] != bitstring[i + 1])
     hydrophobic_contacts = min(num_transitions // 2, 10)
 
     interactions = {
-        'hydrogen_bonds': h_bonds,
-        'hydrophobic_contacts': hydrophobic_contacts,
-        'pi_stacking': pi_stacking,
-        'salt_bridges': salt_bridges,
-        'total_contacts': h_bonds + hydrophobic_contacts + pi_stacking + salt_bridges,
-        'interaction_strength': 'strong' if binding_affinity < -10 else 'moderate' if binding_affinity < -7 else 'weak'
+        "hydrogen_bonds": h_bonds,
+        "hydrophobic_contacts": hydrophobic_contacts,
+        "pi_stacking": pi_stacking,
+        "salt_bridges": salt_bridges,
+        "total_contacts": h_bonds + hydrophobic_contacts + pi_stacking + salt_bridges,
+        "interaction_strength": (
+            "strong" if binding_affinity < -10 else "moderate" if binding_affinity < -7 else "weak"
+        ),
     }
 
     return interactions
 
 
 def calculate_energy_distribution(
-    counts: Dict[str, int],
-    hamiltonian: Optional[np.ndarray] = None
+    counts: Dict[str, int], hamiltonian: Optional[np.ndarray] = None
 ) -> Dict[str, Any]:
     """
     Calculate energy distribution across all measured quantum states.
@@ -743,8 +747,8 @@ def calculate_energy_distribution(
     """
     if hamiltonian is None or len(counts) == 0:
         return {
-            'ground_state_probability': max(counts.values()) / sum(counts.values()),
-            'num_states': len(counts)
+            "ground_state_probability": max(counts.values()) / sum(counts.values()),
+            "num_states": len(counts),
         }
 
     total_shots = sum(counts.values())
@@ -766,19 +770,16 @@ def calculate_energy_distribution(
     std_dev = np.sqrt(variance)
 
     return {
-        'ground_state_energy': float(np.min(energies)),
-        'mean_energy': float(mean_energy),
-        'energy_std_dev': float(std_dev),
-        'energy_range': float(np.max(energies) - np.min(energies)),
-        'ground_state_probability': float(probabilities[np.argmin(energies)]),
-        'num_states_explored': len(counts)
+        "ground_state_energy": float(np.min(energies)),
+        "mean_energy": float(mean_energy),
+        "energy_std_dev": float(std_dev),
+        "energy_range": float(np.max(energies) - np.min(energies)),
+        "ground_state_probability": float(probabilities[np.argmin(energies)]),
+        "num_states_explored": len(counts),
     }
 
 
-def interpret_protein_folding(
-    counts: Dict[str, int],
-    context: Dict[str, Any]
-) -> Dict[str, Any]:
+def interpret_protein_folding(counts: Dict[str, int], context: Dict[str, Any]) -> Dict[str, Any]:
     """
     Interpret protein folding simulation results from quantum annealing.
 
@@ -802,31 +803,30 @@ def interpret_protein_folding(
     # Estimate folding energy from state
     # More ordered states (alternating pattern) = lower energy
     num_qubits = len(native_state)
-    order_metric = sum(
-        1 for i in range(num_qubits - 1)
-        if native_state[i] != native_state[i + 1]
-    ) / num_qubits
+    order_metric = (
+        sum(1 for i in range(num_qubits - 1) if native_state[i] != native_state[i + 1]) / num_qubits
+    )
 
     # Typical protein folding energy: -50 to -200 kcal/mol
     folding_energy = -50 - (order_metric * 150)
 
     # Predict secondary structure content
-    alpha_helix_content = (native_state.count('00') + native_state.count('11')) / (num_qubits / 2)
+    alpha_helix_content = (native_state.count("00") + native_state.count("11")) / (num_qubits / 2)
     beta_sheet_content = order_metric
 
     results = {
-        'application': 'protein_folding',
-        'native_state': native_state,
-        'folding_energy_kcal_mol': round(folding_energy, 2),
-        'stability': 'stable' if folding_energy < -100 else 'metastable',
-        'confidence': round(native_count / total_shots, 4),
-        'secondary_structure': {
-            'alpha_helix_fraction': round(alpha_helix_content, 3),
-            'beta_sheet_fraction': round(beta_sheet_content, 3),
-            'random_coil_fraction': round(1 - alpha_helix_content - beta_sheet_content, 3)
+        "application": "protein_folding",
+        "native_state": native_state,
+        "folding_energy_kcal_mol": round(folding_energy, 2),
+        "stability": "stable" if folding_energy < -100 else "metastable",
+        "confidence": round(native_count / total_shots, 4),
+        "secondary_structure": {
+            "alpha_helix_fraction": round(alpha_helix_content, 3),
+            "beta_sheet_fraction": round(beta_sheet_content, 3),
+            "random_coil_fraction": round(1 - alpha_helix_content - beta_sheet_content, 3),
         },
-        'conformations_explored': len(counts),
-        'total_shots': total_shots
+        "conformations_explored": len(counts),
+        "total_shots": total_shots,
     }
 
     return results
@@ -842,9 +842,9 @@ def format_results_summary(results: Dict[str, Any]) -> str:
     Returns:
         Formatted string summary
     """
-    application = results.get('application', 'unknown')
+    application = results.get("application", "unknown")
 
-    if application == 'drug_docking':
+    if application == "drug_docking":
         summary = f"""
 === Drug Docking Analysis ===
 Target: {results.get('pdb_id', 'N/A')}
@@ -871,7 +871,7 @@ Computational Statistics:
   Ground State: {results['ground_state']}
 """
 
-    elif application == 'protein_folding':
+    elif application == "protein_folding":
         summary = f"""
 === Protein Folding Analysis ===
 
@@ -905,31 +905,36 @@ if __name__ == "__main__":
 
     # Simulated quantum measurement outcomes (3-qubit system)
     docking_counts = {
-        '000': 456,  # Ground state (most probable)
-        '001': 234,
-        '010': 187,
-        '101': 123,
+        "000": 456,  # Ground state (most probable)
+        "001": 234,
+        "010": 187,
+        "101": 123,
     }
 
     # 3-qubit Hamiltonian (8x8 matrix) for demonstration
     # In practice, this would be a molecular Hamiltonian from quantum chemistry
     # For 3 qubits: 2^3 = 8 dimensional Hilbert space
-    H_molecular = np.array([
-        [-1.1,  0.2,  0.1,  0.0,  0.05, 0.0,  0.0,  0.0],
-        [ 0.2, -0.9,  0.15, 0.1,  0.0,  0.05, 0.0,  0.0],
-        [ 0.1,  0.15, -0.8, 0.2,  0.1,  0.0,  0.05, 0.0],
-        [ 0.0,  0.1,  0.2, -0.7,  0.15, 0.1,  0.0,  0.05],
-        [ 0.05, 0.0,  0.1,  0.15,-0.6,  0.2,  0.1,  0.0],
-        [ 0.0,  0.05, 0.0,  0.1,  0.2, -0.5,  0.15, 0.1],
-        [ 0.0,  0.0,  0.05, 0.0,  0.1,  0.15,-0.4,  0.2],
-        [ 0.0,  0.0,  0.0,  0.05, 0.0,  0.1,  0.2, -0.3]
-    ]) * 0.04  # Scale to reasonable Hartree energy range
+    H_molecular = (
+        np.array(
+            [
+                [-1.1, 0.2, 0.1, 0.0, 0.05, 0.0, 0.0, 0.0],
+                [0.2, -0.9, 0.15, 0.1, 0.0, 0.05, 0.0, 0.0],
+                [0.1, 0.15, -0.8, 0.2, 0.1, 0.0, 0.05, 0.0],
+                [0.0, 0.1, 0.2, -0.7, 0.15, 0.1, 0.0, 0.05],
+                [0.05, 0.0, 0.1, 0.15, -0.6, 0.2, 0.1, 0.0],
+                [0.0, 0.05, 0.0, 0.1, 0.2, -0.5, 0.15, 0.1],
+                [0.0, 0.0, 0.05, 0.0, 0.1, 0.15, -0.4, 0.2],
+                [0.0, 0.0, 0.0, 0.05, 0.0, 0.1, 0.2, -0.3],
+            ]
+        )
+        * 0.04
+    )  # Scale to reasonable Hartree energy range
 
     docking_context = {
-        'application': 'drug_discovery',
-        'smiles': 'CC(=O)Oc1ccccc1C(=O)O',  # Aspirin
-        'pdb_id': '1PTY',  # Example protein
-        'hamiltonian': H_molecular
+        "application": "drug_discovery",
+        "smiles": "CC(=O)Oc1ccccc1C(=O)O",  # Aspirin
+        "pdb_id": "1PTY",  # Example protein
+        "hamiltonian": H_molecular,
     }
 
     docking_results = interpret_bio_results(docking_counts, docking_context)
@@ -941,15 +946,15 @@ if __name__ == "__main__":
     print("=" * 60)
 
     folding_counts = {
-        '0101010': 567,  # Ordered structure (native)
-        '0101011': 234,
-        '0101110': 123,
-        '1010101': 76,
+        "0101010": 567,  # Ordered structure (native)
+        "0101011": 234,
+        "0101110": 123,
+        "1010101": 76,
     }
 
     folding_context = {
-        'application': 'protein_folding',
-        'sequence': 'MKTAYIAKQR',  # Example peptide sequence
+        "application": "protein_folding",
+        "sequence": "MKTAYIAKQR",  # Example peptide sequence
     }
 
     folding_results = interpret_bio_results(folding_counts, folding_context)
