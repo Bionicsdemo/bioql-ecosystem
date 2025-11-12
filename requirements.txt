@@ -1,0 +1,134 @@
+# BioQL Ecosystem - Root Dependencies
+# Version: 1.0.0
+# Last Updated: 2025-11-12
+
+# =============================================================================
+# CORE QUANTUM COMPUTING
+# =============================================================================
+qiskit>=1.3.0                    # IBM Quantum framework
+qiskit-aer>=0.15.0              # Quantum circuit simulator
+qiskit-ibm-runtime>=0.30.0      # IBM Quantum Runtime
+qiskit-nature>=0.7.0            # Quantum chemistry
+qiskit-optimization>=0.6.0      # Optimization algorithms
+
+# =============================================================================
+# BIOQL ECOSYSTEM PACKAGES
+# =============================================================================
+# Install from local directories in development:
+# pip install -e ./Spectrix_framework
+# pip install -e ./Quillow
+# pip install -e ./QPHAROS
+# pip install -e ./Quantum_graph
+
+# Or from PyPI in production:
+# bioql>=6.0.1
+# quillow>=1.0.0
+# qpharos>=1.1.0
+
+# =============================================================================
+# MOLECULAR & CHEMISTRY
+# =============================================================================
+rdkit>=2023.9.1                 # Cheminformatics
+openbabel>=3.1.1                # Chemical toolbox
+biopython>=1.81                 # Bioinformatics
+scipy>=1.11.0                   # Scientific computing
+numpy>=1.24.0                   # Array operations
+
+# =============================================================================
+# WEB FRAMEWORKS & APIs
+# =============================================================================
+fastapi>=0.104.0                # Web framework
+uvicorn[standard]>=0.24.0       # ASGI server
+requests>=2.31.0                # HTTP client
+pydantic>=2.4.0                 # Data validation
+websockets>=12.0                # WebSocket support
+
+# =============================================================================
+# DATABASE & CACHING
+# =============================================================================
+sqlalchemy>=2.0.0               # SQL toolkit
+redis>=5.0.0                    # Caching
+psycopg2-binary>=2.9.0          # PostgreSQL adapter
+
+# =============================================================================
+# AUTHENTICATION & BILLING
+# =============================================================================
+stripe>=7.0.0                   # Payment processing
+pyjwt>=2.8.0                    # JWT tokens
+passlib>=1.7.4                  # Password hashing
+bcrypt>=4.0.0                   # Encryption
+
+# =============================================================================
+# AI & MACHINE LEARNING
+# =============================================================================
+torch>=2.1.0                    # Deep learning
+transformers>=4.35.0            # NLP models
+scikit-learn>=1.3.0             # ML algorithms
+
+# =============================================================================
+# DATA PROCESSING
+# =============================================================================
+pandas>=2.1.0                   # Data manipulation
+matplotlib>=3.8.0               # Plotting
+seaborn>=0.13.0                 # Statistical plots
+plotly>=5.17.0                  # Interactive plots
+
+# =============================================================================
+# UTILITIES
+# =============================================================================
+python-dotenv>=1.0.0            # Environment variables
+pyyaml>=6.0.1                   # YAML parsing
+toml>=0.10.2                    # TOML parsing
+click>=8.1.7                    # CLI framework
+rich>=13.6.0                    # Terminal formatting
+loguru>=0.7.2                   # Logging
+
+# =============================================================================
+# TESTING & QUALITY
+# =============================================================================
+pytest>=7.4.0                   # Testing framework
+pytest-cov>=4.1.0               # Coverage reports
+pytest-asyncio>=0.21.0          # Async testing
+black>=23.11.0                  # Code formatter
+flake8>=6.1.0                   # Linter
+mypy>=1.7.0                     # Type checker
+isort>=5.12.0                   # Import sorter
+
+# =============================================================================
+# DOCUMENTATION
+# =============================================================================
+sphinx>=7.2.0                   # Docs generator
+sphinx-rtd-theme>=1.3.0         # ReadTheDocs theme
+mkdocs>=1.5.0                   # Alternative docs
+mkdocs-material>=9.4.0          # Material theme
+
+# =============================================================================
+# DEPLOYMENT & MONITORING
+# =============================================================================
+gunicorn>=21.2.0                # WSGI server
+prometheus-client>=0.19.0       # Metrics
+sentry-sdk>=1.38.0              # Error tracking
+
+# =============================================================================
+# CLOUD PROVIDERS (OPTIONAL)
+# =============================================================================
+# modal>=0.56.0                 # Modal deployment
+# boto3>=1.29.0                 # AWS SDK
+
+# =============================================================================
+# NOTES
+# =============================================================================
+# To install all dependencies:
+#   pip install -r requirements.txt
+#
+# To install development dependencies:
+#   pip install -r requirements.txt -r requirements-dev.txt
+#
+# To create lockfile:
+#   pip freeze > requirements-lock.txt
+#
+# Component-specific requirements:
+#   - Quillow: See Quillow/requirements.txt
+#   - QPHAROS: See QPHAROS/requirements.txt
+#   - Quantum_graph: See Quantum_graph/requirements.txt
+#   - BioQL_agents: See BioQL_agents/backend/requirements.txt

@@ -1,0 +1,32 @@
+# MANIFEST.in - Specifies additional files to include in the distribution
+
+# Documentation
+include README.md
+include LICENSE
+include CHANGELOG.md
+include RAPID_IMPLEMENTATION_COMPLETE.md
+
+# Documentation directories
+recursive-include docs *.md *.rst *.txt
+
+# Example scripts
+recursive-include examples *.py *.ipynb
+
+# Data files
+recursive-include bioql/data *.json *.yaml *.yml
+recursive-include bioql/templates *.qasm
+recursive-include bioql/schemas *.json
+
+# Exclude unnecessary files
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
+recursive-exclude * .DS_Store
+recursive-exclude tests *
+recursive-exclude .github *
+recursive-exclude scripts *
+recursive-exclude training *
+recursive-exclude modal *
+recursive-exclude vscode-extension *
+exclude .gitignore
+exclude .pre-commit-config.yaml
+exclude *.sh

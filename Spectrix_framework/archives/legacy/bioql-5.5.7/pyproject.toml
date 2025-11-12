@@ -1,0 +1,238 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bioql"
+version = "5.5.7"
+authors = [
+    {name = "BioQL Team - SpectrixRD", email = "bioql@spectrixrd.com"},
+]
+description = "Enterprise Quantum Computing v5.5.7 - CRISPR IN-SILICO + DYNAMIC PDB/SMILES: GLP1R obesity drug design, automatic PDB lookup, classical baselines, z-score vs decoys, mean±SD uncertainty quantification, off-target precision limits - IBM Torino 133q validated"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.9"
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Healthcare Industry",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Scientific/Engineering :: Chemistry",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "License :: OSI Approved :: MIT License",
+]
+keywords = [
+    "quantum computing",
+    "bioinformatics",
+    "drug discovery",
+    "natural language",
+    "qiskit",
+    "profiling",
+    "optimization",
+    "circuit library",
+    "ADME prediction",
+    "molecular docking",
+    "quantum algorithms",
+    "computational biology",
+    "quantum machine learning",
+    "genomics",
+    "proteomics",
+    "natural language processing",
+    "intermediate representation",
+    "sequence alignment",
+    "circuit optimization",
+    "cost optimization",
+    "batch processing",
+    "quantum error correction",
+    "QEC",
+    "error mitigation",
+    "OpenFermion",
+    "Qualtran",
+    "quantum chemistry",
+    "RSA factorization",
+    "surface codes",
+    "zero noise extrapolation",
+    "CRISPR",
+    "gene editing",
+    "gRNA design",
+    "guide RNA",
+    "off-target prediction",
+]
+dependencies = [
+    "qiskit>=0.45.0",
+    "qiskit-aer",
+    "qiskit-ibm-runtime",
+    "qiskit-ionq",
+    "numpy>=1.21.0",
+    "matplotlib>=3.5.0",
+    "biopython>=1.79",
+    "requests>=2.28.0",
+    "python-dotenv>=0.19.0",
+    "pydantic>=2.0.0",
+    "loguru>=0.7.0",
+    "uuid6>=2023.5.2",
+    "httpx>=0.24.0",
+    "jsonschema>=4.0.0",
+    "networkx>=3.0",  # For circuit similarity and graph algorithms
+    "plotly>=5.14.0",  # For interactive profiling dashboards
+    "openfermion>=1.5.0",  # Quantum chemistry - Hamiltonian generation
+    "sympy>=1.12",  # Symbolic math for Qualtran
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=22.0.0",
+    "flake8>=5.0.0",
+    "mypy>=0.991",
+    "isort>=5.10.0",
+    "pre-commit>=2.20.0",
+]
+docs = [
+    "sphinx>=5.0.0",
+    "sphinx-rtd-theme>=1.0.0",
+    "sphinx-autodoc-typehints>=1.19.0",
+]
+cloud = [
+    "boto3>=1.26.0",
+    "azure-quantum>=1.0.0",
+    "cirq-ionq>=1.0.0",
+]
+visualization = [
+    "plotly>=5.0.0",
+    "seaborn>=0.11.0",
+    "pandas>=1.4.0",
+]
+vina = [
+    "meeko>=0.4.0",  # Ligand preparation for Vina
+    "rdkit>=2022.9.1",  # Chemistry toolkit
+    "openbabel-wheel>=3.1.1",  # Chemical format conversion
+]
+viz = [
+    "py3Dmol>=2.0.0",  # 3D molecular visualization
+    "pillow>=9.0.0",  # Image processing
+]
+openmm = [
+    "openmm>=8.0.0",  # Molecular dynamics
+]
+qec = [
+    "openfermion>=1.5.0",  # Quantum chemistry
+    "sympy>=1.12",  # Symbolic math
+    "qualtran>=0.6.0",  # Resource estimation and QEC visualizations (requires cirq-core==1.4)
+]
+
+[project.scripts]
+bioql = "bioql.cli:main"
+bioql-compiler = "bioql.compiler:main"
+bioql-quantum = "bioql.quantum_connector:main"
+bioql-crispr = "bioql.crispr_qai.cli:main"
+
+[project.urls]
+Homepage = "https://bioql.com"
+Documentation = "https://docs.bioql.com"
+Repository = "https://github.com/bioql/bioql"
+"Bug Reports" = "https://github.com/bioql/bioql/issues"
+Changelog = "https://github.com/bioql/bioql/blob/main/CHANGELOG.md"
+Funding = "https://bioql.com/pricing"
+
+[tool.setuptools.packages.find]
+exclude = [
+    "tests*",
+    "dev*",
+    "data*",
+    "config*",
+    "docs*",
+    "scripts*",
+    "branding*",
+    "ide_extensions*",
+    "BP&PL*",
+    "bioql-windows-*",
+    "*_service*",
+    "*admin*",
+    "*demo*",
+    "demo_*",
+    "create_*",
+    "populate_*",
+    "setup_*",
+    "verify_*",
+    "final_*",
+    "comprehensive_*",
+    "billing_demo*",
+    "run_tests*"
+]
+
+[tool.setuptools.package-data]
+bioql = [
+    "data/*.json",
+    "data/*.yaml",
+    "templates/*.qasm",
+    "schemas/*.json",
+    "examples/aws_braket/*.sh",
+    "examples/aws_braket/*.md",
+    "examples/aws_braket/*.qasm",
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q --strict-markers --strict-config"
+testpaths = [
+    "tests",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+]
+
+[tool.coverage.run]
+source = ["bioql"]
+omit = [
+    "tests/*",
+    "*/test_*.py",
+    "*_service.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+]
