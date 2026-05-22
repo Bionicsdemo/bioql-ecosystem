@@ -1,0 +1,263 @@
+{
+  "type": "full",
+  "molecules": [
+    "H2"
+  ],
+  "n_seeds": 10,
+  "timestamp": "2026-05-22T16:33:02.648616+00:00",
+  "qmem": {
+    "H2": {
+      "molecule": "H2",
+      "n_seeds": 10,
+      "technique_stats": {
+        "raw": {
+          "mean_error_ha": 0.2665412344679455,
+          "std_error_ha": 0.004279330341317553,
+          "median_error_ha": 0.26617042990171447,
+          "mean_error_kcal_mol": 167.257023499746,
+          "bootstrap_ci_95_ha": [
+            0.26395224613771673,
+            0.2689438303766086
+          ],
+          "bootstrap_ci_95_kcal_mol": [
+            165.6324100216325,
+            168.76467405579527
+          ],
+          "chemical_accuracy_rate": 0.0,
+          "n_seeds": 10
+        },
+        "zne": {
+          "mean_error_ha": 0.2889195182131942,
+          "std_error_ha": 0.005921451343990903,
+          "median_error_ha": 0.2882207952170768,
+          "mean_error_kcal_mol": 181.2995979544433,
+          "bootstrap_ci_95_ha": [
+            0.2855571906908492,
+            0.2926598921865728
+          ],
+          "bootstrap_ci_95_kcal_mol": [
+            179.18970717322412,
+            183.64671628610412
+          ],
+          "chemical_accuracy_rate": 0.0,
+          "n_seeds": 10
+        },
+        "pec": {
+          "mean_error_ha": 0.3004929171128529,
+          "std_error_ha": 0.005262339671147747,
+          "median_error_ha": 0.30011464563776435,
+          "mean_error_kcal_mol": 188.56200992456922,
+          "bootstrap_ci_95_ha": [
+            0.2972696090536981,
+            0.3037529122793145
+          ],
+          "bootstrap_ci_95_kcal_mol": [
+            186.53935510767704,
+            190.60768623148036
+          ],
+          "chemical_accuracy_rate": 0.0,
+          "n_seeds": 10
+        },
+        "dd": {
+          "mean_error_ha": 0.27457400601411247,
+          "std_error_ha": 0.003908328044628531,
+          "median_error_ha": 0.2739783142150317,
+          "mean_error_kcal_mol": 172.2976599399097,
+          "bootstrap_ci_95_ha": [
+            0.2723296913967523,
+            0.27722560438794636
+          ],
+          "bootstrap_ci_95_kcal_mol": [
+            170.88933231868464,
+            173.96156178387582
+          ],
+          "chemical_accuracy_rate": 0.0,
+          "n_seeds": 10
+        },
+        "trex": {
+          "mean_error_ha": 0.28418463755807377,
+          "std_error_ha": 0.005431400284436133,
+          "median_error_ha": 0.2834794178573422,
+          "mean_error_kcal_mol": 178.3284177294293,
+          "bootstrap_ci_95_ha": [
+            0.2807015782837804,
+            0.2874888351222668
+          ],
+          "bootstrap_ci_95_kcal_mol": [
+            176.14276668727675,
+            180.40183143873853
+          ],
+          "chemical_accuracy_rate": 0.0,
+          "n_seeds": 10
+        },
+        "combined": {
+          "mean_error_ha": 0.3151269573499273,
+          "std_error_ha": 0.00427214836086389,
+          "median_error_ha": 0.31578722659416913,
+          "mean_error_kcal_mol": 197.74500187969554,
+          "bootstrap_ci_95_ha": [
+            0.31245550207106143,
+            0.3176042995563657
+          ],
+          "bootstrap_ci_95_kcal_mol": [
+            196.06863964910968,
+            199.2995564103155
+          ],
+          "chemical_accuracy_rate": 0.0,
+          "n_seeds": 10
+        }
+      },
+      "pairwise_tests": {
+        "raw_vs_zne": {
+          "statistic": 0.0,
+          "p_value": 0.001953125,
+          "significant": "True"
+        },
+        "raw_vs_pec": {
+          "statistic": 0.0,
+          "p_value": 0.001953125,
+          "significant": "True"
+        },
+        "raw_vs_dd": {
+          "statistic": 0.0,
+          "p_value": 0.001953125,
+          "significant": "True"
+        },
+        "raw_vs_trex": {
+          "statistic": 0.0,
+          "p_value": 0.001953125,
+          "significant": "True"
+        },
+        "raw_vs_combined": {
+          "statistic": 0.0,
+          "p_value": 0.001953125,
+          "significant": "True"
+        },
+        "zne_vs_pec": {
+          "statistic": 2.0,
+          "p_value": 0.005859375,
+          "significant": "True"
+        },
+        "zne_vs_dd": {
+          "statistic": 0.0,
+          "p_value": 0.001953125,
+          "significant": "True"
+        },
+        "zne_vs_trex": {
+          "statistic": 13.0,
+          "p_value": 0.16015625,
+          "significant": "False"
+        },
+        "zne_vs_combined": {
+          "statistic": 0.0,
+          "p_value": 0.001953125,
+          "significant": "True"
+        },
+        "pec_vs_dd": {
+          "statistic": 0.0,
+          "p_value": 0.001953125,
+          "significant": "True"
+        },
+        "pec_vs_trex": {
+          "statistic": 0.0,
+          "p_value": 0.001953125,
+          "significant": "True"
+        },
+        "pec_vs_combined": {
+          "statistic": 1.0,
+          "p_value": 0.00390625,
+          "significant": "True"
+        },
+        "dd_vs_trex": {
+          "statistic": 2.0,
+          "p_value": 0.005859375,
+          "significant": "True"
+        },
+        "dd_vs_combined": {
+          "statistic": 0.0,
+          "p_value": 0.001953125,
+          "significant": "True"
+        },
+        "trex_vs_combined": {
+          "statistic": 0.0,
+          "p_value": 0.001953125,
+          "significant": "True"
+        }
+      },
+      "best_technique": "raw",
+      "timestamp": "2026-05-22T16:33:26.378977+00:00"
+    }
+  },
+  "mhce": {
+    "H2": {
+      "no_compression": {
+        "qubits": 4,
+        "terms": 16,
+        "vqe_energy": -1.7335182758537093,
+        "energy_error_vs_fci": 0.5962432758537093,
+        "qubit_reduction_percent": 0.0,
+        "term_reduction_percent": 0.0,
+        "runtime_seconds": 0.2523930072784424
+      },
+      "jw_tapered": {
+        "original_qubits": 4,
+        "compressed_qubits": 1,
+        "original_terms": 16,
+        "compressed_terms": 1,
+        "energy_shift": -0.1907152099999999,
+        "symmetries_found": 3,
+        "transform_used": "jw",
+        "compression_ratio": 0.25,
+        "qubit_reduction_percent": 75.0,
+        "term_reduction_percent": 93.75,
+        "tapering_eigenvalues": null,
+        "runtime_seconds": 0.11283302307128906,
+        "vqe_energy": -0.5503579493994237,
+        "energy_error_vs_fci": 0.5869170506005763,
+        "energy_preservation_error": 1.1831603264542856
+      },
+      "bk": {
+        "original_qubits": 4,
+        "compressed_qubits": 4,
+        "original_terms": 16,
+        "compressed_terms": 16,
+        "energy_shift": 0.0,
+        "symmetries_found": 0,
+        "transform_used": "bk",
+        "compression_ratio": 1.0,
+        "qubit_reduction_percent": 0.0,
+        "term_reduction_percent": 0.0,
+        "tapering_eigenvalues": null,
+        "runtime_seconds": 0.24230670928955078,
+        "vqe_energy": -1.7335182758537093,
+        "energy_error_vs_fci": 0.5962432758537093,
+        "energy_preservation_error": 0.0
+      },
+      "bk_tapered": {
+        "original_qubits": 4,
+        "compressed_qubits": 1,
+        "original_terms": 16,
+        "compressed_terms": 1,
+        "energy_shift": -0.1907152099999999,
+        "symmetries_found": 3,
+        "transform_used": "bk",
+        "compression_ratio": 0.25,
+        "qubit_reduction_percent": 75.0,
+        "term_reduction_percent": 93.75,
+        "tapering_eigenvalues": null,
+        "runtime_seconds": 0.09635090827941895,
+        "vqe_energy": -0.5503579493994237,
+        "energy_error_vs_fci": 0.5869170506005763,
+        "energy_preservation_error": 1.1831603264542856
+      },
+      "summary": {
+        "molecule": "H2",
+        "fci_energy": -1.137275,
+        "best_strategy": "jw_tapered",
+        "max_qubit_reduction": 75.0,
+        "timestamp": "2026-05-22T16:33:27.083732+00:00"
+      }
+    }
+  },
+  "total_runtime_seconds": 24.43513798713684
+}
