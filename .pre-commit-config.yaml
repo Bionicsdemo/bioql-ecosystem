@@ -202,5 +202,8 @@ ci:
   autoupdate_branch: ''
   autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
   autoupdate_schedule: weekly
-  skip: [pytest-unit-tests, pytest-coverage-check, safety-check]
+  # pytest-unit-tests, pytest-coverage-check and safety-check no longer exist.
+  # The guards hook is NOT skipped on pre-commit.ci: it is 34 tests and it is
+  # the one check here that can actually fail.
+  skip: []
   submodules: false
