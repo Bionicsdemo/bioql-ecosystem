@@ -65,19 +65,28 @@ repos:
   # Testing
   # ============================================================================
 
+  # A hook that cannot fail is not a check, it is a delay with a green tick.
+  # Both hooks here used to end in `|| true` with stderr sent to /dev/null, so
+  # they ran for minutes and always passed. They also called bare `pytest`,
+  # which resolves to the Homebrew interpreter -- the one CLAUDE.md warns has
+  # no flask and no block2, so its failures are not regressions. And the
+  # coverage hook measured --cov on Spectrix_framework, Quillow and QPHAROS:
+  # three packages that do not exist in this repository.
+  #
+  # What replaces them: the INVARIANT GUARDS, on the backend's own interpreter,
+  # allowed to fail. 34 tests, ~18s. The full suite is 1501 tests and ~10min,
+  # which belongs in CI (.github/workflows/ci.yml already runs it) rather than
+  # in front of every commit. The hook is named for what it actually runs.
   - repo: local
     hooks:
-      - id: pytest-unit-tests
-        name: pytest (run unit tests)
-        entry: bash -c 'pytest tests/unit -v -m "not slow" --tb=short -q 2>/dev/null || true'
-        language: system
-        always_run: true
-        pass_filenames: false
-        stages: [pre-commit]
-
-      - id: pytest-coverage-check
-        name: pytest (check coverage >= 70%)
-        entry: bash -c 'pytest tests/unit -v -m "not slow" --cov=Spectrix_framework --cov=Quillow --cov=QPHAROS --cov-report=term-missing --cov-report=html --cov-fail-under=70 -q 2>/dev/null || true'
+      - id: pytest-invariant-guards
+        name: pytest (invariant guards -- not the full suite)
+        entry: >-
+          /Users/heinzjungbluth/.bioql/venv/bin/python -m pytest
+          tests/unit/test_no_fabricated_stubs.py
+          tests/unit/test_bioql_gates.py
+          tests/unit/test_modal_compute_layer.py
+          -q --no-header -p no:cacheprovider
         language: system
         always_run: true
         pass_filenames: false
@@ -92,19 +101,41 @@ repos:
     hooks:
       - id: bandit
         name: bandit (security linter)
-        args: [-r, ., -ll, -i, --skip, B101,B601, --exclude, ./tests,./venv,./env,./.venv,./docs,./Spectrix_framework/archives]
+        # The comma-separated values MUST be quoted. Unquoted, YAML split them
+        # into separate list items, so bandit received `B601` and each exclude
+        # path as stray positional arguments and exited with a usage error on
+        # every run. It never scanned anything; nobody noticed, because the
+        # hook had not executed since the pre-commit installation broke.
+        args:
+          - -r
+          - .
+          - -ll
+          - -i
+          - --skip
+          - "B101,B601"
+          - --exclude
+          - "./tests,./venv,./env,./.venv,./docs,./Spectrix_framework/archives"
         pass_filenames: false
         stages: [pre-commit]
 
+  # SECRETS. This is the gap that actually burned this repository: a TypeSafe
+  # key in the history, security/api_keys.json found untracked-but-unignored in
+  # the July 2026 audit, an API key shipped inside a .vsix. bandit lints for
+  # insecure code and finds none of that; it never looks at a value.
   - repo: local
     hooks:
-      - id: safety-check
-        name: safety (dependency checker)
-        entry: bash -c 'safety check --json 2>/dev/null || true'
+      - id: check-secrets
+        name: secrets (block a live credential entering history)
+        entry: /Users/heinzjungbluth/.bioql/venv/bin/python scripts/scan_credentials.py
         language: system
-        always_run: true
-        pass_filenames: false
+        types: [text]
         stages: [pre-commit]
+
+  # `safety` was removed rather than repaired: it is not installed anywhere on
+  # this machine, so `safety check || true` reported "Passed" on every commit
+  # while checking nothing at all. A dependency-CVE scan is worth having -- via
+  # pip-audit, which needs no account -- but it has to actually be installed
+  # before it is worth a hook. CI is the right place for it.
 
   # ============================================================================
   # Git and File Checks
@@ -133,6 +164,8 @@ repos:
       - id: check-case-conflict
         name: check-case-conflict (detect case conflicts)
 
+      - id: detect-private-key
+        name: detect-private-key (block committed private keys)
       - id: mixed-line-ending
         name: mixed-line-ending (fix line endings)
         args: [--fix=lf]
