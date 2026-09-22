@@ -206,6 +206,15 @@ prometheus_data/
 grafana_data/
 
 # =============================================================================
+# SECRETS — found untracked-but-not-ignored during the 2026-07-07 audit
+# (one `git add .` away from being committed; see GAP_REPORT.md P0-Security)
+# =============================================================================
+security/api_keys.json
+src/backend/BioQL_MCP/config/quantum_providers.json
+src/backend/BioQL_MCP/config/claude_desktop_config.json
+src/backend/BioQL_MCP/scripts/bioql_job_*.py
+
+# =============================================================================
 # NOTES
 # =============================================================================
 # This .gitignore is comprehensive for the BioQL ecosystem
@@ -214,3 +223,20 @@ grafana_data/
 #
 # To check what's being ignored:
 #   git check-ignore -v path/to/file
+.aider*
+
+# SECURITY: the real key store lives at src/backend/security/api_keys.json;
+# the anchored rule above did not match it.
+**/security/api_keys.json
+
+# Secretos de sesión del stack local: la URL del conector MCP lleva el token
+# efímero en la ruta, y la política de ngrok lo tiene embebido.
+.local_stack_logs/
+
+# Pose-gate test fixtures. The global *.pdb / *.sdf rules exist to keep bulk
+# structure data out of the repo; these three files are small, deterministic
+# test inputs (a crystal pose plus two deliberately broken ones) and the pose
+# gate tests SKIP without them, which would hide a regression rather than
+# report it. See tests/fixtures/poses/README.md.
+!tests/fixtures/poses/*.pdb
+!tests/fixtures/poses/*.sdf
