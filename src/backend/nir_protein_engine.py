@@ -537,7 +537,7 @@ def fold_sequence(
     ):
         try:
             rr = _mcl.run(key, *args)
-            r = (rr or {}).get("result") if (rr or {}).get("where_it_ran") == "modal" else None
+            r = (rr or {}).get("result") if _mcl.ran_remotely(rr) else None
             if not r:
                 motivo = (rr or {}).get("why") or motivo
                 continue
@@ -551,6 +551,7 @@ def fold_sequence(
                     "pdb_text": pdb,
                     "length": len(seq),
                     "backend": f"{rr.get('app')}::{rr.get('function')}",
+                    "where_it_ran": rr.get("where_it_ran"),
                     "plddt": plddt,
                     "degraded": {
                         "chromophore": (

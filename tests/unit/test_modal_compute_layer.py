@@ -13,6 +13,7 @@ NOT deployed.
 
 -- MOLEVERA / BIOQL
 """
+
 import ast
 import glob
 import os
@@ -37,11 +38,13 @@ def _apps_defined_in_source():
         app_name = None
         functions, classes = set(), set()
         for node in ast.walk(tree):
-            if (isinstance(node, ast.Call)
-                    and isinstance(node.func, ast.Attribute)
-                    and node.func.attr == "App"
-                    and node.args
-                    and isinstance(node.args[0], ast.Constant)):
+            if (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and node.func.attr == "App"
+                and node.args
+                and isinstance(node.args[0], ast.Constant)
+            ):
                 app_name = node.args[0].value
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 for dec in node.decorator_list:
@@ -69,18 +72,21 @@ def test_every_registration_names_a_function_that_exists(key):
         pytest.skip(f"no module in src/backend defines modal app {spec['app']!r}")
     module, functions, classes = src
     if spec.get("kind") == "cls":
-        assert spec["cls"] in classes or not classes, (
-            f"{key}: {module} defines no @app.cls named {spec['cls']!r}")
+        assert (
+            spec["cls"] in classes or not classes
+        ), f"{key}: {module} defines no @app.cls named {spec['cls']!r}"
         return
     assert spec["fn"] in functions, (
         f"{key}: {module} defines no @app.function named {spec['fn']!r} "
         f"(it has: {sorted(functions)}). A wrong name here does not error -- it "
-        f"silently routes the pipeline to the local fallback.")
+        f"silently routes the pipeline to the local fallback."
+    )
 
 
 def test_a_lookup_failure_reads_as_not_deployed(monkeypatch):
     def boom(spec):
         raise RuntimeError("App not found in environment 'main'")
+
     monkeypatch.setattr(MC, "_handle", boom)
     st = MC.app_status()
     assert st["n_deployed"] == 0, "nothing resolves, so nothing may be claimed"
@@ -103,14 +109,19 @@ def test_the_lookup_hydrates_rather_than_trusting_a_lazy_handle():
     the guard cannot be satisfied by prose that merely mentions hydration.
     """
     import inspect
+
     tree = ast.parse(inspect.getsource(MC).lstrip())
-    handle = next(n for n in tree.body
-                  if isinstance(n, ast.FunctionDef) and n.name == "_handle")
-    if (handle.body and isinstance(handle.body[0], ast.Expr)
-            and isinstance(handle.body[0].value, ast.Constant)):
+    handle = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "_handle")
+    if (
+        handle.body
+        and isinstance(handle.body[0], ast.Expr)
+        and isinstance(handle.body[0].value, ast.Constant)
+    ):
         handle.body = handle.body[1:]
-    hydrates = any(isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
-                   and n.func.attr == "hydrate" for n in ast.walk(handle))
+    hydrates = any(
+        isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and n.func.attr == "hydrate"
+        for n in ast.walk(handle)
+    )
     assert hydrates, "_handle must call .hydrate(); from_name() alone proves nothing"
 
 
@@ -120,7 +131,7 @@ def test_a_job_with_no_local_equivalent_never_reports_a_local_run():
     spec = MC.APPS["ligand_design"]
     assert spec["fallback"] is None
     r = MC.run("ligand_design", {}, local_fn=None)
-    assert r["where_it_ran"] in ("unavailable", "modal")
+    assert r["where_it_ran"] in ("unavailable",) + MC.BACKENDS
     if r["where_it_ran"] == "unavailable":
         assert r["no_local_equivalent"] is True
         assert r["why"]
@@ -131,5 +142,6 @@ def test_an_unknown_job_is_refused_not_guessed():
     assert r["available"] is False
     assert r["where_it_ran"] == "unavailable"
     assert "known" in r
+
 
 # MOLEVERA / BIOQL

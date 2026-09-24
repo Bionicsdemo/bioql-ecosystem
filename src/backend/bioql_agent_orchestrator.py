@@ -20,11 +20,11 @@ Date: 2026-02-25
 Version: 1.0.0
 """
 
-import re
 import logging
-from typing import Dict, List, Optional, Tuple, Any
-from enum import Enum
+import re
 from dataclasses import dataclass
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 
 class MoleculeType(Enum):
     """Enum for molecule types"""
+
     SMALL_MOLECULE = "small_molecule"
     PROTEIN = "protein"
     PEPTIDE = "peptide"
@@ -43,6 +44,7 @@ class MoleculeType(Enum):
 
 class AgentType(Enum):
     """Enum for agent types"""
+
     SMALL_MOLECULE_AGENT = "small_molecule"
     PROTEIN_ENGINEERING_AGENT = "protein_engineering"
     PEPTIDE_AGENT = "peptide"
@@ -52,6 +54,7 @@ class AgentType(Enum):
 @dataclass
 class InputAnalysis:
     """Analysis result of input"""
+
     molecule_type: MoleculeType
     confidence: float
     detected_features: Dict[str, Any]
@@ -77,16 +80,34 @@ class BioQLRouter:
         """Initialize detection rules"""
         return {
             "protein_keywords": [
-                "protein", "enzyme", "antibody", "antigen", "receptor",
-                "kinase", "peptidase", "synthase", "oxidase", "transferase",
-                "wildtype", "mutant", "variant", "CDR", "Fc", "Fab"
+                "protein",
+                "enzyme",
+                "antibody",
+                "antigen",
+                "receptor",
+                "kinase",
+                "peptidase",
+                "synthase",
+                "oxidase",
+                "transferase",
+                "wildtype",
+                "mutant",
+                "variant",
+                "CDR",
+                "Fc",
+                "Fab",
             ],
-            "peptide_keywords": [
-                "peptide", "oligopeptide", "polypeptide", "cyclic peptide"
-            ],
+            "peptide_keywords": ["peptide", "oligopeptide", "polypeptide", "cyclic peptide"],
             "small_molecule_keywords": [
-                "smiles", "iupac", "compound", "drug", "inhibitor",
-                "agonist", "antagonist", "ligand", "molecule"
+                "smiles",
+                "iupac",
+                "compound",
+                "drug",
+                "inhibitor",
+                "agonist",
+                "antagonist",
+                "ligand",
+                "molecule",
             ],
             "protein_min_length": 50,  # Proteins typically > 50 amino acids
             "peptide_max_length": 50,  # Peptides typically < 50 amino acids
@@ -173,7 +194,7 @@ class BioQLRouter:
             "input_fields": list(input_data.keys()),
             "text_length": len(combined_text),
             "has_target": "target" in input_data,
-            "target": input_data.get("target", None)
+            "target": input_data.get("target", None),
         }
 
         result = InputAnalysis(
@@ -181,7 +202,7 @@ class BioQLRouter:
             confidence=confidence,
             detected_features=features,
             recommended_agent=agent,
-            metadata=metadata
+            metadata=metadata,
         )
 
         logger.info(f"Analysis complete: {molecule_type.value} (confidence: {confidence:.2f})")
@@ -197,7 +218,7 @@ class BioQLRouter:
         seq_upper = seq.upper().strip()
 
         # Remove whitespace and newlines
-        seq_clean = re.sub(r'\s+', '', seq_upper)
+        seq_clean = re.sub(r"\s+", "", seq_upper)
 
         # Check if mostly amino acids (>90%)
         if len(seq_clean) == 0:
@@ -217,10 +238,10 @@ class BioQLRouter:
 
         # Check for typical SMILES patterns
         smiles_patterns = [
-            r'c1ccccc1',  # benzene ring
-            r'C\(=O\)',    # carbonyl
-            r'\[.*?\]',    # square brackets
-            r'[CNO]=[CNO]', # double bonds
+            r"c1ccccc1",  # benzene ring
+            r"C\(=O\)",  # carbonyl
+            r"\[.*?\]",  # square brackets
+            r"[CNO]=[CNO]",  # double bonds
         ]
 
         for pattern in smiles_patterns:
@@ -304,11 +325,7 @@ class BioQLOrchestrator:
 
         except Exception as e:
             logger.error(f"Orchestrator error: {e}", exc_info=True)
-            return {
-                "status": "error",
-                "error": str(e),
-                "input_analysis": None
-            }
+            return {"status": "error", "error": str(e), "input_analysis": None}
 
     def _unify_output(self, result: Dict, analysis: InputAnalysis) -> Dict:
         """Unify output format across all agents"""
@@ -321,11 +338,9 @@ class BioQLOrchestrator:
             "metadata": {
                 "detected_features": analysis.detected_features,
                 "input_metadata": analysis.metadata,
-                "pipeline_stages": result.get("pipeline_stages", [])
-            }
+                "pipeline_stages": result.get("pipeline_stages", []),
+            },
         }
-
-
 
 
 # ============================================================================
@@ -344,6 +359,7 @@ class BioQLOrchestrator:
 # `implemented: False` and None where the value would go. Not implemented is
 # not the same as computed, exactly as unchecked is not the same as passed.
 
+
 def not_implemented(stage: str, needs: str, fields=None) -> Dict[str, Any]:
     """A stage with no engine behind it. Carries no number a caller could use."""
     rec: Dict[str, Any] = {
@@ -353,7 +369,7 @@ def not_implemented(stage: str, needs: str, fields=None) -> Dict[str, Any]:
         "needs": needs,
         "value": None,
     }
-    for f in (fields or ()):
+    for f in fields or ():
         rec[f] = None
     return rec
 
@@ -375,6 +391,7 @@ def stage_ran(rec: Any) -> bool:
 # ============================================================================
 # AGENT IMPLEMENTATIONS
 # ============================================================================
+
 
 class BaseAgent:
     """Base class for all agents"""
@@ -402,6 +419,7 @@ class SmallMoleculeAgent(BaseAgent):
         # decision about which endpoint owns the call, not a typo fix.
         try:
             from existing_pipeline import run_custom_molecule_pipeline
+
             result = run_custom_molecule_pipeline(input_data)
         except ImportError as exc:
             return {
@@ -423,9 +441,9 @@ class SmallMoleculeAgent(BaseAgent):
                 "ADMET Prediction (92 params)",
                 "Toxicology Study",
                 "Pharmacology (PK/PD)",
-                "Clinical Trial Simulation"
+                "Clinical Trial Simulation",
             ],
-            "data": result
+            "data": result,
         }
 
 
@@ -440,7 +458,6 @@ class ProteinEngineeringAgent(BaseAgent):
         logger.info("ProteinEngineeringAgent: Starting MULTI-evolve pipeline")
 
         sequence = input_data.get("sequence", "")
-        target_function = input_data.get("target_function", "stability")
         max_mutations = input_data.get("max_mutations", 5)
 
         stages = []
@@ -493,9 +510,9 @@ class ProteinEngineeringAgent(BaseAgent):
         else:
             assembly = not_implemented(
                 "assembly protocol",
-                "at least one variant to build a protocol for; "
-                "variant generation produced none",
-                ("method", "primers", "synthesis_cost"))
+                "at least one variant to build a protocol for; " "variant generation produced none",
+                ("method", "primers", "synthesis_cost"),
+            )
         stages.append("MULTI-assembly Protocol")
         results["assembly"] = assembly
 
@@ -519,9 +536,13 @@ class ProteinEngineeringAgent(BaseAgent):
             "stages_not_implemented": missing,
             "data": results,
             "honest_note": (
-                "Stages listed under stages_not_implemented produced no value. "
-                "They are not failures and not results -- nothing ran."
-            ) if missing else None,
+                (
+                    "Stages listed under stages_not_implemented produced no value. "
+                    "They are not failures and not results -- nothing ran."
+                )
+                if missing
+                else None
+            ),
         }
 
     def _esm2_masked_marginals(self, sequence: str, max_positions: int = 0):
@@ -542,10 +563,10 @@ class ProteinEngineeringAgent(BaseAgent):
         """
         try:
             import nir_deliverable as N
+
             tok, mod, torch, model_name = N._esm2_hf()
         except Exception as exc:
-            return None, "ESM-2 unavailable: %s: %s" % (
-                type(exc).__name__, str(exc)[:160])
+            return None, "ESM-2 unavailable: %s: %s" % (type(exc).__name__, str(exc)[:160])
 
         alphabet = "ACDEFGHIKLMNPQRSTVWY"
         n = len(sequence)
@@ -578,20 +599,27 @@ class ProteinEngineeringAgent(BaseAgent):
                 for alt in alphabet:
                     if alt == wt:
                         continue
-                    rows.append({
-                        "mutation": "%s%d%s" % (wt, idx1, alt),
-                        "position": idx1, "wt": wt, "mut": alt,
-                        "esm2_log_odds": float(lp[alt_ids[alt]]) - wt_lp,
-                    })
+                    rows.append(
+                        {
+                            "mutation": "%s%d%s" % (wt, idx1, alt),
+                            "position": idx1,
+                            "wt": wt,
+                            "mut": alt,
+                            "esm2_log_odds": float(lp[alt_ids[alt]]) - wt_lp,
+                        }
+                    )
         except Exception as exc:
-            return None, "ESM-2 scoring failed: %s: %s" % (
-                type(exc).__name__, str(exc)[:160])
+            return None, "ESM-2 scoring failed: %s: %s" % (type(exc).__name__, str(exc)[:160])
 
-        meta = {"model": model_name, "route": "HuggingFace",
-                "metric": "masked marginal, log P(mut) - log P(wt)",
-                "n_positions_scanned": len({r["position"] for r in rows}),
-                "n_positions_total": n, "truncated": truncated,
-                "scale": getattr(N, "VIABILITY_SCALE", None)}
+        meta = {
+            "model": model_name,
+            "route": "HuggingFace",
+            "metric": "masked marginal, log P(mut) - log P(wt)",
+            "n_positions_scanned": len({r["position"] for r in rows}),
+            "n_positions_total": n,
+            "truncated": truncated,
+            "scale": getattr(N, "VIABILITY_SCALE", None),
+        }
         return rows, meta
 
     def _run_esm2_analysis(self, sequence: str) -> Dict:
@@ -603,26 +631,33 @@ class ProteinEngineeringAgent(BaseAgent):
         """
         rows, meta = self._esm2_masked_marginals(sequence)
         if rows is None:
-            return not_implemented("ESM-2 analysis", meta,
-                                   ("conservation", "hotspots", "model"))
+            return not_implemented("ESM-2 analysis", meta, ("conservation", "hotspots", "model"))
         if not rows:
-            return not_implemented("ESM-2 analysis",
-                                   "model returned no scorable position",
-                                   ("conservation", "hotspots", "model"))
+            return not_implemented(
+                "ESM-2 analysis",
+                "model returned no scorable position",
+                ("conservation", "hotspots", "model"),
+            )
         by_pos = {}
         for r in rows:
             p_ = r["position"]
             best = r["esm2_log_odds"]
             if p_ not in by_pos or best > by_pos[p_]["best_log_odds"]:
-                by_pos[p_] = {"position": p_, "wt": r["wt"],
-                              "best_log_odds": best, "best_sub": r["mut"]}
+                by_pos[p_] = {
+                    "position": p_,
+                    "wt": r["wt"],
+                    "best_log_odds": best,
+                    "best_sub": r["mut"],
+                }
         # Most constrained = the positions where even the best substitution is
         # heavily penalised. Derived from the model, not written by hand.
         constrained = sorted(by_pos.values(), key=lambda d: d["best_log_odds"])
         return {
-            "implemented": True, "stage": "ESM-2 analysis",
+            "implemented": True,
+            "stage": "ESM-2 analysis",
             "engine": "ESM-2 via HuggingFace",
-            "model": meta["model"], "metric": meta["metric"],
+            "model": meta["model"],
+            "metric": meta["metric"],
             "n_positions": meta["n_positions_scanned"],
             "most_constrained_positions": constrained[:10],
             "most_tolerant_positions": constrained[-5:],
@@ -634,10 +669,10 @@ class ProteinEngineeringAgent(BaseAgent):
         return not_implemented(
             "quantum epistatic modelling",
             "a VQE/QAOA epistasis formulation and a backend to run it on",
-            ("interactions", "quantum_jobs"))
+            ("interactions", "quantum_jobs"),
+        )
 
-    def _generate_variants(self, sequence: str, epistasis: Dict,
-                           max_muts: int) -> List[Dict]:
+    def _generate_variants(self, sequence: str, epistasis: Dict, max_muts: int) -> List[Dict]:
         """Rank single substitutions by ESM-2 masked-marginal log-odds.
 
         Returns [] when the scorer cannot run. An invented variant carrying a
@@ -654,75 +689,98 @@ class ProteinEngineeringAgent(BaseAgent):
         rows.sort(key=lambda r: -r["esm2_log_odds"])
         out = []
         for rank, r in enumerate(rows[:max_muts], start=1):
-            out.append({
-                "rank": rank, "mutation": r["mutation"],
-                "position": r["position"], "wt": r["wt"], "mut": r["mut"],
-                "esm2_log_odds": round(r["esm2_log_odds"], 4),
-                "scorer": "ESM-2 masked marginal (%s)" % meta["model"],
-                "caveat": ("triage ordering only; a 35M-parameter model orders "
-                           "candidates, it does not predict stability"),
-            })
+            out.append(
+                {
+                    "rank": rank,
+                    "mutation": r["mutation"],
+                    "position": r["position"],
+                    "wt": r["wt"],
+                    "mut": r["mut"],
+                    "esm2_log_odds": round(r["esm2_log_odds"], 4),
+                    "scorer": "ESM-2 masked marginal (%s)" % meta["model"],
+                    "caveat": (
+                        "triage ordering only; a 35M-parameter model orders "
+                        "candidates, it does not predict stability"
+                    ),
+                }
+            )
         return out
 
-    def _predict_structures(self, variants: List[Dict],
-                            sequence: str = "") -> Dict:
+    def _predict_structures(self, variants: List[Dict], sequence: str = "") -> Dict:
         """Fold on BioQL's own ESMFold2 (Modal H100) via the compute layer.
 
         The compute layer answers where it ran and why, so a structure that
         came from a fallback can never be mistaken for one that did not.
         """
         if not sequence:
-            return not_implemented("structure prediction",
-                                   "a sequence to fold", ("pdb", "plddt"))
+            return not_implemented("structure prediction", "a sequence to fold", ("pdb", "plddt"))
         try:
             import modal_compute_layer as MC
         except Exception as exc:
-            return not_implemented("structure prediction",
-                                   "modal_compute_layer import failed: %s" % exc,
-                                   ("pdb", "plddt"))
+            return not_implemented(
+                "structure prediction",
+                "modal_compute_layer import failed: %s" % exc,
+                ("pdb", "plddt"),
+            )
         r = MC.run("fold_protein", sequence, local_fn=None)
-        if r.get("where_it_ran") != "modal":
+        if not MC.ran_remotely(r):
             return not_implemented(
                 "structure prediction",
                 "GPU folding unavailable: %s" % str(r.get("why"))[:160],
-                ("pdb", "plddt"))
+                ("pdb", "plddt"),
+            )
         res = r.get("result") or {}
-        return {"implemented": True, "stage": "structure prediction",
-                "pdb": res.get("pdb"), "plddt": res.get("plddt"),
-                "where_it_ran": "modal", "engine": "ESMFold2 (Modal H100)",
-                "n_variants_folded": 1}
+        return {
+            "implemented": True,
+            "stage": "structure prediction",
+            "pdb": res.get("pdb"),
+            "plddt": res.get("plddt"),
+            "where_it_ran": r["where_it_ran"],
+            "engine": f"ESMFold2 ({MC.where_label(r, 'H100')})",
+            "n_variants_folded": 1,
+        }
 
     def _protein_admet(self, variants: List[Dict], sequence: str = "") -> Dict:
         """Developability on the WILD-TYPE sequence: charge, GRAVY, Boman index,
         hydrophobic moment, hemolysis and toxicity flags, B-cell epitopes,
         chemical liabilities. Computed locally, no GPU."""
         if not sequence:
-            return not_implemented("protein ADMET / developability",
-                                   "a sequence to analyse",
-                                   ("net_charge", "gravy", "liabilities"))
+            return not_implemented(
+                "protein ADMET / developability",
+                "a sequence to analyse",
+                ("net_charge", "gravy", "liabilities"),
+            )
         try:
             import peptide_developability_suite as P
         except Exception as exc:
             return not_implemented(
                 "protein ADMET / developability",
                 "peptide_developability_suite import failed: %s" % exc,
-                ("net_charge", "gravy", "liabilities"))
+                ("net_charge", "gravy", "liabilities"),
+            )
         try:
             rec = P.analyze_peptide(sequence)
         except Exception as exc:
             return not_implemented(
                 "protein ADMET / developability",
                 "engine raised %s: %s" % (type(exc).__name__, str(exc)[:160]),
-                ("net_charge", "gravy", "liabilities"))
+                ("net_charge", "gravy", "liabilities"),
+            )
         if not rec.get("available") or not rec.get("applicable"):
             return not_implemented(
                 "protein ADMET / developability",
                 "engine declared the sequence out of its applicability domain",
-                ("net_charge", "gravy", "liabilities"))
+                ("net_charge", "gravy", "liabilities"),
+            )
         rec = dict(rec)
-        rec.update({"implemented": True, "stage": "protein ADMET / developability",
-                    "engine": "peptide_developability_suite",
-                    "scope": "wild-type sequence"})
+        rec.update(
+            {
+                "implemented": True,
+                "stage": "protein ADMET / developability",
+                "engine": "peptide_developability_suite",
+                "scope": "wild-type sequence",
+            }
+        )
         return rec
 
     def _binding_analysis(self, variants: List[Dict], input_data: Dict) -> Dict:
@@ -731,42 +789,51 @@ class ProteinEngineeringAgent(BaseAgent):
         Needs a complex to score. Without one this reports what is missing
         rather than guessing at an affinity.
         """
-        complex_pdb = (input_data.get("complex_pdb")
-                       or input_data.get("target_protein_pdb"))
+        complex_pdb = input_data.get("complex_pdb") or input_data.get("target_protein_pdb")
         ligand = input_data.get("target_ligand")
         if not complex_pdb:
             return not_implemented(
                 "binding affinity",
                 "a protein:ligand or protein:protein complex (complex_pdb); "
                 "the agent was given a sequence only",
-                ("binding_affinity", "units", "method"))
+                ("binding_affinity", "units", "method"),
+            )
         try:
             import modal_compute_layer as MC
         except Exception as exc:
-            return not_implemented("binding affinity",
-                                   "modal_compute_layer import failed: %s" % exc,
-                                   ("binding_affinity", "units", "method"))
+            return not_implemented(
+                "binding affinity",
+                "modal_compute_layer import failed: %s" % exc,
+                ("binding_affinity", "units", "method"),
+            )
         payload = {"complex_pdb": complex_pdb}
         if ligand:
             payload["ligand"] = ligand
         r = MC.run("mmgbsa_ensemble", payload, local_fn=None)
-        if r.get("where_it_ran") != "modal":
+        if not MC.ran_remotely(r):
             return not_implemented(
                 "binding affinity",
                 "GPU MM-GBSA unavailable: %s" % str(r.get("why"))[:160],
-                ("binding_affinity", "units", "method"))
+                ("binding_affinity", "units", "method"),
+            )
         res = r.get("result") or {}
-        return {"implemented": True, "stage": "binding affinity",
-                "binding_affinity": res.get("dG") or res.get("binding_affinity"),
-                "units": "kcal/mol", "method": "ensemble MM-GBSA (GPU)",
-                "where_it_ran": "modal", "raw": res}
+        return {
+            "implemented": True,
+            "stage": "binding affinity",
+            "binding_affinity": res.get("dG") or res.get("binding_affinity"),
+            "units": "kcal/mol",
+            "method": "ensemble MM-GBSA (GPU)",
+            "where_it_ran": r["where_it_ran"],
+            "raw": res,
+        }
 
     def _generate_assembly_protocol(self, wildtype: str, variant: Dict) -> Dict:
         """Assembly protocol. No primer design or costing engine behind it."""
         return not_implemented(
             "assembly protocol",
             "a primer-design engine and a real synthesis quote",
-            ("method", "primers", "synthesis_cost"))
+            ("method", "primers", "synthesis_cost"),
+        )
 
 
 class PeptideAgent(BaseAgent):
@@ -804,7 +871,8 @@ class NanobodyAgent(BaseAgent):
         result.setdefault("data", {})["cdr_analysis"] = not_implemented(
             "CDR optimisation",
             "antibody_discovery_engine or antibody_interface_analyzer",
-            ("CDR1", "CDR2", "CDR3"))
+            ("CDR1", "CDR2", "CDR3"),
+        )
 
         return result
 
@@ -812,6 +880,7 @@ class NanobodyAgent(BaseAgent):
 # ============================================================================
 # PLACEHOLDER FOR EXISTING PIPELINE
 # ============================================================================
+
 
 class existing_pipeline:
     """Placeholder - will import from actual script_executor_server.py"""
@@ -833,6 +902,7 @@ class existing_pipeline:
 # ============================================================================
 # MAIN ENTRY POINT
 # ============================================================================
+
 
 def process_bioql_request(input_data: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -859,11 +929,7 @@ if __name__ == "__main__":
     print("=" * 80)
 
     # Test 1: Small molecule (SMILES)
-    test1 = {
-        "mode": "direct",
-        "smiles": "c1ccc2ncnc(Nc3cccc(Br)c3)c2c1",
-        "target": "EGFR"
-    }
+    test1 = {"mode": "direct", "smiles": "c1ccc2ncnc(Nc3cccc(Br)c3)c2c1", "target": "EGFR"}
     print("\nTest 1: Small Molecule (SMILES)")
     router = BioQLRouter()
     analysis1 = router.analyze_input(test1)
@@ -873,17 +939,14 @@ if __name__ == "__main__":
     test2 = {
         "sequence": "MKVLWAALLVTFLAGCQAKVDKEVQALANDARLAKYIEKFRQKAEGSDV" * 3,
         "target_function": "binding_affinity",
-        "description": "Antibody CDR optimization"
+        "description": "Antibody CDR optimization",
     }
     print("\nTest 2: Protein Sequence")
     analysis2 = router.analyze_input(test2)
     print(f"Result: {analysis2.molecule_type.value} → {analysis2.recommended_agent.value}")
 
     # Test 3: Peptide
-    test3 = {
-        "sequence": "GRGDSPASSKG",
-        "text": "cyclic peptide for cancer targeting"
-    }
+    test3 = {"sequence": "GRGDSPASSKG", "text": "cyclic peptide for cancer targeting"}
     print("\nTest 3: Peptide")
     analysis3 = router.analyze_input(test3)
     print(f"Result: {analysis3.molecule_type.value} → {analysis3.recommended_agent.value}")
@@ -892,7 +955,7 @@ if __name__ == "__main__":
     test4 = {
         "mode": "motifs",
         "motifs": ["tertiary_amide", "cyclopropyl", "fluoro_aromatic"],
-        "target": "BRAF"
+        "target": "BRAF",
     }
     print("\nTest 4: Motif-based Small Molecule")
     analysis4 = router.analyze_input(test4)

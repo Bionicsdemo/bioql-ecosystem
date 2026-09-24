@@ -23,11 +23,12 @@ Designability is measured by self-consistency: generate backbone -> design seque
 -> re-fold -> scRMSD(backbone_CA, refold_CA). A design is "self-consistent" when
 scRMSD < 2.0 Angstrom. The fraction of self-consistent designs is the success rate.
 """
+
 from __future__ import annotations
 
 import io
-import os
 import logging
+import os
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -66,8 +67,9 @@ def _headers() -> Dict[str, str]:
     }
 
 
-def _nim_post(url: str, payload: Dict[str, Any],
-              timeout: int = _DEFAULT_TIMEOUT) -> Optional[Dict[str, Any]]:
+def _nim_post(
+    url: str, payload: Dict[str, Any], timeout: int = _DEFAULT_TIMEOUT
+) -> Optional[Dict[str, Any]]:
     """POST to a NIM, handling the 202 NVCF async-poll path. Fail-open -> None.
 
     Prefers the shared bionemo_nim client if another agent has shipped it (so a
@@ -79,6 +81,7 @@ def _nim_post(url: str, payload: Dict[str, Any],
     # Reuse shared client if present (additive coordination, never required).
     try:
         import bionemo_nim  # type: ignore
+
         fn = getattr(bionemo_nim, "nim_post", None) or getattr(bionemo_nim, "post", None)
         if callable(fn):
             try:
@@ -110,8 +113,7 @@ def _nim_post(url: str, payload: Dict[str, Any],
                 if pr.status_code == 200:
                     return pr.json()
                 if pr.status_code != 202:
-                    logger.error("NIM poll %s -> %s: %s", poll_url,
-                                 pr.status_code, pr.text[:200])
+                    logger.error("NIM poll %s -> %s: %s", poll_url, pr.status_code, pr.text[:200])
                     return None
                 time.sleep(5)
             logger.error("NIM poll timed out: %s", poll_url)
@@ -128,10 +130,14 @@ def _nim_post(url: str, payload: Dict[str, Any],
 # --------------------------------------------------------------------------- #
 # NIM primitives
 # --------------------------------------------------------------------------- #
-def generate_backbone(input_pdb: str, contigs: str, *,
-                      diffusion_steps: int = 20,
-                      hotspot_res: Optional[List[str]] = None,
-                      timeout: int = _DEFAULT_TIMEOUT) -> Optional[str]:
+def generate_backbone(
+    input_pdb: str,
+    contigs: str,
+    *,
+    diffusion_steps: int = 20,
+    hotspot_res: Optional[List[str]] = None,
+    timeout: int = _DEFAULT_TIMEOUT,
+) -> Optional[str]:
     """RFdiffusion backbone generation. Returns an output PDB string, or None.
 
     Args:
@@ -158,10 +164,14 @@ def generate_backbone(input_pdb: str, contigs: str, *,
     return out.get("output_pdb") or None
 
 
-def design_sequences(backbone_pdb: str, *, num_seq: int = 4,
-                     sampling_temp: float = 0.1, ca_only: bool = False,
-                     timeout: int = _DEFAULT_TIMEOUT
-                     ) -> Optional[List[Dict[str, Any]]]:
+def design_sequences(
+    backbone_pdb: str,
+    *,
+    num_seq: int = 4,
+    sampling_temp: float = 0.1,
+    ca_only: bool = False,
+    timeout: int = _DEFAULT_TIMEOUT,
+) -> Optional[List[Dict[str, Any]]]:
     """ProteinMPNN sequence design for a backbone. Returns a list of designs.
 
     Each design dict: {sequence, score, seq_recovery, sample}. The first FASTA
@@ -199,12 +209,14 @@ def _parse_mpnn_fasta(mfasta: str) -> List[Dict[str, Any]]:
         seq = "".join(seq_lines).strip()
         # The first record is the input echo (T not present / sample absent).
         if seq and meta.get("sample") is not None:
-            designs.append({
-                "sequence": seq.replace("/", ":"),  # chain break -> ':'
-                "score": meta.get("score"),
-                "seq_recovery": meta.get("seq_recovery"),
-                "sample": meta.get("sample"),
-            })
+            designs.append(
+                {
+                    "sequence": seq.replace("/", ":"),  # chain break -> ':'
+                    "score": meta.get("score"),
+                    "seq_recovery": meta.get("seq_recovery"),
+                    "sample": meta.get("sample"),
+                }
+            )
 
     for line in mfasta.splitlines():
         if line.startswith(">"):
@@ -237,8 +249,7 @@ def _parse_mpnn_header(header: str) -> Dict[str, Any]:
     return meta
 
 
-def fold_sequence(sequence: str, *, timeout: int = _DEFAULT_TIMEOUT
-                  ) -> Optional[Dict[str, Any]]:
+def fold_sequence(sequence: str, *, timeout: int = _DEFAULT_TIMEOUT) -> Optional[Dict[str, Any]]:
     """ESMFold a single-chain sequence. Returns {pdb, plddt}, or None.
 
     For multi-chain designs (':' chain break) only the first chain is folded
@@ -259,8 +270,7 @@ def fold_sequence(sequence: str, *, timeout: int = _DEFAULT_TIMEOUT
     return _fold_sequence_modal(seq, timeout=timeout)
 
 
-def _fold_sequence_modal(seq: str, *, timeout: int = _DEFAULT_TIMEOUT
-                         ) -> Optional[Dict[str, Any]]:
+def _fold_sequence_modal(seq: str, *, timeout: int = _DEFAULT_TIMEOUT) -> Optional[Dict[str, Any]]:
     """Refold on BioQL's own ESMFold2 (Modal H100) when the NIM cannot serve it.
 
     Verified 2026-09-21: the ESMFold NIM answers 404 for this NVIDIA account
@@ -280,7 +290,7 @@ def _fold_sequence_modal(seq: str, *, timeout: int = _DEFAULT_TIMEOUT
         logger.warning("ESMFold fallback unavailable: %s", e)
         return None
     r = MC.run("fold_protein", seq, local_fn=None, timeout=timeout)
-    if r.get("where_it_ran") != "modal":
+    if not MC.ran_remotely(r):
         logger.warning("ESMFold fallback did not run: %s", r.get("why"))
         return None
     res = r.get("result") or {}
@@ -288,9 +298,11 @@ def _fold_sequence_modal(seq: str, *, timeout: int = _DEFAULT_TIMEOUT
     if not res.get("success") or not pdb:
         logger.warning("ESMFold fallback failed: %s", str(res.get("error"))[:160])
         return None
-    return {"pdb": pdb,
-            "plddt": res.get("plddt") if res.get("plddt") is not None else _mean_plddt(pdb),
-            "folder": "ESMFold2 (Modal H100)"}
+    return {
+        "pdb": pdb,
+        "plddt": res.get("plddt") if res.get("plddt") is not None else _mean_plddt(pdb),
+        "folder": f"ESMFold2 ({MC.where_label(r, 'H100')})",
+    }
 
 
 # --------------------------------------------------------------------------- #
@@ -309,8 +321,7 @@ def _ca_coords(pdb: str, chain: Optional[str] = None) -> np.ndarray:
         if chain is not None and line[21].strip() != chain:
             continue
         try:
-            coords.append([float(line[30:38]), float(line[38:46]),
-                           float(line[46:54])])
+            coords.append([float(line[30:38]), float(line[38:46]), float(line[46:54])])
         except ValueError:
             continue
     return np.asarray(coords, dtype=float)
@@ -354,8 +365,9 @@ def kabsch_rmsd(P: np.ndarray, Q: np.ndarray) -> Optional[float]:
     return float(np.sqrt((diff * diff).sum() / n))
 
 
-def self_consistency_rmsd(backbone_pdb: str, refold_pdb: str,
-                          chain: Optional[str] = None) -> Optional[float]:
+def self_consistency_rmsd(
+    backbone_pdb: str, refold_pdb: str, chain: Optional[str] = None
+) -> Optional[float]:
     """scRMSD between a generated backbone and the re-folded designed sequence."""
     bb = _ca_coords(backbone_pdb, chain=chain)
     rf = _ca_coords(refold_pdb)
@@ -385,6 +397,7 @@ def _template_pdb() -> Optional[str]:
         return _FALLBACK_TEMPLATE_PDB
     try:
         import requests
+
         r = requests.get("https://files.rcsb.org/download/1CRN.pdb", timeout=60)
         if r.status_code == 200 and "ATOM" in r.text:
             _FALLBACK_TEMPLATE_PDB = r.text
@@ -394,10 +407,15 @@ def _template_pdb() -> Optional[str]:
     return None
 
 
-def design_one(length: int = 80, *, num_seq: int = 2,
-               sampling_temp: float = 0.1, diffusion_steps: int = 20,
-               template_pdb: Optional[str] = None,
-               contigs: Optional[str] = None) -> Optional[Dict[str, Any]]:
+def design_one(
+    length: int = 80,
+    *,
+    num_seq: int = 2,
+    sampling_temp: float = 0.1,
+    diffusion_steps: int = 20,
+    template_pdb: Optional[str] = None,
+    contigs: Optional[str] = None,
+) -> Optional[Dict[str, Any]]:
     """Run one full designability cycle for an unconditional monomer.
 
     backbone (RFdiffusion) -> sequence(s) (ProteinMPNN) -> refold (ESMFold)
@@ -446,11 +464,15 @@ def design_one(length: int = 80, *, num_seq: int = 2,
     }
 
 
-def assess_designability(n: int = 10, *, length: int = 80,
-                         seqs_per_backbone: int = 2,
-                         sampling_temp: float = 0.1,
-                         diffusion_steps: int = 20,
-                         progress: Optional[Any] = None) -> Dict[str, Any]:
+def assess_designability(
+    n: int = 10,
+    *,
+    length: int = 80,
+    seqs_per_backbone: int = 2,
+    sampling_temp: float = 0.1,
+    diffusion_steps: int = 20,
+    progress: Optional[Any] = None,
+) -> Dict[str, Any]:
     """Generate n backbones, design+refold, and report the self-consistency rate.
 
     The success metric is the fraction of backbones for which AT LEAST one
@@ -467,9 +489,12 @@ def assess_designability(n: int = 10, *, length: int = 80,
                 progress(i + 1, int(n))
             except Exception:
                 pass
-        cycle = design_one(length=length, num_seq=seqs_per_backbone,
-                           sampling_temp=sampling_temp,
-                           diffusion_steps=diffusion_steps)
+        cycle = design_one(
+            length=length,
+            num_seq=seqs_per_backbone,
+            sampling_temp=sampling_temp,
+            diffusion_steps=diffusion_steps,
+        )
         if cycle is None:
             n_failed += 1
             continue
@@ -477,10 +502,12 @@ def assess_designability(n: int = 10, *, length: int = 80,
 
     n_ok = len(results)
     n_sc = sum(1 for r in results if r.get("self_consistent"))
-    all_rmsd = [d["sc_rmsd"] for r in results for d in r["designs"]
-                if d.get("sc_rmsd") is not None]
-    best_rmsd = [r["best"]["sc_rmsd"] for r in results
-                 if r.get("best") and r["best"].get("sc_rmsd") is not None]
+    all_rmsd = [d["sc_rmsd"] for r in results for d in r["designs"] if d.get("sc_rmsd") is not None]
+    best_rmsd = [
+        r["best"]["sc_rmsd"]
+        for r in results
+        if r.get("best") and r["best"].get("sc_rmsd") is not None
+    ]
     return {
         "n_requested": int(n),
         "n_completed": n_ok,
@@ -488,10 +515,8 @@ def assess_designability(n: int = 10, *, length: int = 80,
         "n_self_consistent": n_sc,
         "success_rate": (round(n_sc / n_ok, 4) if n_ok else None),
         "scrmsd_threshold": _SC_RMSD_THRESHOLD,
-        "mean_best_scrmsd": (round(float(np.mean(best_rmsd)), 3)
-                             if best_rmsd else None),
-        "median_best_scrmsd": (round(float(np.median(best_rmsd)), 3)
-                               if best_rmsd else None),
+        "mean_best_scrmsd": (round(float(np.mean(best_rmsd)), 3) if best_rmsd else None),
+        "median_best_scrmsd": (round(float(np.median(best_rmsd)), 3) if best_rmsd else None),
         "all_scrmsd": [round(x, 3) for x in all_rmsd],
         "results": results,
     }
@@ -500,10 +525,16 @@ def assess_designability(n: int = 10, *, length: int = 80,
 # --------------------------------------------------------------------------- #
 # Binder design (target-conditioned) + additive wiring hook
 # --------------------------------------------------------------------------- #
-def design_binder(target_pdb: str, *, target_chain_contig: str,
-                  binder_length: int = 60, hotspot_res: Optional[List[str]] = None,
-                  n_designs: int = 1, seqs_per_design: int = 2,
-                  diffusion_steps: int = 20) -> Optional[Dict[str, Any]]:
+def design_binder(
+    target_pdb: str,
+    *,
+    target_chain_contig: str,
+    binder_length: int = 60,
+    hotspot_res: Optional[List[str]] = None,
+    n_designs: int = 1,
+    seqs_per_design: int = 2,
+    diffusion_steps: int = 20,
+) -> Optional[Dict[str, Any]]:
     """De-novo binder design against a target structure (additive capability).
 
     Args:
@@ -520,8 +551,9 @@ def design_binder(target_pdb: str, *, target_chain_contig: str,
     if not target_pdb or not target_chain_contig:
         return None
     contigs = f"{target_chain_contig}/0 {int(binder_length)}-{int(binder_length)}"
-    bb = generate_backbone(target_pdb, contigs, diffusion_steps=diffusion_steps,
-                           hotspot_res=hotspot_res)
+    bb = generate_backbone(
+        target_pdb, contigs, diffusion_steps=diffusion_steps, hotspot_res=hotspot_res
+    )
     if not bb:
         return None
     designs = design_sequences(bb, num_seq=seqs_per_design)
@@ -538,12 +570,14 @@ def design_binder(target_pdb: str, *, target_chain_contig: str,
         else:
             binder_seq = d["sequence"]
         fold = fold_sequence(binder_seq)
-        out_designs.append({
-            "full_sequence": d["sequence"],
-            "binder_sequence": binder_seq,
-            "mpnn_score": d.get("score"),
-            "binder_plddt": (fold.get("plddt") if fold else None),
-        })
+        out_designs.append(
+            {
+                "full_sequence": d["sequence"],
+                "binder_sequence": binder_seq,
+                "mpnn_score": d.get("score"),
+                "binder_plddt": (fold.get("plddt") if fold else None),
+            }
+        )
     return {
         "backbone_pdb": bb,
         "binder_length": int(binder_length),
@@ -552,12 +586,16 @@ def design_binder(target_pdb: str, *, target_chain_contig: str,
     }
 
 
-def propose_denovo_scaffold(target: str = "", *, antigen_pdb: str = "",
-                            target_chain_contig: str = "",
-                            binder_length: int = 60,
-                            hotspot_res: Optional[List[str]] = None,
-                            n_designs: int = 1,
-                            seqs_per_design: int = 2) -> Dict[str, Any]:
+def propose_denovo_scaffold(
+    target: str = "",
+    *,
+    antigen_pdb: str = "",
+    target_chain_contig: str = "",
+    binder_length: int = 60,
+    hotspot_res: Optional[List[str]] = None,
+    n_designs: int = 1,
+    seqs_per_design: int = 2,
+) -> Dict[str, Any]:
     """Additive hook for the antibody/biologic path. Always returns a dict.
 
     If a key + antigen structure are available it proposes a de-novo binder
@@ -565,26 +603,44 @@ def propose_denovo_scaffold(target: str = "", *, antigen_pdb: str = "",
     {available: False, ...}. Never raises; never touches the quantum stages.
     """
     if not nim_available():
-        return {"available": False, "reason": "NVIDIA_API_KEY not set",
-                "engine": "bionemo_protein_design"}
+        return {
+            "available": False,
+            "reason": "NVIDIA_API_KEY not set",
+            "engine": "bionemo_protein_design",
+        }
     if not (antigen_pdb and target_chain_contig):
-        return {"available": False,
-                "reason": "antigen_pdb + target_chain_contig required for binder",
-                "engine": "bionemo_protein_design", "target": target}
+        return {
+            "available": False,
+            "reason": "antigen_pdb + target_chain_contig required for binder",
+            "engine": "bionemo_protein_design",
+            "target": target,
+        }
     try:
-        out = design_binder(antigen_pdb, target_chain_contig=target_chain_contig,
-                            binder_length=binder_length, hotspot_res=hotspot_res,
-                            n_designs=n_designs, seqs_per_design=seqs_per_design)
+        out = design_binder(
+            antigen_pdb,
+            target_chain_contig=target_chain_contig,
+            binder_length=binder_length,
+            hotspot_res=hotspot_res,
+            n_designs=n_designs,
+            seqs_per_design=seqs_per_design,
+        )
         if out is None:
-            return {"available": False, "reason": "NIM call failed (fail-open)",
-                    "engine": "bionemo_protein_design", "target": target}
-        out.update({"available": True, "engine": "bionemo_protein_design",
-                    "target": target})
+            return {
+                "available": False,
+                "reason": "NIM call failed (fail-open)",
+                "engine": "bionemo_protein_design",
+                "target": target,
+            }
+        out.update({"available": True, "engine": "bionemo_protein_design", "target": target})
         return out
     except Exception as exc:  # pragma: no cover
         logger.error("propose_denovo_scaffold failed: %s", exc)
-        return {"available": False, "reason": str(exc),
-                "engine": "bionemo_protein_design", "target": target}
+        return {
+            "available": False,
+            "reason": str(exc),
+            "engine": "bionemo_protein_design",
+            "target": target,
+        }
 
 
 if __name__ == "__main__":  # pragma: no cover
