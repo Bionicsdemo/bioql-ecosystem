@@ -428,3 +428,92 @@ def test_three_models_each_match_only_their_own_pipeline():
     for name, run in runs.items():
         hit = [n for n, m in models.items() if m.matches(run)]
         assert hit == [name], f"{name} matched {hit}"
+
+
+# -- the contract every model must keep, including ones added later ----------------------
+import re  # noqa: E402
+
+ARTIFACTS = Path("~/.bioql/artifacts").expanduser()
+
+
+def test_every_discovered_model_declares_the_whole_contract():
+    assert build.MODELS, "no models discovered"
+    for m in build.MODELS:
+        assert isinstance(m.PIPELINE, str) and m.PIPELINE
+        assert set(m.TITLE) >= {"es", "en"}
+        for fn in ("matches", "unwrap", "subject", "chapters", "mesh_targets"):
+            assert callable(getattr(m, fn)), f"{m.PIPELINE}: {fn} is not callable"
+        assert isinstance(getattr(m, "ALIASES", {}), dict)
+    assert not build.discover.skipped, f"a model file failed to load: {build.discover.skipped}"
+
+
+def _reference_runs():
+    """One saved run per discovered pipeline, when this machine has them."""
+    if not ARTIFACTS.is_dir():
+        return {}
+    by_pipeline = {}
+    for d in sorted(ARTIFACTS.iterdir()):
+        f = d / "result.json"
+        if not f.is_file() or f.stat().st_size > 8_000_000:
+            continue
+        try:
+            r = json.loads(f.read_text())
+        except Exception:
+            continue
+        for m in build.MODELS:
+            try:
+                if m.matches(r):
+                    prev = by_pipeline.get(m.PIPELINE)
+                    if prev is None or f.stat().st_size > prev[1]:
+                        by_pipeline[m.PIPELINE] = (r, f.stat().st_size)
+                    break
+            except Exception:
+                continue
+    return {k: v[0] for k, v in by_pipeline.items()}
+
+
+REFERENCE = _reference_runs()
+
+
+@pytest.mark.skipif(not REFERENCE, reason="no saved runs on this machine")
+def test_no_two_models_claim_the_same_run():
+    for pipeline, run in REFERENCE.items():
+        hits = [m.PIPELINE for m in build.MODELS if m.matches(run)]
+        assert hits == [pipeline], f"{pipeline} also matched {hits}"
+
+
+@pytest.mark.skipif(not REFERENCE, reason="no saved runs on this machine")
+def test_every_model_renders_its_run_without_overclaiming():
+    """The rules, checked against every pipeline this machine has data for."""
+    for pipeline, run in REFERENCE.items():
+        p = build.build(run, mesh_fn=fake_mesh)
+        r = p["result"]
+        drawn = set(p["meshes"])
+        passed = {c["id"] for c in p["checks"] if c.get("ok")}
+        for ch in p["chapters"]:
+            for b in ch["beats"]:
+                where = f"{pipeline}/{ch['id']}"
+                for path in b["paths"]:
+                    assert facts.get(r, path) is not None, f"{where}: quoted an empty path {path}"
+                assert b["paths"] or b["kind"] in (
+                    "note",
+                    "check",
+                    "gap",
+                ), f"{where}: a fact with no source: {b['es'][:70]}"
+                assert b["es"] and b["en"], f"{where}: a beat missing a language"
+                assert (
+                    "{" not in b["es"] and "{" not in b["en"]
+                ), f"{where}: an unresolved field reached the page: {b['es'][:70]}"
+                if b.get("tech"):
+                    assert "{" not in b["tech"]["en"], f"{where}: unresolved tech line"
+                for note in ch["scene"].get("annotations") or []:
+                    assert ch["scene"].get("mesh") in drawn or note.get(
+                        "pos"
+                    ), f"{where}: an annotation with no structure behind it"
+        assert p["coverage"]["leaves"] == len(facts.flatten(r))
+        assert sum(p["coverage"]["per_chapter"].values()) == p["coverage"]["leaves"]
+        # a sentence may only say "checked" when a check of that name really passed
+        for ch in p["chapters"]:
+            for b in ch["beats"]:
+                if b["kind"] == "check":
+                    assert passed, f"{pipeline}/{ch['id']}: a check sentence with no passing check"

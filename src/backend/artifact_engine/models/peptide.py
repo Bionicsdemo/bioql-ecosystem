@@ -162,12 +162,37 @@ def scene_candidates(r: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def scene_structure(r: Dict[str, Any], mesh_keys: Dict[str, str]) -> Dict[str, Any]:
+def scene_structure(
+    r: Dict[str, Any], mesh_keys: Dict[str, str], meshes: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """The folded peptide, with its termini named and its end-to-end distance measured
+    on the coordinates the folder produced -- for a peptide that span is the shape."""
     pp = F.get(r, f"{BEST}.analyses.peptide_properties") or {}
+    notes, measures = [], []
+    m = (meshes or {}).get(mesh_keys.get("peptide") or "")
+    if m and len(m.get("res") or []) >= 2:
+        res = m["res"]
+        a, b2 = res[0], res[-1]
+        d = sum((x - y) ** 2 for x, y in zip(a["p"], b2["p"])) ** 0.5
+        measures.append({"from": a["p"], "to": b2["p"], "label": f"N\u2192C {d:.1f} \u00c5"})
+        notes.append(
+            {
+                "text": f"N \u00b7 {a['resn']}{a['resi']}",
+                "pos": [a["p"][0], a["p"][1] + 2.2, a["p"][2]],
+            }
+        )
+        notes.append(
+            {
+                "text": f"C \u00b7 {b2['resn']}{b2['resi']}",
+                "pos": [b2["p"][0], b2["p"][1] + 2.2, b2["p"][2]],
+            }
+        )
     return {
         "type": "cartoon",
         "mesh": mesh_keys.get("peptide"),
         "domains": [],
+        "annotations": notes,
+        "measures": measures,
         "seq": F.get(r, f"{BEST}.sequence"),
         "props": {
             k: pp.get(k)
@@ -372,11 +397,11 @@ def chapters(
                 "complexa_binders",
                 "images",
             ],
-            "scene": scene_structure(r, mesh_keys),
+            "scene": scene_structure(r, mesh_keys, meshes),
             "beats": [
                 {
-                    "es": "El péptido plegado, dibujado por PyMOL y construido residuo a residuo.",
-                    "en": "The folded peptide, drawn by PyMOL and built residue by residue.",
+                    "es": "Los {pp:length} residuos del péptido, plegados y dibujados por PyMOL, se construyen aquí uno a uno.",
+                    "en": "The peptide's {pp:length} residues, folded and drawn by PyMOL, are built here one at a time.",
                     "focus": {"grow": True},
                     "requires_mesh": "peptide",
                     "gap": [f"{BEST}.analyses.protenix_structure", "structure_3d"],

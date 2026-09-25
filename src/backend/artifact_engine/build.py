@@ -21,10 +21,42 @@ from typing import Any, Callable, Dict, List, Optional
 
 from . import facts as F
 from . import narrate
-from .models import mrna, peptide, small_molecule
 
-MODELS = [mrna, small_molecule, peptide]
 ANNEX = "annex"
+_REQUIRED = ("PIPELINE", "TITLE", "matches", "unwrap", "subject", "chapters", "mesh_targets")
+
+
+def discover() -> List[Any]:
+    """Every model module under models/, in a stable order.
+
+    A pipeline model is one file that declares the contract; dropping it in is all
+    that adding a pipeline takes. A file that does not declare the contract, or does
+    not import, is skipped with a note rather than breaking every other report.
+    """
+    import importlib
+    import pkgutil
+
+    from . import models as _pkg
+
+    found, skipped = [], []
+    for info in sorted(pkgutil.iter_modules(_pkg.__path__), key=lambda i: i.name):
+        if info.name.startswith("_"):
+            continue
+        try:
+            mod = importlib.import_module(f"{_pkg.__name__}.{info.name}")
+        except Exception as e:  # noqa: BLE001
+            skipped.append((info.name, f"{type(e).__name__}: {str(e)[:120]}"))
+            continue
+        missing = [a for a in _REQUIRED if not hasattr(mod, a)]
+        if missing:
+            skipped.append((info.name, f"missing {', '.join(missing)}"))
+            continue
+        found.append(mod)
+    discover.skipped = skipped  # type: ignore[attr-defined]
+    return found
+
+
+MODELS = discover()
 
 
 def pick_model(result: Dict[str, Any]):

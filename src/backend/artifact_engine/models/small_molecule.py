@@ -178,7 +178,11 @@ def scene_pk(r: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def scene_target(r: Dict[str, Any], mesh_keys: Dict[str, str]) -> Dict[str, Any]:
+def scene_target(
+    r: Dict[str, Any], mesh_keys: Dict[str, str], meshes: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """The target with its ligand. The binding site the run recorded is marked at its
+    own centre, in the same frame as the drawn structure."""
     return {
         "type": "complex",
         "mesh": mesh_keys.get("target"),
@@ -188,7 +192,24 @@ def scene_target(r: Dict[str, Any], mesh_keys: Dict[str, str]) -> Dict[str, Any]
         "pdb_id": F.get(r, "target_structure.pdb_id"),
         "affinity_kcal": F.get(r, f"{S6}.binding_affinity_kcal"),
         "poses": F.get(r, f"{S6}.poses_generated"),
+        "annotations": _site_marks(r, mesh_keys, meshes),
     }
+
+
+def _site_marks(
+    r: Dict[str, Any], mesh_keys: Dict[str, str], meshes: Optional[Dict[str, Any]]
+) -> List[Dict[str, Any]]:
+    site = F.get(r, "mol_3d.binding_site") or {}
+    m = (meshes or {}).get(mesh_keys.get("target") or "")
+    if not m or not all(
+        isinstance(site.get(k), (int, float)) for k in ("center_x", "center_y", "center_z")
+    ):
+        return []
+    c = m.get("center") or [0, 0, 0]
+    pos = [site["center_x"] - c[0], site["center_y"] - c[1], site["center_z"] - c[2]]
+    radius = site.get("radius")
+    text = "binding site" + (f" · r {radius} \u00c5" if isinstance(radius, (int, float)) else "")
+    return [{"text": text, "pos": pos}]
 
 
 def scene_binders(r: Dict[str, Any]) -> Dict[str, Any]:
@@ -409,7 +430,7 @@ def chapters(
             "id": "target",
             "title": {"es": "El blanco y el acoplamiento", "en": "The target and the docking"},
             "claims": [S6, "mol_3d", S7, S7B],
-            "scene": scene_target(r, mesh_keys),
+            "scene": scene_target(r, mesh_keys, meshes),
             "beats": [
                 {
                     "es": "La proteína blanco es {target_structure.pdb_id}, tomada de {target_structure.source}; PyMOL la dibuja aquí con el ligando en su sitio de unión.",
