@@ -225,7 +225,7 @@ const SCENES = {
   async cover(sc) {
     const mesh = sc.mesh ? await addCartoon(sc.mesh, { grow: false, mode: "ss" }) : null;
     fit(mesh ? mesh.userData.fit * 1.25 : 120);
-    return { tick: (dt) => { world.rotation.y += dt * 0.12; } };
+    return { tick: (dt) => spin(dt, 0.12) };
   },
 
   async protein_chain(sc) {
@@ -269,7 +269,7 @@ const SCENES = {
     fit(size * 1.25);
     const res = mesh.userData.meta.res || [];
     return {
-      tick: (dt) => { if (!fly) world.rotation.y += dt * 0.08; },
+      tick: (dt) => spin(dt, 0.08),
       focus: (f) => {
         if (f.color) paintMesh(mesh.geometry, mesh.userData.meta, f.color, sc.domains);
         if (f.grow && !REDUCED) {
@@ -377,7 +377,7 @@ const SCENES = {
       world.add(t);
     }
     fit(null);
-    return { tick: (dt) => { world.rotation.y += dt * 0.15; } };
+    return { tick: (dt) => spin(dt, 0.15) };
   },
 
   async quantum(sc) {
@@ -449,7 +449,7 @@ const SCENES = {
     return {
       tick: (dt) => {
         if (fly) return;
-        world.rotation.y += dt * 0.24;
+        spin(dt, 0.24);
         world.rotation.x = Math.sin(performance.now() / 5200) * 0.14;
       },
       focus: (f) => { if (f.spin) fit((sc.span || 10) * K * 2.1, { snap: false, angle: 0.5, height: 0.28 }); },
@@ -547,7 +547,7 @@ const SCENES = {
       world.add(g);
     }
     fit(fitTo);
-    return { tick: (dt) => { world.rotation.y += dt * 0.12; } };
+    return { tick: (dt) => spin(dt, 0.12) };
   },
 
   async binders(sc) {
@@ -565,7 +565,7 @@ const SCENES = {
       world.add(t);
     });
     fit(bs.length * 7 + 28);
-    return { tick: (dt) => { world.rotation.y += dt * 0.1; } };
+    return { tick: (dt) => spin(dt, 0.1) };
   },
 
   async score(sc) {
@@ -808,6 +808,7 @@ function worldBox() {
    and it is fitted to the narrower of the two field angles so nothing leaves a
    portrait-shaped stage sideways. */
 function fit(hint, { angle = 0.22, height = 0.18, snap = true, pad = 1.16 } = {}) {
+  pinned = false;
   const box = worldBox();
   let center = new THREE.Vector3(0, 0, 0), size = hint || 60;
   if (box) {
@@ -843,7 +844,18 @@ function flyTo(pos, target = new THREE.Vector3(0, 0, 0), dur = 1.8) {
 /** Frame a point of the current scene: `d` is how far back to sit from it. */
 function lookAt(point, d = 40, dur = 1.8) {
   const p = new THREE.Vector3(...(Array.isArray(point) ? point : [point.x, point.y, point.z]));
+  pinned = true;
   flyTo(p.clone().add(new THREE.Vector3(d * 0.34, d * 0.22, d)), p, dur);
+}
+
+/* A close-up is aimed at one point of the subject, in the subject's own coordinates.
+   Left turning, the world carried that point away from where the camera was looking:
+   twelve seconds into the veterinary antibody's second chapter the fold had swung
+   entirely out of frame. While a close-up holds, the subject holds still; the camera's
+   own slow orbit keeps the shot alive. */
+let pinned = false;
+function spin(dt, rate) {
+  if (!fly && !pinned) world.rotation.y += dt * rate;
 }
 
 /* ── chapter flow ─────────────────────────────────────────────────────── */
@@ -881,6 +893,7 @@ async function setChapter(i) {
   hidePlate();
   drawnMesh = null;
   world.rotation.set(0, 0, 0);
+  pinned = false;
   const build = SCENES[ch.scene?.type] || (() => gapScene(true, ch.scene));
   active = (await build(ch.scene)) || {};
   drawAnnotations(ch.scene || {});

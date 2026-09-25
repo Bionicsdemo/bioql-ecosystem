@@ -25,6 +25,7 @@ technical line never reaches the page.
 MOLEVERA / BIOQL
 """
 
+import math
 import re
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
@@ -91,7 +92,11 @@ class Resolver:
             # An empty list is a real answer when the sentence is counting: "0 safety
             # flags" is a fact the run carries. Treating it as missing silently dropped
             # sentences the run had every value for.
-            empty = v is None or v == "" or (v in ([], {}) and spec != "count")
+            # NaN and the infinities are not numbers the run has: a sentence built on
+            # one would read "composite score nan". Absent is the honest reading, and
+            # the beat becomes a declared gap like any other missing value.
+            unreal = isinstance(v, float) and not math.isfinite(v)
+            empty = v is None or v == "" or unreal or (v in ([], {}) and spec != "count")
             if empty:
                 if not optional:
                     missing = True
