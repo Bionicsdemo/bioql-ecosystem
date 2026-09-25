@@ -173,3 +173,86 @@ def test_parabricks_rechaza_una_descarga_incompleta(tmp_path, monkeypatch):
     monkeypatch.setattr("subprocess.run", falso_run)
     with pytest.raises(RuntimeError, match="incomplete"):
         P._ensure_reference("GRCh38")
+
+
+# -- 2026-09-24, second pass: only bioql-esmfold2 is deployed ---------------------
+# Lookup on Modal: bioql-esmfold2::fold_structure and ::fold_complex exist;
+# bioql-esmfold2::predict and the whole bioql-esmfold2-service app do not.
+_PDB = "\n".join(
+    f"ATOM  {i:5d}  CA  ALA {c}{i:4d}      0.000   0.000   0.000  1.00{b:6.2f}           C"
+    for i, (c, b) in enumerate([("H", 80.0), ("L", 90.0), ("A", 70.0)], start=1)
+)
+
+
+def _routed_world(monkeypatch, registry):
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import brev_client
+    import modal_compute_layer as M
+    from test_compute_backends import make_fake_modal
+
+    fake, exc, calls = make_fake_modal(registry)
+    monkeypatch.setitem(sys.modules, "modal", fake)
+    monkeypatch.setitem(sys.modules, "modal.exception", exc)
+    monkeypatch.setenv("BIOQL_MODAL_ENABLED", "1")
+    monkeypatch.setenv("BIOQL_COMPUTE_PREFER", "auto")
+    monkeypatch.delenv("BIOQL_BREV_URL", raising=False)
+    brev_client.forget_health()
+    M.reset_memory()
+    return calls
+
+
+def test_el_docking_de_anticuerpos_usa_fold_complex_desplegado(monkeypatch):
+    import antibody_hla_polyclonal as A
+
+    calls = _routed_world(
+        monkeypatch,
+        {
+            "bioql-esmfold2::fold_complex": lambda vh, vl, ag: {
+                "success": True,
+                "pdb": _PDB,
+                "model": "ESMFold2",
+            }
+        },
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "antibody_interface_analyzer",
+        types.SimpleNamespace(compute_interface=lambda *a, **k: {"available": True}),
+    )
+    r = A._dock_clone("EVQLVESGG", "DIQMTQSPS", "SIINFEKL")
+    assert calls == [("bioql-esmfold2::fold_complex", ("EVQLVESGG", "DIQMTQSPS", "SIINFEKL"), {})]
+    assert r["available"] and r["plddt"] == 80.0 and "B-factor" in r["plddt_source"]
+    assert r["fold_backend"].startswith("Modal GPU (bioql-esmfold2::fold_complex")
+
+
+def test_sin_cadena_ligera_no_se_enciende_una_gpu_para_fallar(monkeypatch):
+    import antibody_hla_polyclonal as A
+
+    calls = _routed_world(
+        monkeypatch, {"bioql-esmfold2::fold_complex": lambda *a: {"success": True}}
+    )
+    r = A._dock_clone("EVQLVESGG", "", "SIINFEKL")
+    assert r["available"] is False and "VH and VL" in r["reason"] and calls == []
+
+
+def test_el_respaldo_de_esmfold2_usa_la_app_desplegada(monkeypatch):
+    import esmfold2_backend as E
+
+    calls = _routed_world(
+        monkeypatch,
+        {
+            "bioql-esmfold2::fold_structure": lambda seq, seed, q: {
+                "success": True,
+                "pdb": _PDB,
+                "quality": q,
+            }
+        },
+    )
+    monkeypatch.setattr(E, "ESMFOLD2_URL", "")
+    r = E.predict_structure_esmfold2("MKTAYIAKQRQISFVKSHFSRQ")
+    assert (
+        "bioql-esmfold2::fold_structure",
+        ("MKTAYIAKQRQISFVKSHFSRQ", 0, "production"),
+        {},
+    ) in calls
+    assert r.get("success"), r

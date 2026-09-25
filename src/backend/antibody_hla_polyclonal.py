@@ -1492,6 +1492,19 @@ def _measure_quantum(enabled: bool, q_records: List[Dict[str, Any]]) -> Dict[str
 # ----------------------------------------------------------------------------- #
 
 
+def _mean_ca_bfactor(pdb_text: str) -> Optional[float]:
+    """Mean CA B-factor, rounded to 0.01 -- where ESMFold writes per-residue pLDDT."""
+    try:
+        bs = [
+            float(ln[60:66])
+            for ln in (pdb_text or "").splitlines()
+            if ln.startswith("ATOM") and ln[12:16].strip() == "CA"
+        ]
+    except ValueError:
+        return None
+    return round(sum(bs) / len(bs), 2) if bs else None
+
+
 def _dock_clone(
     vh: str, vl: str, peptide: str, name: str = "complex", tracker: Optional[Any] = None
 ) -> Dict[str, Any]:
@@ -1499,13 +1512,20 @@ def _dock_clone(
     seqs = [s for s in (vh, vl, peptide) if s]
     if len(seqs) < 2 or not peptide:
         return {"available": False, "reason": "need antibody + peptide sequences to dock"}
+    if not vl:
+        return {
+            "available": False,
+            "reason": "the deployed complex fold (bioql-esmfold2::fold_complex) needs VH and VL",
+        }
     try:
         import modal_compute_layer
 
-        import modal as _modal
-
-        fold = modal_compute_layer.function("bioql-esmfold2-service", "predict")
-        res = fold.remote({"sequences": seqs, "complex": True, "name": name})
+        # bioql-esmfold2::fold_complex(vh, vl, antigen) is the deployed multi-chain
+        # fold. The generic-payload service app (predict) is not deployed (lookup,
+        # 2026-09-24), so calling it could only ever fail.
+        fold = modal_compute_layer.function("bioql-esmfold2", "fold_complex")
+        res = fold.remote(vh, vl, peptide)
+        ran_on = "Brev" if (fold.last_routing or {}).get("backend") == "brev" else "Modal"
         if isinstance(res, dict) and res.get("success") and tracker is not None:
             try:
                 import hashlib
@@ -1520,7 +1540,7 @@ def _dock_clone(
                         "ptm": res.get("ptm"),
                         "fold_model": res.get("model"),
                     },
-                    metadata={"backend": "Modal GPU (esmfold2)"},
+                    metadata={"backend": f"{ran_on} GPU (esmfold2)"},
                 )
             except Exception as e:
                 import logging
@@ -1546,12 +1566,17 @@ def _dock_clone(
         "fold_model": res.get("model", "esmfold2"),
         "iptm": res.get("iptm"),
         "ptm": res.get("ptm"),
-        "plddt": res.get("plddt"),
+        "plddt": res.get("plddt") if res.get("plddt") is not None else _mean_ca_bfactor(pdb_text),
+        "plddt_source": (
+            "model output"
+            if res.get("plddt") is not None
+            else "mean CA B-factor of the returned PDB (ESMFold writes pLDDT there)"
+        ),
         "complex_pdb": pdb_text,
         "complex_cif": cif_text,
         "structure_format": struct_fmt,
         "is_real_hardware": False,
-        "fold_backend": "Modal GPU (esmfold2 / Biohub ESMFold2)",
+        "fold_backend": f"{ran_on} GPU (bioql-esmfold2::fold_complex / Biohub ESMFold2)",
     }
     try:
         import antibody_interface_analyzer as _ia

@@ -48,6 +48,11 @@ ESMFOLD2_URL = os.environ.get("ESMFOLD2_URL", "").rstrip("/")
 # "bioql-esmfold2-service"; "bioql-esmfold2" es otra app (fold_structure/fold_complex).
 _MODAL_APP = os.environ.get("ESMFOLD2_MODAL_APP", "bioql-esmfold2-service")
 _MODAL_FN = os.environ.get("ESMFOLD2_MODAL_FN", "predict")
+# fold_structure / fold_complex live in the production app (modal_esmfold2.py),
+# not in the generic-payload service above. Checked by lookup on 2026-09-24:
+# bioql-esmfold2::fold_structure and ::fold_complex exist; the service app is
+# not deployed, so the compatibility path below is the one that runs today.
+_DEPLOYED_APP = os.environ.get("ESMFOLD2_DEPLOYED_APP", "bioql-esmfold2")
 
 _REMOTE_TIMEOUT_S = int(os.environ.get("ESMFOLD2_TIMEOUT_S", "900"))
 
@@ -470,7 +475,7 @@ def predict_structure_esmfold2(
 
             import modal as _modal
 
-            fn = modal_compute_layer.function(_MODAL_APP, "fold_structure")
+            fn = modal_compute_layer.function(_DEPLOYED_APP, "fold_structure")
             raw = fn.remote(seqs[0], 0, "production")
             if isinstance(raw, dict) and raw.get("success"):
                 norm = _normalize_remote(raw, backend="modal")
