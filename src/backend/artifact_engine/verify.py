@@ -190,10 +190,10 @@ def _clip(v: Any, depth: int = 0) -> Any:
             out["…"] = f"+{len(v) - MAX_ITEMS} more keys"
         return out
     if isinstance(v, (list, tuple)):
-        out = [_clip(x, depth + 1) for x in list(v)[:MAX_ITEMS]]
+        items = [_clip(x, depth + 1) for x in list(v)[:MAX_ITEMS]]
         if len(v) > MAX_ITEMS:
-            out.append(f"…(+{len(v) - MAX_ITEMS} more items)")
-        return out
+            items.append(f"…(+{len(v) - MAX_ITEMS} more items)")
+        return items
     return str(v)[:MAX_STR]
 
 
@@ -390,7 +390,7 @@ def verify(
         verdicts.sort(key=lambda v: v["i"])
         tech_verdicts.sort(key=lambda v: v["i"])
         n_ok = sum(1 for v in verdicts if v["ok"])
-        out = {
+        out: Dict[str, Any] = {
             "available": True,
             "why": None,
             "checked": len(verdicts),

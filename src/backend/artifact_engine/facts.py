@@ -13,7 +13,7 @@ MOLEVERA / BIOQL
 """
 
 import re
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 
 Leaf = Tuple[str, Any]
 
@@ -69,7 +69,7 @@ def get(obj: Any, path: str, default: Any = None) -> Any:
     return cur
 
 
-def owner(path: str, claims: Dict[str, Iterable[str]]) -> Optional[str]:
+def owner(path: str, claims: Mapping[str, Iterable[str]]) -> Optional[str]:
     """The chapter whose claimed prefix is the longest match for `path`."""
     best, best_len = None, -1
     for chapter, prefixes in claims.items():
@@ -81,7 +81,9 @@ def owner(path: str, claims: Dict[str, Iterable[str]]) -> Optional[str]:
     return best
 
 
-def coverage(result: Any, claims: Dict[str, Iterable[str]], annex: str = "annex") -> Dict[str, Any]:
+def coverage(
+    result: Any, claims: Mapping[str, Iterable[str]], annex: str = "annex"
+) -> Dict[str, Any]:
     """Assign every leaf to a chapter. Returns counts per chapter and the annex paths."""
     leaves = flatten(result)
     per: Dict[str, int] = {}

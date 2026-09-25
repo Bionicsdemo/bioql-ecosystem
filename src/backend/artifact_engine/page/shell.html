@@ -44,7 +44,10 @@ header button:hover{color:var(--ink);border-color:var(--accent)}
   backdrop-filter:blur(3px)}
 .tag.reg{border-color:#2c3f52}
 .tag.sig{border-color:#d0577f;color:#f3aec2}
-.tag.dom{border:0;border-bottom:2px solid;border-radius:0;background:transparent;padding:0 2px 2px}
+/* a domain name sits on top of the thing it names, so it needs its own ground:
+   transparent, it was unreadable over the coloured cells it labelled */
+.tag.dom{border:0;border-bottom:2px solid;border-radius:0;padding:1px 4px 2px;
+  background:rgba(8,12,17,.82);text-shadow:0 1px 2px rgba(0,0,0,.9)}
 
 /* the ray-traced still: what the reader lands on, before the live model */
 #poster{position:absolute;inset:0;margin:0;display:flex;flex-direction:column;
@@ -57,6 +60,33 @@ header button:hover{color:var(--ink);border-color:var(--accent)}
 #poster figcaption{font:400 10.5px var(--mono);color:var(--muted);letter-spacing:.06em;
   border:1px solid var(--line2);border-radius:6px;padding:4px 10px;background:rgba(10,15,20,.7)}
 @keyframes posterIn{from{opacity:0;transform:scale(.985)}to{opacity:1;transform:none}}
+
+/* the value plate: a chapter whose subject is a block of the result shows that block,
+   not a stand-in shape. Typography is the visual here, so it gets the whole stage. */
+#plate{position:absolute;inset:0;z-index:1;overflow-y:auto;overscroll-behavior:contain;
+  padding:34px 36px 92px;scrollbar-width:thin;scrollbar-color:#243343 transparent;
+  animation:plateIn .5s cubic-bezier(.4,0,.2,1) both}
+#plate[hidden]{display:none}
+@keyframes plateIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.plate-hd{font:500 10px var(--mono);color:var(--accent);text-transform:uppercase;
+  letter-spacing:.15em;margin-bottom:20px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.plate-grid{display:grid;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:9px;
+  overflow:hidden;grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+.plate-grid .pv{background:var(--panel);padding:13px 15px;min-width:0}
+.plate-grid .pk{font:500 9.5px var(--mono);color:var(--muted);text-transform:uppercase;
+  letter-spacing:.09em;margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.plate-grid .pn{font:500 14px/1.4 var(--mono);color:var(--ink);font-variant-numeric:tabular-nums;
+  overflow-wrap:anywhere}
+/* nothing to draw is an answer, and it is written as one */
+#plate.void-plate{display:flex;align-items:center;justify-content:center;padding:34px 40px 92px}
+.void{max-width:46ch;text-align:center}
+.void .vk{font:500 10px var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.18em;
+  margin-bottom:14px}
+.void .vk::before,.void .vk::after{content:"";display:block;height:1px;background:var(--line);
+  margin:0 auto 14px;width:64px}
+.void .vk::after{margin:14px auto 0}
+.void .vt{font:400 16px/1.62 var(--serif);color:var(--body)}
+.void .vp{margin-top:14px;font:400 10.5px var(--mono);color:#5c6b7d;letter-spacing:.04em}
 
 /* the data band: the chapter's own numbers, drawn to scale */
 #band{position:absolute;left:0;right:0;bottom:0;padding:11px 20px 13px;
@@ -158,6 +188,7 @@ td:first-child{color:var(--muted);white-space:nowrap;width:36%}
     <button id="dl">JSON</button>
   </header>
   <div id="stage">
+    <div id="plate" hidden></div>
     <figure id="poster" hidden>
       <img alt="">
       <figcaption></figcaption>

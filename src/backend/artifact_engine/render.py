@@ -12,6 +12,7 @@ MOLEVERA / BIOQL
 """
 
 import json
+import math
 import os
 import time
 from typing import Any, Dict, Optional
@@ -24,13 +25,33 @@ PAGE = os.path.join(HERE, "page")
 ARTIFACTS = os.path.expanduser(os.environ.get("BIOQL_ARTIFACTS_DIR", "~/.bioql/artifacts"))
 
 
+def _finite(v: Any) -> Any:
+    """NaN and the infinities, which JSON has no words for, written as null.
+
+    `json.dumps` emits the bare tokens `NaN` and `Infinity` by default. No browser's
+    `JSON.parse` accepts either, so one non-finite number anywhere in a run threw at
+    the very top of the page and left the reader a blank screen -- which is how the
+    modality comparison report, whose run carries a NaN composite score, had been
+    arriving. Null is what the rest of the page already reads as "not in this run".
+    """
+    if isinstance(v, float) and not math.isfinite(v):
+        return None
+    if isinstance(v, dict):
+        return {k: _finite(x) for k, x in v.items()}
+    if isinstance(v, (list, tuple)):
+        return [_finite(x) for x in v]
+    return v
+
+
 def _safe_json(payload: Dict[str, Any]) -> str:
     """JSON for a <script type="application/json"> block: no tag can escape it."""
     return (
-        json.dumps(payload, ensure_ascii=False, default=str)
+        # allow_nan=False makes anything _finite missed fail the build loudly, rather
+        # than ship a page that cannot start
+        json.dumps(_finite(payload), ensure_ascii=False, default=str, allow_nan=False)
         .replace("</", "<\\/")
-        .replace(" ", "\\u2028")
-        .replace(" ", "\\u2029")
+        .replace("\u2028", "\\u2028")
+        .replace("\u2029", "\\u2029")
     )
 
 

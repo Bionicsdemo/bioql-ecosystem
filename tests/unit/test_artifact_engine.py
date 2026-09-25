@@ -521,3 +521,28 @@ def test_every_model_renders_its_run_without_overclaiming():
             for b in ch["beats"]:
                 if b["kind"] == "check":
                     assert passed, f"{pipeline}/{ch['id']}: a check sentence with no passing check"
+
+
+def test_a_non_finite_number_cannot_blank_the_page():
+    """A NaN in the run must not reach the page as the bare token `NaN`.
+
+    `json.dumps` writes NaN and Infinity unquoted by default; no browser's JSON.parse
+    accepts them, so one of them anywhere in a result threw before the first line of
+    the renderer ran and the reader got a blank screen. The modality comparison run
+    carries exactly that, and its report was unreadable for it.
+    """
+    import json as _json
+
+    from artifact_engine import render as _render
+
+    payload = {
+        "a": float("nan"),
+        "b": [1.0, float("inf"), {"c": float("-inf")}],
+        "d": {"e": 2.5},
+    }
+    text = _render._safe_json(payload)
+    assert "NaN" not in text and "Infinity" not in text
+    back = _json.loads(text)  # the browser's parser is this strict too
+    assert back["a"] is None
+    assert back["b"] == [1.0, None, {"c": None}]
+    assert back["d"]["e"] == 2.5

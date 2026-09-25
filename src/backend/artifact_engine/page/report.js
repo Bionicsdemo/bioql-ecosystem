@@ -17,7 +17,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const NARROW = matchMedia("(max-width: 980px)").matches;
 // English is the report's own language; Spanish is the toggle.
-const S = { lang: "en", ch: 0, beat: 0, playing: false, t: 0, posterDismissed: false };
+const S = { lang: "en", ch: 0, beat: 0, playing: false, t: 0, playT0: 0, posterDismissed: false };
 
 const COL = { bg: 0x0b0f14, ss: { H: 0x6f8aa8, S: 0xa9bfd4, L: 0x56697d } };
 
@@ -134,16 +134,24 @@ function plddtColor(b) {           // the scale every folding model uses
   return new THREE.Color(0xe4574c);
 }
 const DOM_COL = [0x5b8def, 0xe9a032, 0x2dd4bf, 0xd0577f, 0x8b74f4, 0x7ed08a];
+/* 5'→3' (or N→C) by position in the chain, the same ramp the PyMOL still uses. RNA has
+   no helix/sheet to colour by, so painting it by secondary structure left every
+   nucleotide the one dark slate that means "loop" — a fold invisible against the page. */
+const CHAIN_A = new THREE.Color(0x3b82f6), CHAIN_M = new THREE.Color(0xdbe6f0), CHAIN_B = new THREE.Color(0xe9a032);
+function chainColor(u) {
+  return u < 0.5 ? CHAIN_A.clone().lerp(CHAIN_M, u * 2) : CHAIN_M.clone().lerp(CHAIN_B, (u - 0.5) * 2);
+}
 
 function paintMesh(geom, m, mode, domains) {
   const nv = geom.attributes.position.count, idx = geom.index.array;
   const col = new Float32Array(nv * 3), done = new Uint8Array(nv);
   const resKeys = Object.keys(m.resEnd).map(Number).sort((a, b) => a - b);
-  let t0 = 0;
+  let t0 = 0, seen = 0;
   for (const ri of resKeys) {
     const t1 = m.resEnd[ri], res = m.res[ri] || {};
     let c;
-    if (mode === "plddt") c = plddtColor(res.b);
+    if (mode === "chain") c = chainColor(resKeys.length < 2 ? 0.5 : seen / (resKeys.length - 1));
+    else if (mode === "plddt") c = plddtColor(res.b);
     else if (mode === "domains") {
       c = new THREE.Color(0x3a4757);
       domains?.forEach((d, i) => { if (ri >= d.from && ri < d.to) c = new THREE.Color(DOM_COL[i % DOM_COL.length]); });
@@ -152,14 +160,19 @@ function paintMesh(geom, m, mode, domains) {
       const v = idx[3 * tr + k];
       if (!done[v]) { done[v] = 1; col[3 * v] = c.r; col[3 * v + 1] = c.g; col[3 * v + 2] = c.b; }
     }
-    t0 = t1;
+    t0 = t1; seen++;
   }
   geom.setAttribute("color", new THREE.BufferAttribute(col, 3));
 }
 
+let drawnMesh = null;   // what this chapter really put on stage, for the band
 async function addCartoon(k, { grow = true, mode = "ss", domains = null } = {}) {
   const g = await meshGeometry(k); const m = R.meshes[k];
   if (!g) return null;
+  drawnMesh = m;
+  // mesh.py labels a nucleic chain 'rna', and secondary structure is a protein idea:
+  // asking for it on RNA painted every nucleotide the single "loop" slate.
+  if (mode === "ss" && m.kind !== "protein") mode = "chain";
   paintMesh(g, m, mode, domains);
   const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.42, metalness: 0.05, side: THREE.DoubleSide });
   const mesh = new THREE.Mesh(g, mat);
@@ -167,33 +180,44 @@ async function addCartoon(k, { grow = true, mode = "ss", domains = null } = {}) 
   world.add(mesh);
   const box = new THREE.Box3().setFromObject(mesh), sz = box.getSize(new THREE.Vector3()).length();
   mesh.userData.fit = sz;
-  if (grow && !REDUCED) { g.setDrawRange(0, 0); mesh.userData.grow = { t: 0, total: m.nt }; }
+  if (grow && !REDUCED) { g.setDrawRange(0, 0); startGrow(mesh, m.nt); }
   return mesh;
 }
 
 /* ── ribbon helpers (sequence as a strip of cells) ─────────────────────── */
-function ribbon(seq, { perRow = 60, cell = 1.6, colorFn, y0 = 0 } = {}) {
+/* `perRow: "auto"` shapes the block to the stage instead of running the sequence out
+   as a one-cell-tall hairline: a 48-residue chain laid 60 wide is 77 units of width
+   and 1.6 of height, which frames as a barcode in an empty room. Rounded to tens so
+   the rows still read the way a sequence is written. */
+function autoPerRow(n, aspect = 1.3) {
+  const p = Math.sqrt(Math.max(1, n) * aspect * 1.15);
+  return Math.max(10, Math.min(n, Math.round(p / 10) * 10 || 10));
+}
+function ribbon(seq, { perRow = "auto", cell = 1.6, cellH = 0, colorFn, y0 = 0 } = {}) {
+  if (perRow === "auto" || !perRow) perRow = autoPerRow(seq.length, camera.aspect || 1.3);
+  cellH = cellH || cell;   // a comparison row is drawn as a band, not a hairline
   const g = new THREE.Group();
-  const geo = new THREE.PlaneGeometry(cell * 0.92, cell * 0.92);
+  const geo = new THREE.PlaneGeometry(cell * 0.92, cellH * 0.92);
   const mat = new THREE.MeshBasicMaterial({ vertexColors: false, transparent: true });
   const inst = new THREE.InstancedMesh(geo, mat, seq.length);
   const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), Sc = new THREE.Vector3(1, 1, 1);
   const rows = Math.ceil(seq.length / perRow);
   for (let i = 0; i < seq.length; i++) {
     const r = Math.floor(i / perRow), c = i % perRow;
-    M.compose(new THREE.Vector3((c - perRow / 2) * cell, y0 + (rows / 2 - r) * cell * 1.15, 0), Q, Sc);
+    M.compose(new THREE.Vector3((c - perRow / 2) * cell, y0 + (rows / 2 - r) * cellH * 1.15, 0), Q, Sc);
     inst.setMatrixAt(i, M);
     inst.setColorAt(i, new THREE.Color(colorFn ? colorFn(seq[i], i) : 0x88a0b8));
   }
   inst.instanceColor.needsUpdate = true;
   g.add(inst);
-  g.userData.inst = inst; g.userData.perRow = perRow; g.userData.cell = cell; g.userData.rows = rows;
+  g.userData.inst = inst; g.userData.perRow = perRow; g.userData.cell = cell;
+  g.userData.cellH = cellH; g.userData.rows = rows;
   return g;
 }
 function cellPos(g, i) {
-  const { perRow, cell, rows } = g.userData;
+  const { perRow, cell, cellH, rows } = g.userData;
   const r = Math.floor(i / perRow), c = i % perRow;
-  return new THREE.Vector3((c - perRow / 2) * cell, (rows / 2 - r) * cell * 1.15, 0);
+  return new THREE.Vector3((c - perRow / 2) * cell, (rows / 2 - r) * (cellH || cell) * 1.15, 0);
 }
 
 /* ── scenes ───────────────────────────────────────────────────────────── */
@@ -206,7 +230,7 @@ const SCENES = {
 
   async protein_chain(sc) {
     const AA_COL = a => "AVLIMFWYC".includes(a) ? 0xe9a032 : "DEKRH".includes(a) ? 0x5b8def : "STNQ".includes(a) ? 0x2dd4bf : 0x7b8a9c;
-    const g = ribbon(sc.seq, { perRow: 60, colorFn: AA_COL });
+    const g = ribbon(sc.seq, { colorFn: AA_COL });
     world.add(g);
     if (sc.signal > 0) {
       const t = label(S.lang === "es" ? "péptido señal" : "signal peptide", "sig");
@@ -250,7 +274,7 @@ const SCENES = {
         if (f.color) paintMesh(mesh.geometry, mesh.userData.meta, f.color, sc.domains);
         if (f.grow && !REDUCED) {
           mesh.geometry.setDrawRange(0, 0);
-          mesh.userData.grow = { t: 0, total: mesh.userData.meta.nt };
+          startGrow(mesh, mesh.userData.meta.nt);
           fit(size * 1.25, { snap: false });
         }
         // a domain sentence flies to that domain; a confidence one pulls back to the whole fold
@@ -266,7 +290,7 @@ const SCENES = {
 
   async transcript(sc) {
     const B_COL = { A: 0x4ba3e3, U: 0xe9a032, G: 0x7ed08a, C: 0xd0577f, N: 0x556 };
-    const g = ribbon(sc.seq, { perRow: 80, cell: 1.25, colorFn: b => B_COL[b] ?? 0x556 });
+    const g = ribbon(sc.seq, { cell: 1.25, colorFn: b => B_COL[b] ?? 0x556 });
     world.add(g);
     (sc.regions || []).forEach(r => {
       const t = label(r.name, "reg");
@@ -299,7 +323,7 @@ const SCENES = {
   },
 
   async translation(sc) {
-    const g = ribbon(sc.cds, { perRow: 90, cell: 1.1, colorFn: () => 0x3a4757 });
+    const g = ribbon(sc.cds, { cell: 1.1, colorFn: () => 0x3a4757 });
     world.add(g);
     const prot = ribbon(sc.protein, { perRow: 30, cell: 2.2, colorFn: () => 0x2dd4bf, y0: -26 });
     world.add(prot);
@@ -328,17 +352,31 @@ const SCENES = {
   async rna3d(sc) {
     const withMesh = (sc.elements || []).filter(e => e.mesh);
     if (!withMesh.length) return gapScene();
-    let x = -((withMesh.length - 1) * 30) / 2, biggest = 60;
+    /* A fixed 30-unit pitch stacked a 100 Å element on top of a 240 Å one and read as
+       one tangle. Each element is laid down clear of the one before it, by its own
+       measured width, and its name hangs above its own top rather than at a guessed
+       height shared by all of them. */
+    const placed = [];
+    let x = 0;
     for (const e of withMesh) {
       const mesh = await addCartoon(e.mesh, { grow: true, mode: "ss" });
       if (!mesh) continue;
-      mesh.position.x = x;
-      const t = label(`${e.name} · ${e.n} nt`, "reg");
-      t.position.set(x, 18, 0); world.add(t);
-      biggest = Math.max(biggest, mesh.userData.fit * 1.6);
-      x += 30;
+      const b = new THREE.Box3().setFromObject(mesh), sz = b.getSize(new THREE.Vector3());
+      const half = Math.max(4, sz.x / 2);
+      if (placed.length) x += half + 8;
+      mesh.position.x = x - b.getCenter(new THREE.Vector3()).x;
+      placed.push({ mesh, e, x, top: b.max.y, half });
+      x += half;
     }
-    fit(biggest);
+    if (!placed.length) return gapScene(false, sc);
+    const shift = placed[placed.length - 1].x / 2;   // centre the row on the stage
+    for (const p of placed) {
+      p.mesh.position.x -= shift;
+      const t = label(`${p.e.name} · ${p.e.n} nt`, "reg");
+      t.position.set(p.x - shift, p.top + 6, 0);
+      world.add(t);
+    }
+    fit(null);
     return { tick: (dt) => { world.rotation.y += dt * 0.15; } };
   },
 
@@ -549,7 +587,7 @@ const SCENES = {
         new THREE.MeshStandardMaterial({ color: 0xffffff }));
       line.position.set(0, -10 + sc.composite * 60, 0);
       world.add(line);
-      const t = label(`compuesta ${sc.composite}`, "reg");
+      const t = label(`${S.lang === "es" ? "compuesta" : "composite"} ${sc.composite}`, "reg");
       t.position.set(-16, -10 + sc.composite * 60 + 2, 0);
       world.add(t);
     }
@@ -561,11 +599,18 @@ const SCENES = {
     const items = (sc.items || []).filter(i => i.seq);
     if (!items.length) return gapScene();
     const AA = a => "AVLIMFWYC".includes(a) ? 0xe9a032 : "DEKRH".includes(a) ? 0x5b8def : "STNQ".includes(a) ? 0x2dd4bf : 0x7b8a9c;
+    /* These rows stay one line each so that column n of one sequence sits above column
+       n of the next -- that alignment is the whole point of the comparison. Square
+       cells then make a 300-residue chain a 630-by-2 hairline, so the cell keeps its
+       width and gains height: the same columns, read as bands. */
+    const wide = items[0].seq.length * 2.1;
+    const rowH = Math.max(2.1, Math.min(40, wide / (3 * items.length)));
     items.forEach((it, row) => {
-      const g = ribbon(it.seq, { perRow: it.seq.length, cell: 2.1, colorFn: AA, y0: (items.length / 2 - row) * 5.4 });
+      const g = ribbon(it.seq, { perRow: it.seq.length, cell: 2.1, cellH: rowH,
+                                 colorFn: AA, y0: (items.length / 2 - row) * rowH * 1.25 });
       world.add(g);
     });
-    fit(Math.max(60, (items[0].seq.length + 4) * 2.4));
+    fit(null);
     return {};
   },
 
@@ -615,14 +660,105 @@ const SCENES = {
   },
 
   async safety(sc) { return meterScene(sc); },
-  async panel(sc) { return gapScene(true); },
+  /* A panel chapter has no structure to show: its subject is a block of the result.
+     An abstract shape there would be decoration standing in for data, so the stage
+     shows the block itself — every value under `root`, exactly as the run recorded
+     it, and nothing when the run recorded none. */
+  async panel(sc) {
+    const rows = resultLeaves(sc.root);
+    if (!rows.length) return gapScene(true, sc);
+    showPlate(plateHTML(rows, sc.root), "grid");
+    return {};
+  },
 };
 
-function gapScene(quiet = false) {
-  const geo = new THREE.TorusKnotGeometry(9, 2.4, 140, 18);
-  const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: quiet ? 0x33414f : 0x4a3b2a, roughness: 0.6, wireframe: true }));
-  world.add(m); fit(46);
-  return { tick: (dt) => { world.rotation.y += dt * 0.25; world.rotation.x += dt * 0.1; } };
+/* Paths the way the builder writes them: `a.b.c`, with `[0]` for a list. */
+function getPath(obj, path) {
+  if (!path) return obj;
+  let cur = obj;
+  for (const raw of String(path).split(".")) {
+    if (cur == null) return undefined;
+    const m = /^([^[\]]*)(.*)$/.exec(raw);
+    if (m[1]) cur = cur?.[m[1]];
+    for (const i of (m[2] || "").matchAll(/\[(\d+)\]/g)) {
+      if (cur == null) return undefined;
+      cur = cur[Number(i[1])];
+    }
+  }
+  return cur;
+}
+/* The scalars under one path, with the key each one is filed under. */
+function resultLeaves(root, cap = 48) {
+  const out = [];
+  const walk = (v, key, depth) => {
+    if (out.length >= cap) return;
+    if (v === null || typeof v !== "object") { out.push({ key, value: v }); return; }
+    if (Array.isArray(v)) {
+      if (!v.length) return out.push({ key, value: "—" });
+      if (v.every(x => x === null || typeof x !== "object"))
+        return out.push({ key, value: v.slice(0, 6).join(", ") + (v.length > 6 ? ` +${v.length - 6}` : "") });
+      if (depth >= 2) return out.push({ key, value: `${v.length} entries` });
+      v.slice(0, 6).forEach((x, i) => walk(x, `${key} ${i + 1}`, depth + 1));
+      return;
+    }
+    const keys = Object.keys(v);
+    if (!keys.length) return;
+    if (depth >= 3) return out.push({ key, value: `${keys.length} fields` });
+    keys.forEach(k => walk(v[k], depth === 0 ? k : `${key} · ${k}`, depth + 1));
+  };
+  const v = getPath(R.result, root);
+  if (v === undefined) return [];
+  walk(v, String(root || "").split(".").pop() || "value", 0);
+  return out.filter(r => r.value !== undefined && r.value !== "");
+}
+/* A deep key truncated from the right hides the very part that tells it apart: four
+   fields of one block all read "predicted structure · boltz2 cr…". The tail is what
+   distinguishes them, so the tail is what is shown; the whole path stays on hover. */
+function prettyKey(k) {
+  const parts = String(k).split(" · ");
+  const tail = parts.slice(-2).join(" · ");
+  return (parts.length > 2 ? "… " : "") + tail.replace(/_/g, " ").trim();
+}
+function prettyVal(v) {
+  if (typeof v === "boolean") return S.lang === "es" ? (v ? "sí" : "no") : (v ? "yes" : "no");
+  if (typeof v === "number") return Number.isInteger(v) ? String(v)
+    : Math.abs(v) >= 1000 || Math.abs(v) < 0.001 ? v.toExponential(2) : v.toFixed(3).replace(/0+$/, "").replace(/\.$/, "");
+  const s = String(v);
+  /* A coordinate file cut off at 84 characters reads as though the value were one
+     atom. What it is, and how much of it there is, is the honest short form. */
+  if (/^(ATOM|HETATM|MODEL|HEADER|REMARK)\s/.test(s)) {
+    const n = (s.match(/^(ATOM|HETATM)/gm) || []).length;
+    return n ? `PDB · ${n.toLocaleString(S.lang)} ${S.lang === "es" ? "átomos" : "atoms"}` : "PDB";
+  }
+  return s.length > 200 ? s.slice(0, 198) + "…" : s;
+}
+function plateHTML(rows, root) {
+  return `<div class="plate-hd">${esc(String(root || "").replace(/[._]/g, " ").trim())}</div>` +
+    `<div class="plate-grid">` + rows.map(r =>
+      `<div class="pv" title="${esc(r.key)}"><div class="pk">${esc(prettyKey(r.key))}</div>` +
+      `<div class="pn">${esc(prettyVal(r.value))}</div></div>`).join("") + `</div>`;
+}
+/* The stage's HTML layer: used for value plates and for an honest empty stage. */
+function showPlate(html, cls = "") {
+  const el = $("#plate");
+  el.className = cls;
+  el.innerHTML = html;
+  el.hidden = false;
+}
+function hidePlate() { const el = $("#plate"); if (el) { el.hidden = true; el.innerHTML = ""; } }
+
+/* Nothing to draw is a real answer, and it is stated in words. Abstract geometry in
+   its place would read as content the run does not have. */
+function gapScene(quiet = false, sc = null) {
+  const ch = R.chapters[S.ch] || {};
+  const why = (ch.beats || []).find(b => b.kind === "gap")?.[S.lang]
+    || (S.lang === "es" ? "Esta corrida no dejó valores bajo este apartado."
+                        : "This run recorded no values under this heading.");
+  const head = S.lang === "es" ? "sin datos que dibujar" : "nothing to draw";
+  showPlate(`<div class="void"><div class="vk">${esc(head)}</div>` +
+    `<div class="vt">${esc(why)}</div>` +
+    (sc?.root ? `<div class="vp">${esc(sc.root)}</div>` : "") + `</div>`, "void-plate");
+  return {};
 }
 function meterScene(sc) {
   const bars = [
@@ -647,23 +783,61 @@ let fly = null, lastInput = performance.now();
 ["pointerdown", "wheel", "keydown"].forEach(ev =>
   addEventListener(ev, () => { lastInput = performance.now(); }, { passive: true }));
 
-function fit(size, { angle = 0.22, height = 0.18, snap = true } = {}) {
-  const d = Math.max(12, size / (2 * Math.tan((camera.fov * Math.PI / 180) / 2)));
-  const to = new THREE.Vector3(Math.sin(angle) * d, height * d, Math.cos(angle) * d);
+/* What is actually on stage, in world units. A guessed size cannot know where the
+   geometry ended up: the 3'UTR mesh of this very run is centred 28 Å off the origin,
+   so a camera aimed at (0,0,0) put it half out of frame. An InstancedMesh carries the
+   extent of its instances, not of its one cell, so it is asked separately. */
+function worldBox() {
+  const box = new THREE.Box3(), tmp = new THREE.Box3();
+  world.updateMatrixWorld(true);
+  world.traverse(o => {
+    if (o.isInstancedMesh) {
+      if (!o.boundingBox) o.computeBoundingBox?.();
+      if (o.boundingBox) box.union(tmp.copy(o.boundingBox).applyMatrix4(o.matrixWorld));
+      return;
+    }
+    if (!(o.isMesh || o.isLine || o.isPoints) || !o.geometry) return;
+    if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+    if (o.geometry.boundingBox) box.union(tmp.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld));
+  });
+  return box.isEmpty() ? null : box;
+}
+
+/* Frame the scene. `hint` is only the fallback for a stage with nothing measurable —
+   the bounding sphere is what gets framed, so the subject stays whole while it turns,
+   and it is fitted to the narrower of the two field angles so nothing leaves a
+   portrait-shaped stage sideways. */
+function fit(hint, { angle = 0.22, height = 0.18, snap = true, pad = 1.16 } = {}) {
+  const box = worldBox();
+  let center = new THREE.Vector3(0, 0, 0), size = hint || 60;
+  if (box) {
+    const sph = box.getBoundingSphere(new THREE.Sphere());
+    if (sph.radius > 0.01) { center = sph.center.clone(); size = sph.radius * 2; }
+  }
+  const vfov = (camera.fov * Math.PI) / 180;
+  const hfov = 2 * Math.atan(Math.tan(vfov / 2) * Math.max(0.35, camera.aspect));
+  const d = Math.max(8, (size * pad) / (2 * Math.tan(Math.min(vfov, hfov) / 2)));
+  /* Depth haze has to be read in the scene's own units. At one fixed density a 49 Å
+     protein sits in clear air while a 154 Å RNA fold, framed from four times as far,
+     came back 74% dissolved into the background — the reason that chapter looked
+     empty. Tying density to the framing distance keeps the cue and drops the wash. */
+  if (scene.fog) scene.fog.density = 0.42 / Math.max(1, d);
+  const to = center.clone().add(new THREE.Vector3(Math.sin(angle) * d, height * d, Math.cos(angle) * d));
   if (snap) {
     camera.position.copy(to);
-    controls.target.set(0, 0, 0);
+    controls.target.copy(center);
     controls.update();
     fly = null;
   } else {
-    flyTo(to, new THREE.Vector3(0, 0, 0));
+    flyTo(to, center);
   }
   return d;
 }
 
 function flyTo(pos, target = new THREE.Vector3(0, 0, 0), dur = 1.8) {
   fly = { fp: camera.position.clone(), ft: controls.target.clone(),
-          tp: pos.clone(), tt: target.clone(), t: 0, dur: REDUCED ? 0.001 : dur };
+          tp: pos.clone(), tt: target.clone(),
+          t0: performance.now(), dur: REDUCED ? 1 : dur * 1000 };
 }
 
 /** Frame a point of the current scene: `d` is how far back to sit from it. */
@@ -704,10 +878,23 @@ async function setChapter(i) {
   S.beat = 0;
   const ch = R.chapters[S.ch];
   clearWorld();
+  hidePlate();
+  drawnMesh = null;
   world.rotation.set(0, 0, 0);
-  const build = SCENES[ch.scene?.type] || (() => gapScene(true));
+  const build = SCENES[ch.scene?.type] || (() => gapScene(true, ch.scene));
   active = (await build(ch.scene)) || {};
   drawAnnotations(ch.scene || {});
+  /* A scene whose data never arrived drew nothing and said nothing: the small-molecule
+     run's score and complex chapters came out as a blank stage, which reads as a page
+     that failed to load rather than as a run that has no values here. Whatever the
+     scene was, an empty stage falls back to saying so. */
+  if (!worldBox()) {
+    if ($("#plate").hidden) gapScene(true, ch.scene);
+  } else {
+    // labels and measured lines land after the scene framed itself; frame once more
+    // now that the stage is complete
+    fit(null);
+  }
   renderChapter();
   applyBeat();
 }
@@ -781,8 +968,7 @@ function bandRows(ch) {
   if (Array.isArray(sc.binders)) {
     sc.binders.slice(0, 6).forEach(b => push(b.id, b.plddt, "pLDDT", 100));
   }
-  const m = R.meshes[sc.mesh];
-  if (m) { push("residues", m.n_res, ""); push("triangles", m.nt, ""); }
+  if (drawnMesh) push(S.lang === "es" ? "residuos" : "residues", drawnMesh.n_res, "");
   return out.slice(0, 7);
 }
 
@@ -840,26 +1026,36 @@ function nextBeat() {
 }
 
 /* ── loop ─────────────────────────────────────────────────────────────── */
+/* Every animation is a position in elapsed time, never an accumulation of frame
+   deltas. A browser that throttles this tab — a background window, a slow machine —
+   used to leave the fold frozen part-grown and the camera stopped mid-flight, because
+   a clamped dt per frame only advances when frames arrive. Anchored to the clock, the
+   first frame after a stall shows the state that moment should have. */
 let last = performance.now();
-function frame(now) {
-  const dt = Math.min(0.05, (now - last) / 1000); last = now;
-  world.children.forEach(o => {
+const GROW_MS = 1800, BEAT_MS = 7200;
+
+function startGrow(mesh, total) {
+  mesh.userData.grow = { t0: performance.now(), dur: GROW_MS, total };
+}
+
+function step(now) {
+  const dt = Math.min(0.05, Math.max(0, (now - last) / 1000)); last = now;
+  world.traverse(o => {
     const g = o.userData?.grow;
-    if (g && o.geometry) {
-      g.t = Math.min(1, g.t + dt * 0.55);
-      o.geometry.setDrawRange(0, Math.floor(g.total * 3 * g.t));
-      if (g.t >= 1) delete o.userData.grow;
-    }
+    if (!g || !o.geometry) return;
+    const u = REDUCED ? 1 : Math.min(1, (now - g.t0) / g.dur);
+    o.geometry.setDrawRange(0, Math.max(0, Math.floor(g.total * 3 * u)));
+    if (u >= 1) delete o.userData.grow;
   });
   active?.tick?.(dt);
   if (S.playing) {
-    S.t += dt;
-    $("#prog").style.width = `${Math.min(100, (S.t / 7.2) * 100)}%`;
-    if (S.t > 7.2) { S.t = 0; nextBeat(); }
+    S.t = now - S.playT0;
+    $("#prog").style.width = `${Math.min(100, (S.t / BEAT_MS) * 100)}%`;
+    if (S.t > BEAT_MS) { S.playT0 = now; S.t = 0; nextBeat(); }
   }
   if (fly) {
-    fly.t += dt / fly.dur;
-    const u = Math.min(1, fly.t), e = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+    const u = Math.min(1, (now - fly.t0) / fly.dur);
+    const e = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
     camera.position.lerpVectors(fly.fp, fly.tp, e);
     controls.target.lerpVectors(fly.ft, fly.tt, e);
     if (u >= 1) fly = null;
@@ -869,8 +1065,41 @@ function frame(now) {
   controls.update();
   composer.render();
   labels.render(scene, camera);
-  requestAnimationFrame(frame);
+  decollide();
 }
+
+/* Two names landing on the same spot is what makes a figure look unfinished, and the
+   scenes cannot know: a label sits where its subject projects, and that depends on the
+   camera. So it is settled after projection — each one is nudged down clear of those
+   already placed, keeping its own leader position. Measured before the nudge, so it
+   does not drift frame to frame. */
+function decollide() {
+  const els = labels.domElement.children;
+  if (els.length < 2 || els.length > 24) return;
+  const items = [];
+  for (const e of els) {
+    const r = e.getBoundingClientRect();
+    if (r.width) items.push({ e, r });
+  }
+  items.sort((a, b) => a.r.top - b.r.top);
+  // the band owns the foot of the stage; a name pushed down onto it is no better
+  // placed than one sitting on its neighbour
+  const stage = host.getBoundingClientRect();
+  const floor = stage.bottom - ($("#band")?.offsetHeight || 0) - 6;
+  const placed = [];
+  for (const it of items) {
+    let dy = 0;
+    for (const p of placed) {
+      const top = it.r.top + dy, bottom = it.r.bottom + dy;
+      if (it.r.left < p.right && p.left < it.r.right && top < p.bottom && p.top < bottom)
+        dy += p.bottom - top + 3;
+    }
+    dy = Math.max(stage.top + 4 - it.r.top, Math.min(dy, floor - it.r.bottom));
+    if (Math.abs(dy) > 0.5) it.e.style.transform += ` translateY(${dy.toFixed(1)}px)`;
+    placed.push({ left: it.r.left, right: it.r.right, top: it.r.top + dy, bottom: it.r.bottom + dy });
+  }
+}
+function frame(now) { step(now); requestAnimationFrame(frame); }
 
 /* ── chrome ───────────────────────────────────────────────────────────── */
 function boot() {
@@ -881,7 +1110,7 @@ function boot() {
   $("#prev").onclick = () => setChapter(S.ch - 1);
   $("#next").onclick = () => nextBeat();
   $("#play").onclick = () => {
-    S.playing = !S.playing; S.t = 0;
+    S.playing = !S.playing; S.t = 0; S.playT0 = performance.now();
     $("#play").textContent = S.playing ? "❚❚" : "▶";
     if (!S.playing) $("#prog").style.width = "0";
   };
@@ -908,5 +1137,11 @@ addEventListener("keydown", e => {
   if (e.key === "ArrowLeft") setChapter(S.ch - 1);
   if (e.key === " ") { e.preventDefault(); $("#play").click(); }
 });
+
+/* The page drives itself from requestAnimationFrame, which a browser is free to
+   stop for a hidden or backgrounded tab. `step` is the same tick, callable: it is
+   what lets the report be rendered to a known moment and checked. */
+window.__report = { R, S, scene, world, camera, controls, renderer,
+                    setChapter, step, worldBox, fit, get active() { return active; } };
 
 boot(); resize(); setChapter(0); requestAnimationFrame(frame);
