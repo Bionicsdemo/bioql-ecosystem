@@ -435,6 +435,10 @@ import re  # noqa: E402
 
 ARTIFACTS = Path("~/.bioql/artifacts").expanduser()
 
+# What an unresolved template reference looks like, as opposed to a brace the data
+# itself carries: a conformal prediction set written "{0,1}" is a value, not a field.
+_UNRESOLVED = re.compile(r"\{[A-Za-z_][A-Za-z0-9_]*[.:\[\]0-9A-Za-z_]*(?:\|[a-z0-9]+)?\??\}")
+
 
 def test_every_discovered_model_declares_the_whole_contract():
     assert build.MODELS, "no models discovered"
@@ -501,11 +505,11 @@ def test_every_model_renders_its_run_without_overclaiming():
                     "gap",
                 ), f"{where}: a fact with no source: {b['es'][:70]}"
                 assert b["es"] and b["en"], f"{where}: a beat missing a language"
-                assert (
-                    "{" not in b["es"] and "{" not in b["en"]
-                ), f"{where}: an unresolved field reached the page: {b['es'][:70]}"
-                if b.get("tech"):
-                    assert "{" not in b["tech"]["en"], f"{where}: unresolved tech line"
+                for text in (b["es"], b["en"], *(b.get("tech") or {}).values()):
+                    left = _UNRESOLVED.search(text)
+                    assert (
+                        not left
+                    ), f"{where}: an unresolved field reached the page: {left.group(0) if left else ''}"
                 for note in ch["scene"].get("annotations") or []:
                     assert ch["scene"].get("mesh") in drawn or note.get(
                         "pos"
