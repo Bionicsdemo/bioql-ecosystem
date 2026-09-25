@@ -476,22 +476,42 @@ const SCENES = {
     return {};
   },
 
+  /* A grid of upright bars needs one floating name above each, and a dozen of those
+     land on top of one another and on the band. Laid as rows, each name sits at the
+     same left margin on a line of its own, which is the shape a named measurement
+     wants anyway: read down the names, across for the value. */
   async endpoints(sc) {
     const items = (sc.items || []).slice(0, 40);
     if (!items.length) return gapScene();
-    const per = Math.ceil(Math.sqrt(items.length));
+    /* One length scale carries one magnitude. These endpoints ran from a GRAVY of
+       -0.51 to a molecular weight of 25 607, and clamping them all into 0..1 drew
+       every large one full-length and every negative one as a stub -- bars that said
+       nothing true. When the values do not share a scale the chapter is a list of
+       named quantities, so it is drawn as one. */
+    const nums = items.map(i => Math.abs(Number(i.value))).filter(v => Number.isFinite(v));
+    const hi = Math.max(...nums, 0);
+    const lo = Math.min(...nums.filter(v => v > 0), Infinity);
+    if (!hi || (Number.isFinite(lo) && hi / lo > 200) || nums.length < items.length) {
+      const title = R.chapters[S.ch]?.title?.[S.lang] || "";
+      showPlate(plateHTML(items.map(i => ({ key: i.name, value: i.value })), title), "grid");
+      return {};
+    }
+    const LEN = 58, rowH = Math.max(2.6, Math.min(7, 92 / items.length));
+    const top = ((items.length - 1) / 2) * rowH;
     items.forEach((it, i) => {
-      const v = Math.max(0, Math.min(1, Number(it.value) <= 1 ? Number(it.value) : 1));
-      const h = 1.5 + v * 11;
-      const m = new THREE.Mesh(new THREE.BoxGeometry(4.2, h, 4.2),
+      const raw = Number(it.value);
+      const v = Math.max(0, Math.min(1, Math.abs(raw) / hi));   // drawn against the largest here
+      const w = Math.max(0.6, v * LEN);
+      const m = new THREE.Mesh(new THREE.BoxGeometry(w, rowH * 0.62, rowH * 0.62),
         new THREE.MeshStandardMaterial({ color: v > 0.66 ? 0xe4574c : v > 0.33 ? 0xe9c46a : 0x7ed08a, roughness: 0.4 }));
-      m.position.set(((i % per) - per / 2) * 6.4, h / 2 - 8 + (per / 2 - Math.floor(i / per)) * 16, 0);
+      m.position.set(w / 2, top - i * rowH, 0);
       world.add(m);
       const t = label(it.name, "reg");
-      t.position.copy(m.position).add(new THREE.Vector3(0, h / 2 + 2.4, 0));
+      t.position.set(0, top - i * rowH + rowH * 0.34, 0);
+      t.center.set(1, 0.5);          // hang it off the left end, clear of the bar
       world.add(t);
     });
-    fit(per * 12 + 24);
+    fit(null);
     return {
       focus: (f) => {
         world.children.forEach((o, i) => {
@@ -504,7 +524,13 @@ const SCENES = {
   },
 
   async pk(sc) {
-    const t12 = Number(sc.half_life_h) || 0, f = Math.max(0, Math.min(1, Number(sc.bioavailability) / 100));
+    const t12 = Number(sc.half_life_h), fr = Number(sc.bioavailability) / 100;
+    /* The curve is drawn from a half-life and a bioavailability. Without them the
+       formula still returns a line -- a flat one, pinned to the axis -- and a flat
+       decay curve is a claim about this compound that the run never made. */
+    if (!Number.isFinite(t12) || t12 <= 0 || !Number.isFinite(fr) || fr <= 0)
+      return gapScene(true, sc);
+    const f = Math.max(0, Math.min(1, fr));
     const pts = [];
     for (let h = 0; h <= 96; h += 1.5) {
       const c = f * (Math.exp(-0.693 * h / (t12 || 24)) - Math.exp(-h / 0.8));
@@ -966,7 +992,9 @@ function bandRows(ch) {
     sc.parts.forEach(p => push(p.name, Number(p.weighted).toFixed(3), "", Number(p.weighted) / m * m));
     if (sc.composite != null) push("composite", sc.composite, "", 1);
   }
-  if (Array.isArray(sc.items) && sc.items.length && sc.items[0].value !== undefined)
+  // an endpoints chapter already names every bar on the stage; repeating all of them
+  // underneath only crowds the drawing out
+  if (Array.isArray(sc.items) && sc.items.length && sc.items[0].value !== undefined && sc.type !== "endpoints")
     sc.items.slice(0, 8).forEach(i => push(i.name.replace(/_/g, " "), i.value, i.unit || "", i.value <= 1 ? 1 : null));
   if (Array.isArray(sc.items) && sc.items.length && sc.items[0].score !== undefined) {
     const m = Math.max(...sc.items.map(i => Number(i.score) || 0), 0.001);
@@ -982,6 +1010,14 @@ function bandRows(ch) {
     sc.binders.slice(0, 6).forEach(b => push(b.id, b.plddt, "pLDDT", 100));
   }
   if (drawnMesh) push(S.lang === "es" ? "residuos" : "residues", drawnMesh.n_res, "");
+  // the chain chapter draws a sequence, not a mesh, and had nothing under it to show
+  if (typeof sc.seq === "string" && sc.seq.length && sc.type === "protein_chain") {
+    const es = S.lang === "es";
+    push(es ? "aminoácidos" : "amino acids", sc.seq.length, "");
+    if (sc.signal > 0) push(es ? "péptido señal" : "signal peptide", sc.signal, "aa", sc.seq.length);
+    if (Array.isArray(sc.domains) && sc.domains.length) push(es ? "dominios" : "domains", sc.domains.length, "");
+    if (Array.isArray(sc.cys)) push(es ? "cisteínas" : "cysteines", sc.cys.length, "");
+  }
   return out.slice(0, 7);
 }
 
@@ -1087,8 +1123,9 @@ function step(now) {
    already placed, keeping its own leader position. Measured before the nudge, so it
    does not drift frame to frame. */
 function decollide() {
+  // a lone label still has to be held inside the stage, so this runs from one up
   const els = labels.domElement.children;
-  if (els.length < 2 || els.length > 24) return;
+  if (!els.length || els.length > 40) return;
   const items = [];
   for (const e of els) {
     const r = e.getBoundingClientRect();
@@ -1108,8 +1145,14 @@ function decollide() {
         dy += p.bottom - top + 3;
     }
     dy = Math.max(stage.top + 4 - it.r.top, Math.min(dy, floor - it.r.bottom));
-    if (Math.abs(dy) > 0.5) it.e.style.transform += ` translateY(${dy.toFixed(1)}px)`;
-    placed.push({ left: it.r.left, right: it.r.right, top: it.r.top + dy, bottom: it.r.bottom + dy });
+    // a name anchored off the left end of its bar is placed in world units but sized
+    // in pixels, so a long one can hang past the edge: hold it inside the stage
+    let dx = 0;
+    if (it.r.left < stage.left + 6) dx = stage.left + 6 - it.r.left;
+    else if (it.r.right > stage.right - 6) dx = stage.right - 6 - it.r.right;
+    if (Math.abs(dy) > 0.5 || Math.abs(dx) > 0.5)
+      it.e.style.transform += ` translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px)`;
+    placed.push({ left: it.r.left + dx, right: it.r.right + dx, top: it.r.top + dy, bottom: it.r.bottom + dy });
   }
 }
 function frame(now) { step(now); requestAnimationFrame(frame); }

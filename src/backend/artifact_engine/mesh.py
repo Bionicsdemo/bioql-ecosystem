@@ -112,7 +112,7 @@ cmd.set("cartoon_dumbbell_width", 0.24)
 cmd.set("cartoon_ring_mode", 3)
 cmd.set("cartoon_ring_finder", 1)
 cmd.set("cartoon_nucleic_acid_mode", 4)
-cmd.set("cartoon_tube_radius", 0.5)
+cmd.set("cartoon_tube_radius", {tube})
 if {is_protein}:
     cmd.dss("m")
 cmd.show("cartoon", "polymer")
@@ -205,6 +205,13 @@ def cartoon(pdb: str, sampling: int = 8, timeout: int = 240) -> Optional[Dict[st
         return None
     anchors = np.asarray([r["p"] for r in res], np.float64)
     center = anchors.mean(axis=0)
+    # A nucleic chain is drawn as a backbone tube, and 0.5 A of it across a 154 A fold
+    # is a third of a pixel once the camera frames the whole thing: the 3'UTR came back
+    # as a thread. The camera always frames the span, so holding the radius against the
+    # span is what holds the apparent thickness steady from a 47-nt hairpin to a full
+    # UTR. A protein is drawn as ribbons and the tube radius barely reaches it.
+    span = float(np.linalg.norm(anchors.max(axis=0) - anchors.min(axis=0)))
+    tube_radius = 0.5 if kind == "protein" else round(min(4.0, max(1.2, span * 0.016)), 2)
     with tempfile.TemporaryDirectory(prefix="bioql_mesh_") as tmp:
         pdb_path, obj, ssf, script = (
             os.path.join(tmp, n) for n in ("m.pdb", "m.obj", "ss.json", "run.py")
@@ -219,6 +226,7 @@ def cartoon(pdb: str, sampling: int = 8, timeout: int = 240) -> Optional[Dict[st
                     ssf=ssf,
                     sampling=int(sampling),
                     is_protein=kind == "protein",
+                    tube=tube_radius,
                 )
             )
         try:
