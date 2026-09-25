@@ -11,11 +11,12 @@ what the edit does to the gene network.
 Several of those steps can come back empty, and this run is one where they do.
 The page therefore spends as much text on what was NOT measured as on what was,
 always in the pipeline's own words, and the checks below recompute the run's own
-arithmetic -- which is how four internal contradictions in the reference run
+arithmetic -- which is how five internal contradictions in the reference run
 surfaced: guides that do not exist but are counted by the regulatory module, a
 structure that "failed to fold" yet reports 422 folded residues, a gene listed
-as up-regulated whose own change is -1.0, and small-molecule ADMET scored for a
-gene-editing payload with an empty SMILES.
+as up-regulated whose own change is -1.0, that same gene reported as switched ON
+by the activity module while the simulation calls it down, and small-molecule
+ADMET scored for a gene-editing payload with an empty SMILES.
 
 There is no PDB in this result, so there is no cartoon: that absence is a
 declared gap, not a placeholder picture.
@@ -220,10 +221,35 @@ def contradicted_directions(r: Dict[str, Any]) -> List[Dict[str, Any]]:
                 continue
             ch = _num(changes.get(gene))
             d = dirs.get(gene)
-            if ch is None:
+            # A run may carry only one of the two; either one alone can contradict
+            # the list the gene was filed under.
+            if ch is None and not isinstance(d, str):
                 continue
             said = "up" if want > 0 else "down"
-            if (ch > 0) != (want > 0) or (isinstance(d, str) and d not in ("none", said)):
+            if (ch is not None and (ch > 0) != (want > 0)) or (
+                isinstance(d, str) and d not in ("none", said)
+            ):
+                bad.append({"gene": gene, "listed": listed, "said": said, "change": ch, "dir": d})
+    return bad
+
+
+def contradicted_activity(r: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Genes the activity module reports as switched on (or off) while the very same
+    run's simulation records the opposite direction for that gene."""
+    changes = F.get(r, f"{CS}.gene_expression_changes") or {}
+    dirs = F.get(r, f"{CS}.gene_expression_directions") or {}
+    bad = []
+    for listed, said, want in (("genes_turned_on", "up", 1), ("genes_turned_off", "down", -1)):
+        for gene in F.get(r, f"{BIO}.{listed}") or []:
+            if not isinstance(gene, str) or "." in gene or "[" in gene:
+                continue
+            ch = _num(changes.get(gene))
+            d = dirs.get(gene)
+            if ch is None and not isinstance(d, str):
+                continue
+            if (ch is not None and (ch > 0) != (want > 0)) or (
+                isinstance(d, str) and d not in ("none", said)
+            ):
                 bad.append({"gene": gene, "listed": listed, "said": said, "change": ch, "dir": d})
     return bad
 
@@ -430,7 +456,9 @@ def scene_quantum(r: Dict[str, Any]) -> Dict[str, Any]:
         ("estabilidad", "stability", f"{QM}.qgr_stability", ""),
         ("objetivo metabólico", "metabolic objective", f"{QM}.metabolic_objective", ""),
         ("campos basales reales", "real basal fields", f"{CS}.n_genes_expression_derived", ""),
-        ("segundos", "seconds", f"{CS}.elapsed_s", "s"),
+        # This is the cell simulation's own clock, not the whole validation's: the
+        # band must not let the reader read it as the run's total time.
+        ("simulación celular", "cell simulation", f"{CS}.elapsed_s", "s"),
     ):
         v = F.get(r, path)
         if v is not None:
@@ -559,6 +587,61 @@ def locus_beats(r: Dict[str, Any]) -> List[Dict[str, Any]]:
     return out
 
 
+def figure_beats(r: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """The run's own figures, named one by one from the run.
+
+    Generated rather than written out, so the count and the titles can never drift
+    apart: a run with one figure, or with five, gets a sentence that says so."""
+    vis = r.get("visualizations") or {}
+    keys = [k for k, v in vis.items() if isinstance(v, dict) and v.get("title")]
+    if not keys:
+        return []
+
+    def join(items: List[str], last: str) -> str:
+        return items[0] if len(items) == 1 else f"{', '.join(items[:-1])} {last} {items[-1]}"
+
+    es_titles = join([f"«{{visualizations.{k}.title}}»" for k in keys], "y")
+    en_titles = join([f"“{{visualizations.{k}.title}}”" for k in keys], "and")
+    one = len(keys) == 1
+    return [
+        {
+            "es": f"La corrida guarda {{visualizations|count}} figura{'' if one else 's'} propia{'' if one else 's'}, "
+            f"{es_titles}, que repite{'' if one else 'n'} en imagen lo que los capítulos siguientes cuentan con los números.",
+            "en": f"The run stores {{visualizations|count}} figure{'' if one else 's'} of its own, "
+            f"{en_titles}, which repeat{'s' if one else ''} as pictures what the next chapters tell with the numbers.",
+            "kind": "note",
+        }
+    ]
+
+
+def extreme_domain_beats(r: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Which domain lifts the final mean and which one drags it down -- read off the
+    run's own domain_scores instead of asserted, so the sentence cannot name the
+    wrong one on a run whose numbers fall differently."""
+    ds = {k: _num(v) for k, v in (F.get(r, f"{Q}.domain_scores") or {}).items()}
+    ds = {k: v for k, v in ds.items() if v is not None}
+    if len(ds) < 2:
+        return []
+    hi = max(ds, key=lambda k: ds[k])
+    lo = min(ds, key=lambda k: ds[k])
+    if hi == lo or ds[hi] == ds[lo]:
+        return []
+    beat: Dict[str, Any] = {
+        "es": f"De esos dominios, el que más sube la media es {hi}, con {{q:domain_scores.{hi}|n4}}, "
+        f"y el que más la baja es {lo}, con {{q:domain_scores.{lo}|n4}}.",
+        "en": f"Of those domains, the one that lifts the mean most is {hi}, at {{q:domain_scores.{hi}|n4}}, "
+        f"and the one that pulls it down most is {lo}, at {{q:domain_scores.{lo}|n4}}.",
+        "focus": {"parts": True},
+    }
+    # Where the low domain's number comes from, quoted -- not a cause asserted here.
+    if lo == "activity":
+        beat["tech"] = {
+            "es": "activity repite {bio:activity_score|n4}, y ese módulo registra on_target_effect = {bio:on_target_effect}",
+            "en": "activity restates {bio:activity_score|n4}, and that module records on_target_effect = {bio:on_target_effect}",
+        }
+    return beat and [beat] or []
+
+
 def precedent_beats(r: Dict[str, Any]) -> List[Dict[str, Any]]:
     """One sentence per clinical precedent the run actually stored, so the list is
     read as separate facts instead of one run-on paragraph."""
@@ -585,16 +668,52 @@ def direction_beats(r: Dict[str, Any]) -> List[Dict[str, Any]]:
     out = []
     for b in contradicted_directions(r):
         g = b["gene"]
+        # Only the fields this run actually carries, so the sentence that reports the
+        # contradiction cannot itself disappear for want of one of them.
+        bits_es, bits_en = [], []
+        if b["change"] is not None:
+            bits_es.append(f"un cambio de {{cs:gene_expression_changes.{g}|n2}}")
+            bits_en.append(f"a change of {{cs:gene_expression_changes.{g}|n2}}")
+        if isinstance(b["dir"], str):
+            bits_es.append(f"la dirección {{cs:gene_expression_directions.{g}}}")
+            bits_en.append(f"the direction {{cs:gene_expression_directions.{g}}}")
         out.append(
             {
-                "es": f"La corrida lista {g} en {b['listed']}, pero su propio cambio para {g} es "
-                f"{{cs:gene_expression_changes.{g}|n2}} y la dirección que registra es "
-                f"{{cs:gene_expression_directions.{g}}}: las dos listas no dicen lo mismo.",
-                "en": f"The run lists {g} under {b['listed']}, yet its own change for {g} is "
-                f"{{cs:gene_expression_changes.{g}|n2}} and the direction it records is "
-                f"{{cs:gene_expression_directions.{g}}}: the two do not agree.",
+                "es": f"La corrida lista {g} en {b['listed']}, pero para {g} registra "
+                f"{' y '.join(bits_es)}: las dos listas no dicen lo mismo.",
+                "en": f"The run lists {g} under {b['listed']}, yet for {g} it records "
+                f"{' and '.join(bits_en)}: the two do not agree.",
                 "kind": "check",
                 "requires_failed_check": "gene_directions",
+                "focus": {"gene": g},
+            }
+        )
+    return out
+
+
+def activity_beats(r: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """The same gene switched on by one module and down by another, named from the
+    run. On a run where the two modules agree there is nothing to say."""
+    out = []
+    for b in contradicted_activity(r):
+        g = b["gene"]
+        bits_es, bits_en = [], []
+        if isinstance(b["dir"], str):
+            bits_es.append(f"la dirección {{cs:gene_expression_directions.{g}}}")
+            bits_en.append(f"the direction {{cs:gene_expression_directions.{g}}}")
+        if b["change"] is not None:
+            bits_es.append(f"un cambio de {{cs:gene_expression_changes.{g}|n2}}")
+            bits_en.append(f"a change of {{cs:gene_expression_changes.{g}|n2}}")
+        out.append(
+            {
+                "es": f"El módulo de actividad apunta {g} en {b['listed']}, mientras la simulación de esta misma "
+                f"corrida registra para {g} {' y '.join(bits_es)}: el mismo gen sale encendido en un sitio y "
+                "apagado en el otro.",
+                "en": f"The activity module puts {g} under {b['listed']}, while this same run's simulation records "
+                f"for {g} {' and '.join(bits_en)}: the same gene comes out switched on in one place and off in "
+                "the other.",
+                "kind": "check",
+                "requires_failed_check": "activity_directions",
                 "focus": {"gene": g},
             }
         )
@@ -641,11 +760,9 @@ def chapters(
                     "en": "What the pipeline declares about itself: {disclaimer}",
                     "kind": "note",
                 },
-                {
-                    "es": "La corrida guarda dos figuras propias, «{visualizations.aav_payload_budget.title}» y «{visualizations.codon_metrics.title}», que repiten en imagen lo que los capítulos siguientes cuentan con los números.",
-                    "en": "The run stores two figures of its own, “{visualizations.aav_payload_budget.title}” and “{visualizations.codon_metrics.title}”, which repeat as pictures what the next chapters tell with the numbers.",
-                    "kind": "note",
-                },
+            ]
+            + figure_beats(r)
+            + [
                 {
                     "es": "Cada número de esta página se lee del resultado de la corrida; cada valor del resultado aparece en algún capítulo o en el anexo. Cuando algo no se midió, la página cita la razón que da el propio pipeline.",
                     "en": "Every number on this page is read from the run's result; every value in that result appears in some chapter or in the annex. When something was not measured, the page quotes the pipeline's own reason.",
@@ -695,8 +812,8 @@ def chapters(
                     "focus": {"provenance": True},
                 },
                 {
-                    "es": "El plegado del editor se dibujaría aquí residuo a residuo.",
-                    "en": "The editor's fold would be drawn here residue by residue.",
+                    "es": "El plegado del editor se dibujaría aquí residuo a residuo, los {av:editor_aa_length} que tiene.",
+                    "en": "The editor's fold would be drawn here residue by residue, all {av:editor_aa_length} of them.",
                     "requires_mesh": "editor",
                     "gap": [ST],
                     "gap_es": "Esta corrida no trae estructura: no hay cartoon que dibujar",
@@ -750,8 +867,8 @@ def chapters(
                     "focus": {"headroom": True},
                 },
                 {
-                    "es": "Sólo la nucleasa se midió; las piezas cuyo nombre acaba en «_est» son rangos de literatura, y por eso el resultado es una estimación y no un ensayo de empaquetamiento.",
-                    "en": "Only the nuclease was measured; the pieces whose name ends in “_est” are literature ranges, which is why the result is an estimate and not a packaging assay.",
+                    "es": "La única pieza que no lleva «_est» en el nombre es la nucleasa, y su tamaño sale de la longitud exacta del editor; las demás son rangos de literatura, y por eso el resultado es una estimación y no un ensayo de empaquetamiento.",
+                    "en": "The only piece whose name does not end in “_est” is the nuclease, and its size comes from the editor's exact length; the rest are literature ranges, which is why the result is an estimate and not a packaging assay.",
                     "kind": "note",
                 },
             ],
@@ -876,8 +993,8 @@ def chapters(
                     "requires_check": "enrichment",
                 },
                 {
-                    "es": "Veredicto del módulo: {rg:verdict}. Ningún locus quedó como carga muerta ({rg:n_dead_payload}) ni como sitio activo fuera de blanco ({rg:n_active_offtarget}).",
-                    "en": "Module verdict: {rg:verdict}. No locus came out as dead payload ({rg:n_dead_payload}) or as an active off-target site ({rg:n_active_offtarget}).",
+                    "es": "Veredicto del módulo: {rg:verdict}. De esos loci, {rg:n_dead_payload} quedaron como carga muerta —un sitio que el modelo lee como silencioso— y {rg:n_active_offtarget} como sitio activo fuera de blanco.",
+                    "en": "Module verdict: {rg:verdict}. Of those loci, {rg:n_dead_payload} came out as dead payload —a site the model reads as silent— and {rg:n_active_offtarget} as an active off-target site.",
                     "focus": {"verdict": True},
                 },
                 {
@@ -963,6 +1080,9 @@ def chapters(
                     "en": "Biological activity comes out at {bio:activity_score|n4}, with an energy change of {bio:energy_change|n4} and a stability of {bio:stability_score|n4}; the module records on_target_effect = {bio:on_target_effect}, that is, it recorded no on-target effect.",
                     "focus": {"activity": True},
                 },
+            ]
+            + activity_beats(r)
+            + [
                 {
                     "es": "La viabilidad celular no se calcula, y la corrida explica por qué: {cs:cell_viability_honest.null_reason}",
                     "en": "Cell viability is not computed, and the run explains why: {cs:cell_viability_honest.null_reason}",
@@ -1183,11 +1303,9 @@ def chapters(
                     "requires_check": "domain_sources",
                     "focus": {"parts": True},
                 },
-                {
-                    "es": "El dominio que más sube la media es el de toxicología, con {q:domain_scores.toxicology_safe|n2}; el que más la baja es la actividad, con {q:domain_scores.activity|n4}, porque el módulo no registró efecto sobre el blanco.",
-                    "en": "The domain that lifts the mean most is toxicology, at {q:domain_scores.toxicology_safe|n2}; the one that pulls it down most is activity, at {q:domain_scores.activity|n4}, because the module recorded no on-target effect.",
-                    "focus": {"parts": True},
-                },
+            ]
+            + extreme_domain_beats(r)
+            + [
                 {
                     "es": "La propia corrida acota qué entra en la media: {q:overall_score_note}",
                     "en": "The run itself bounds what goes into the mean: {q:overall_score_note}",
@@ -1218,6 +1336,15 @@ def chapters(
                     "tech": {
                         "es": "{q:geneformer_xcheck.error}",
                         "en": "{q:geneformer_xcheck.error}",
+                    },
+                },
+                {
+                    "es": "El otro contraste independiente tampoco: {q:singlecell_xcheck.engine} quedó en {q:singlecell_xcheck.verdict}.",
+                    "en": "Nor did the other independent cross-check: {q:singlecell_xcheck.engine} ended as {q:singlecell_xcheck.verdict}.",
+                    "kind": "gap",
+                    "tech": {
+                        "es": "{q:singlecell_xcheck.honest_note}",
+                        "en": "{q:singlecell_xcheck.honest_note}",
                     },
                 },
                 {
@@ -1611,7 +1738,48 @@ def checks(r: Dict[str, Any]) -> List[Dict[str, Any]]:
             ],
         )
 
-    # 14 -- can each designed spacer actually be found in the locus it targets?
+    # 14 -- the activity module's on/off gene lists against the simulation's own
+    # directions for those same genes.
+    on_off = (F.get(r, f"{BIO}.genes_turned_on") or []) + (
+        F.get(r, f"{BIO}.genes_turned_off") or []
+    )
+    dirs_now = F.get(r, f"{CS}.gene_expression_directions") or {}
+    if on_off and (changes or dirs_now):
+        clash = contradicted_activity(r)
+        detail = "; ".join(
+            f"{b['gene']} en {b['listed']} con dirección {b['dir']}"
+            + ("" if b["change"] is None else f" y cambio {b['change']:g}")
+            for b in clash
+        )
+        detail_en = "; ".join(
+            f"{b['gene']} under {b['listed']} with direction {b['dir']}"
+            + ("" if b["change"] is None else f" and change {b['change']:g}")
+            for b in clash
+        )
+        add(
+            "activity_directions",
+            not clash,
+            (
+                "los genes que el módulo de actividad da por encendidos o apagados coinciden con las "
+                "direcciones que registra la simulación"
+                if not clash
+                else f"no coinciden con las direcciones de la simulación: {detail}"
+            ),
+            (
+                "the genes the activity module reports as switched on or off agree with the directions "
+                "the simulation records"
+                if not clash
+                else f"they disagree with the simulation's directions: {detail_en}"
+            ),
+            [
+                f"{BIO}.genes_turned_on",
+                f"{BIO}.genes_turned_off",
+                f"{CS}.gene_expression_directions",
+                f"{CS}.gene_expression_changes",
+            ],
+        )
+
+    # 15 -- can each designed spacer actually be found in the locus it targets?
     sp, loc = spacers(r), locus(r)
     if sp and loc:
         missing = [s for s in sp if loc.find(s["seq"]) < 0 and loc.find(revcomp(s["seq"])) < 0]

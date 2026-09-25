@@ -94,8 +94,12 @@ class Resolver:
         return re.sub(r"\s{2,}", " ", out).replace(" .", ".").replace(" ,", ",").strip()
 
 
-def gap_reason(result: Any, paths: List[str], fallback: str) -> str:
-    """The pipeline's own words for why something is absent."""
+def gap_reason(result: Any, paths: List[str], fallback: str) -> Tuple[str, List[str]]:
+    """The pipeline's own words for why something is absent, and where they came from.
+
+    A gap beat is given several places to look; only the one that actually supplied the
+    explanation is cited, so the page never points a reader at an empty path.
+    """
     for p in paths:
         block = F.get(result, p)
         if isinstance(block, dict):
@@ -110,10 +114,10 @@ def gap_reason(result: Any, paths: List[str], fallback: str) -> str:
             ):
                 v = block.get(k)
                 if isinstance(v, str) and v.strip():
-                    return v.strip()
+                    return v.strip(), [f"{p}.{k}"]
         elif isinstance(block, str) and block.strip():
-            return block.strip()
-    return fallback
+            return block.strip(), [p]
+    return fallback, []
 
 
 def build_beats(
@@ -143,7 +147,7 @@ def build_beats(
         )
         if unmet:
             if b.get("gap"):
-                why = gap_reason(result, b["gap"], b.get("gap_text", ""))
+                why, src = gap_reason(result, b["gap"], b.get("gap_text", ""))
                 if why:
                     out.append(
                         {
@@ -151,7 +155,7 @@ def build_beats(
                             "en": f"{b.get('gap_en', 'Not in this run')}: {why}",
                             "kind": "gap",
                             "focus": b.get("focus", {}),
-                            "paths": b["gap"],
+                            "paths": src,
                         }
                     )
             continue
@@ -160,7 +164,7 @@ def build_beats(
         en = Resolver(result, aliases, "en").render(b["en"])
         if es is None or en is None:
             if b.get("gap"):
-                why = gap_reason(result, b["gap"], b.get("gap_text", ""))
+                why, src = gap_reason(result, b["gap"], b.get("gap_text", ""))
                 if why:
                     out.append(
                         {
@@ -168,7 +172,7 @@ def build_beats(
                             "en": f"{b.get('gap_en', 'This value is not in the run')}: {why}",
                             "kind": "gap",
                             "focus": b.get("focus", {}),
-                            "paths": b["gap"],
+                            "paths": src,
                         }
                     )
             continue
