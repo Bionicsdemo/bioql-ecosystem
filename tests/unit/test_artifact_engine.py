@@ -250,3 +250,95 @@ def test_the_payload_is_json_and_carries_the_whole_result():
     s = json.dumps(p, default=str)
     assert json.loads(s)["result"] == run_json()
     assert p["digest"] and len(p["digest"]) == 16
+
+
+# -- the small-molecule model ---------------------------------------------------------
+from artifact_engine import molecule as MOL  # noqa: E402
+from artifact_engine.models import small_molecule as SM  # noqa: E402
+
+MOLBLOCK = """water
+  test
+
+  3  2  0  0  0  0  0  0  0  0999 V2000
+    0.0000    0.0000    0.0000 O   0  0
+    0.7570    0.5860    0.0000 H   0  0
+   -0.7570    0.5860    0.0000 H   0  0
+  1  2  1  0
+  1  3  1  0
+M  END
+"""
+
+
+def test_a_mol_block_is_read_as_real_atoms_and_bonds():
+    m = MOL.parse(MOLBLOCK)
+    assert m["n_atoms"] == 3 and m["n_bonds"] == 2
+    assert m["counts"] == {"O": 1, "H": 2} and m["heavy"] == 1
+    assert all(len(a["p"]) == 3 for a in m["atoms"])
+    assert MOL.parse("not a mol block") is None
+
+
+def small_molecule_run(**over):
+    r = {
+        "pipeline": "CUSTOM_MOLECULE",
+        "timestamp": "2026-09-25T00:00:00Z",
+        "target_name": "TESTR",
+        "molecule": {"smiles": "O"},
+        "stages": {
+            "0_molecule_analysis": {
+                "properties": {
+                    "formula": "H2O",
+                    "molecular_weight": 18.02,
+                    "num_heavy_atoms": 1,
+                    "num_rings": 0,
+                    "num_aromatic_rings": 0,
+                    "num_stereocenters": 0,
+                    "num_rotatable_bonds": 0,
+                    "tpsa": 20.2,
+                    "logp": -0.6,
+                },
+                "drug_likeness": {"lipinski_violations": 0, "brenk_alerts": 0, "pains_alerts": 0},
+                "detected_motifs": ["hydroxyl"],
+            },
+            "7_3d_structure": {"mol_block": MOLBLOCK, "method": "RDKit MMFF94"},
+            "8_scoring": {
+                "composite_score": 0.5,
+                "score_breakdown": {
+                    "admet": {"score": 0.5, "weight": 0.6, "weighted": 0.3},
+                    "tox": {"score": 0.5, "weight": 0.4, "weighted": 0.2},
+                },
+                "drug_candidate_class": "Good",
+            },
+        },
+    }
+    for k, v in over.items():
+        r[k] = v
+    return r
+
+
+def test_the_formula_is_checked_against_the_3d_block():
+    p = build.build(small_molecule_run(), mesh_fn=fake_mesh)
+    assert next(c for c in p["checks"] if c["id"] == "formula")["ok"] is True
+    r = small_molecule_run()
+    r["stages"]["0_molecule_analysis"]["properties"]["formula"] = "C6H6"
+    p2 = build.build(r, mesh_fn=fake_mesh)
+    assert next(c for c in p2["checks"] if c["id"] == "formula")["ok"] is False
+
+
+def test_a_composite_that_does_not_match_its_parts_is_said_out_loud():
+    ok = build.build(small_molecule_run(), mesh_fn=fake_mesh)
+    said = " ".join(b["es"] for ch in ok["chapters"] for b in ch["beats"])
+    assert "la suma ponderada de las partes da exactamente" in said
+    assert "no suman esa nota" not in said
+
+    r = small_molecule_run()
+    r["stages"]["8_scoring"]["composite_score"] = 0.42  # parts still add to 0.5
+    bad = build.build(r, mesh_fn=fake_mesh)
+    said = " ".join(b["es"] for ch in bad["chapters"] for b in ch["beats"])
+    assert "no suman esa nota" in said, "the page must state the discrepancy"
+    assert "la suma ponderada de las partes da exactamente" not in said
+    assert next(c for c in bad["checks"] if c["id"] == "composite")["ok"] is False
+
+
+def test_each_pipeline_gets_its_own_model():
+    assert SM.matches(small_molecule_run()) and not mrna.matches(small_molecule_run())
+    assert mrna.matches(run_json()) and not SM.matches(run_json())

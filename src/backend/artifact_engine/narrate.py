@@ -128,8 +128,12 @@ def build_beats(
     checks = checks or {}
     meshes = set(meshes or ())
     for b in beats:
-        unmet = (b.get("requires_check") and not checks.get(b["requires_check"])) or (
-            b.get("requires_mesh") and b["requires_mesh"] not in meshes
+        needs_failure = b.get("requires_failed_check")
+        unmet = (
+            (b.get("requires_check") and not checks.get(b["requires_check"]))
+            or (b.get("requires_mesh") and b["requires_mesh"] not in meshes)
+            # a "these do not add up" sentence exists only while they do not add up
+            or (needs_failure and checks.get(needs_failure, True))
         )
         if unmet:
             if b.get("gap"):

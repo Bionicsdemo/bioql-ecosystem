@@ -302,6 +302,189 @@ const SCENES = {
     };
   },
 
+  async molecule(sc) {
+    if (!sc.atoms?.length) return gapScene();
+    const EL = { C: 0x9aa7b4, N: 0x4b7ee3, O: 0xe4574c, F: 0x7ed08a, Cl: 0x5fc98a, Br: 0xb4643c,
+                 I: 0x9b59b6, S: 0xe9c46a, P: 0xe08a3c, H: 0xdfe7ef, B: 0xd9a3a3, Si: 0xc8b28a, Se: 0xd0843c };
+    const K = 3.4;                                   // Å -> scene units
+    const heavy = sc.atoms.map((a, i) => ({ ...a, i })).filter(a => a.e !== "H");
+    const sph = new THREE.IcosahedronGeometry(1, 3);
+    const mat = new THREE.MeshStandardMaterial({ roughness: 0.32, metalness: 0.08 });
+    const balls = new THREE.InstancedMesh(sph, mat, heavy.length);
+    const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), V = new THREE.Vector3();
+    heavy.forEach((a, k) => {
+      M.compose(new THREE.Vector3(a.p[0] * K, a.p[1] * K, a.p[2] * K), Q.identity(), V.setScalar(a.r * K * 0.30));
+      balls.setMatrixAt(k, M);
+      balls.setColorAt(k, new THREE.Color(EL[a.e] ?? 0x8899aa));
+    });
+    balls.instanceColor.needsUpdate = true;
+    world.add(balls);
+
+    const keep = new Set(heavy.map(a => a.i));
+    const bonds = (sc.bonds || []).filter(b => keep.has(b[0]) && keep.has(b[1]));
+    const cyl = new THREE.CylinderGeometry(1, 1, 1, 12, 1, true);
+    const sticks = new THREE.InstancedMesh(cyl, mat.clone(), bonds.length * 2);
+    const UP = new THREE.Vector3(0, 1, 0);
+    let k = 0;
+    for (const [i, j, order] of bonds) {
+      const a = new THREE.Vector3(...sc.atoms[i].p).multiplyScalar(K);
+      const b = new THREE.Vector3(...sc.atoms[j].p).multiplyScalar(K);
+      const mid = a.clone().add(b).multiplyScalar(0.5);
+      const rad = (order >= 2 ? 0.20 : 0.14) * K * 0.5;
+      for (const [from, to, at] of [[a, mid, i], [mid, b, j]]) {
+        const d = to.clone().sub(from), len = d.length();
+        Q.setFromUnitVectors(UP, d.clone().normalize());
+        M.compose(from.clone().add(to).multiplyScalar(0.5), Q, V.set(rad, len, rad));
+        sticks.setMatrixAt(k, M);
+        sticks.setColorAt(k, new THREE.Color(EL[sc.atoms[at].e] ?? 0x8899aa));
+        k++;
+      }
+    }
+    sticks.instanceColor.needsUpdate = true;
+    world.add(sticks);
+    fit((sc.span || 10) * K * 2.4);
+    return { tick: (dt) => { world.rotation.y += dt * 0.28; world.rotation.x = Math.sin(performance.now() / 5200) * 0.16; } };
+  },
+
+  async rules(sc) {
+    (sc.rules || []).forEach((r, i) => {
+      const frac = Math.max(0.03, Math.min(1.6, Number(r.value) / r.limit));
+      const w = 30 * Math.min(frac, 1.6);
+      const m = new THREE.Mesh(new THREE.BoxGeometry(w, 3.4, 3.4),
+        new THREE.MeshStandardMaterial({ color: r.pass ? 0x7ed08a : 0xe4574c, roughness: 0.4 }));
+      m.position.set(-18 + w / 2, 12 - i * 8, 0);
+      world.add(m);
+      const lim = new THREE.Mesh(new THREE.BoxGeometry(0.5, 5, 0.5),
+        new THREE.MeshStandardMaterial({ color: 0x8b9bb0 }));
+      lim.position.set(-18 + 30, 12 - i * 8, 0);
+      world.add(lim);
+      const t = label(`${r.name} ${r.value} / ${r.limit}`, "reg");
+      t.position.set(-18 + Math.max(w, 6) + 12, 14 - i * 8, 0);
+      world.add(t);
+    });
+    fit(66);
+    return {};
+  },
+
+  async endpoints(sc) {
+    const items = (sc.items || []).slice(0, 40);
+    if (!items.length) return gapScene();
+    const per = Math.ceil(Math.sqrt(items.length));
+    items.forEach((it, i) => {
+      const v = Math.max(0, Math.min(1, Number(it.value) <= 1 ? Number(it.value) : 1));
+      const h = 1.5 + v * 11;
+      const m = new THREE.Mesh(new THREE.BoxGeometry(4.2, h, 4.2),
+        new THREE.MeshStandardMaterial({ color: v > 0.66 ? 0xe4574c : v > 0.33 ? 0xe9c46a : 0x7ed08a, roughness: 0.4 }));
+      m.position.set(((i % per) - per / 2) * 6.4, h / 2 - 8 + (per / 2 - Math.floor(i / per)) * 16, 0);
+      world.add(m);
+      const t = label(it.name, "reg");
+      t.position.copy(m.position).add(new THREE.Vector3(0, h / 2 + 2.4, 0));
+      world.add(t);
+    });
+    fit(per * 12 + 24);
+    return {
+      focus: (f) => {
+        world.children.forEach((o, i) => {
+          if (!o.material || !items[i]) return;
+          o.material.opacity = !f.group || items[i].group === f.group ? 1 : 0.18;
+          o.material.transparent = true;
+        });
+      },
+    };
+  },
+
+  async pk(sc) {
+    const t12 = Number(sc.half_life_h) || 0, f = Math.max(0, Math.min(1, Number(sc.bioavailability) / 100));
+    const pts = [];
+    for (let h = 0; h <= 96; h += 1.5) {
+      const c = f * (Math.exp(-0.693 * h / (t12 || 24)) - Math.exp(-h / 0.8));
+      pts.push(new THREE.Vector3(h * 0.5 - 24, Math.max(0, c) * 42 - 12, 0));
+    }
+    world.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
+      new THREE.LineBasicMaterial({ color: 0x2dd4bf })));
+    const axis = [new THREE.Vector3(-24, -12, 0), new THREE.Vector3(26, -12, 0)];
+    world.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(axis),
+      new THREE.LineBasicMaterial({ color: 0x2a3746 })));
+    if (t12) {
+      const t = label(`t½ ${t12.toFixed(1)} h`, "reg");
+      t.position.set(t12 * 0.5 - 24, 6, 0); world.add(t);
+    }
+    fit(72);
+    return {};
+  },
+
+  async complex(sc) {
+    let fitTo = 80;
+    if (sc.mesh) {
+      const mesh = await addCartoon(sc.mesh, { grow: true, mode: "ss" });
+      if (mesh) fitTo = mesh.userData.fit * 1.15;
+    }
+    if (sc.ligand?.length) {
+      const g = new THREE.Group();
+      const sph = new THREE.IcosahedronGeometry(1, 2);
+      const mat = new THREE.MeshStandardMaterial({ color: 0xe9a032, roughness: 0.3, emissive: 0x3a2a08 });
+      const heavy = sc.ligand.filter(a => a.e !== "H");
+      const inst = new THREE.InstancedMesh(sph, mat, heavy.length);
+      const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), V = new THREE.Vector3();
+      heavy.forEach((a, i) => {
+        M.compose(new THREE.Vector3(a.p[0], a.p[1], a.p[2]), Q.identity(), V.setScalar(a.r * 0.42));
+        inst.setMatrixAt(i, M);
+      });
+      g.add(inst);
+      if (sc.site && typeof sc.site.center_x === "number") {
+        g.position.set(sc.site.center_x, sc.site.center_y, sc.site.center_z);
+      }
+      world.add(g);
+    }
+    fit(fitTo);
+    return { tick: (dt) => { world.rotation.y += dt * 0.12; } };
+  },
+
+  async binders(sc) {
+    const bs = (sc.binders || []).slice(0, 12);
+    if (!bs.length) return gapScene();
+    bs.forEach((b, i) => {
+      const p = Math.max(0, Math.min(1, Number(b.plddt) / 100));
+      const h = 2 + p * 16;
+      const m = new THREE.Mesh(new THREE.CylinderGeometry(1.7, 1.7, h, 16),
+        new THREE.MeshStandardMaterial({ color: p > 0.8 ? 0x7ed08a : p > 0.6 ? 0xe9c46a : 0xe4574c, roughness: 0.38 }));
+      m.position.set((i - bs.length / 2) * 5.2, h / 2 - 8, 0);
+      world.add(m);
+      const t = label(`${b.id} · pLDDT ${b.plddt ?? "—"}`, "reg");
+      t.position.copy(m.position).add(new THREE.Vector3(0, h / 2 + 2, 0));
+      world.add(t);
+    });
+    fit(bs.length * 7 + 28);
+    return { tick: (dt) => { world.rotation.y += dt * 0.1; } };
+  },
+
+  async score(sc) {
+    const parts = (sc.parts || []).filter(p => Number(p.weighted) > 0);
+    let y = -10;
+    parts.forEach((p, i) => {
+      const h = Math.max(0.6, Number(p.weighted) * 60);
+      const m = new THREE.Mesh(new THREE.BoxGeometry(14, h, 8),
+        new THREE.MeshStandardMaterial({ color: DOM_COL[i % DOM_COL.length], roughness: 0.4 }));
+      m.position.set(0, y + h / 2, 0);
+      world.add(m);
+      const t = label(`${p.name} ${Number(p.weighted).toFixed(3)}`, "reg");
+      t.position.set(12, y + h / 2 + 1.6, 0);
+      world.add(t);
+      y += h;
+    });
+    if (typeof sc.composite === "number") {
+      const line = new THREE.Mesh(new THREE.BoxGeometry(24, 0.5, 9),
+        new THREE.MeshStandardMaterial({ color: 0xffffff }));
+      line.position.set(0, -10 + sc.composite * 60, 0);
+      world.add(line);
+      const t = label(`compuesta ${sc.composite}`, "reg");
+      t.position.set(-16, -10 + sc.composite * 60 + 2, 0);
+      world.add(t);
+    }
+    fit(76);
+    return { tick: (dt) => { world.rotation.y = Math.sin(performance.now() / 4200) * 0.3; } };
+  },
+
   async safety(sc) { return meterScene(sc); },
   async panel(sc) { return gapScene(true); },
 };

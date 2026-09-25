@@ -42,6 +42,28 @@ def _session_dir(session_id: str) -> str:
     return d
 
 
+# Files the browser executes in this app's own origin. Anything written here is
+# served back by the route below, so a caller that could choose these extensions
+# could run script as the app: stored XSS. In-process callers (the pipelines and
+# the interactive report) may still write them, because their content is ours;
+# the HTTP endpoint may not, because its content is whatever was posted.
+_EXECUTABLE_EXT = {
+    ".html",
+    ".htm",
+    ".xhtml",
+    ".xht",
+    ".svg",
+    ".svgz",
+    ".js",
+    ".mjs",
+    ".mhtml",
+    ".xml",
+    ".xsl",
+    ".xslt",
+    ".pdf",
+}
+
+
 def save_artifact(session_id: str, filename: str, content, binary: bool = False) -> str:
     """Save an artifact, return its download URL. Importable by pipelines."""
     d = _session_dir(session_id)
@@ -60,13 +82,30 @@ def api_save_artifact():
     fn = data.get("filename")
     if not fn:
         return _cors(jsonify({"success": False, "error": "no filename"})), 400
+    ext = os.path.splitext(os.path.basename(str(fn)))[1].lower()
+    if ext in _EXECUTABLE_EXT or not ext:
+        return (
+            _cors(
+                jsonify(
+                    {
+                        "success": False,
+                        "error": f"this endpoint does not store {ext or 'extension-less'} files; "
+                        f"they would run in the app's own origin when served back",
+                    }
+                )
+            ),
+            415,
+        )
     url = save_artifact(data.get("session_id", "default"), fn, data.get("content", ""))
     return _cors(jsonify({"success": True, "url": url}))
 
 
 @artifacts_bp.route("/api/artifacts/<session_id>/<path:filename>", methods=["GET"])
 def api_serve_artifact(session_id, filename):
-    return send_from_directory(_session_dir(session_id), os.path.basename(filename))
+    resp = send_from_directory(_session_dir(session_id), os.path.basename(filename))
+    # Never let the browser guess a type this file does not declare.
+    resp.headers["X-Content-Type-Options"] = "nosniff"
+    return resp
 
 
 @artifacts_bp.route("/api/artifacts/health", methods=["GET"])
