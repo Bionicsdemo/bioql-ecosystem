@@ -498,6 +498,13 @@ const SCENES = {
     }
     const LEN = 58, rowH = Math.max(2.6, Math.min(7, 92 / items.length));
     const top = ((items.length - 1) / 2) * rowH;
+    /* A name per row only works while the rows have room for one. This run ranks 64
+       candidates: forty labels of twenty-two pixels do not fit in seven hundred, and
+       no amount of nudging makes them, so they were simply drawn on top of each other.
+       Past what the stage holds, the ends and an even sample carry the scale and the
+       bars carry the rest. */
+    const room = Math.max(4, Math.floor(host.clientHeight / 26));
+    const every = Math.ceil(items.length / room);
     items.forEach((it, i) => {
       const raw = Number(it.value);
       const v = Math.max(0, Math.min(1, Math.abs(raw) / hi));   // drawn against the largest here
@@ -506,6 +513,7 @@ const SCENES = {
         new THREE.MeshStandardMaterial({ color: v > 0.66 ? 0xe4574c : v > 0.33 ? 0xe9c46a : 0x7ed08a, roughness: 0.4 }));
       m.position.set(w / 2, top - i * rowH, 0);
       world.add(m);
+      if (every > 1 && i % every !== 0 && i !== items.length - 1) return;
       const t = label(it.name, "reg");
       t.position.set(0, top - i * rowH + rowH * 0.34, 0);
       t.center.set(1, 0.5);          // hang it off the left end, clear of the bar
