@@ -337,7 +337,7 @@ def test_spawn_and_get_on_brev(world):
 
     w = world(brev={f"{APP}::f": slow, f"{APP}::g": lambda x: {"x": x}}, prefer="brev-only")
     call = w.M.function(APP, "g").spawn(7)
-    assert call.backend == "brev" and len(call.object_id) == 12
+    assert call.backend == "brev" and call.object_id.startswith("brev-")
     assert call.get()["x"] == 7
     with pytest.raises(TimeoutError):
         w.M.function(APP, "f").spawn(1).get(timeout=0.05)
@@ -468,3 +468,26 @@ def test_a_modal_result_is_never_relabeled(world):
     )
     res, _ = w.M.dispatch(APP, "f")
     assert res == {"backend": "CUDA-Q cuStateVec (Modal A100)"}
+
+
+def test_a_spawned_brev_job_can_be_collected_later_by_its_id(world):
+    w = world(brev={f"{APP}::f": lambda x: {"x": x}}, prefer="brev-only")
+    ident = w.M.function(APP, "f").spawn(4).object_id
+    assert ident.startswith("brev-")
+    assert w.M.call_from_id(ident).get(timeout=5)["x"] == 4
+
+
+def test_a_modal_call_id_is_collected_from_modal(world):
+    w = world(brev_on=False)
+    got = {}
+
+    class FC:
+        object_id = "fc-abc"
+
+        def get(self, timeout=None):
+            return "from-modal"
+
+    sys.modules["modal"].FunctionCall = types.SimpleNamespace(
+        from_id=lambda i: got.setdefault("id", i) and FC()
+    )
+    assert w.M.call_from_id("fc-abc").get() == "from-modal" and got["id"] == "fc-abc"

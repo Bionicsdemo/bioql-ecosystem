@@ -313,9 +313,11 @@ def _escalation_allowed() -> tuple:
 def _boltz2_with_msa(seqs: List[str], ligand_smiles: str = "") -> dict:
     """Boltz-2 CON MSA. Admite complejo: Boltz separa cadenas por ':'."""
     try:
+        import modal_compute_layer
+
         import modal
 
-        raw = modal.Function.from_name("bioql-boltz2", "predict").remote(
+        raw = modal_compute_layer.function("bioql-boltz2", "predict").remote(
             {
                 "protein_sequence": ":".join(seqs),
                 "ligand_smiles": ligand_smiles or "",
@@ -443,9 +445,11 @@ def predict_structure_esmfold2(
 
     # 1) Preferred: Modal Function.from_name (no web-fn cap).
     try:
+        import modal_compute_layer
+
         import modal as _modal
 
-        fn = _modal.Function.from_name(_MODAL_APP, _MODAL_FN)
+        fn = modal_compute_layer.function(_MODAL_APP, _MODAL_FN)
         raw = fn.remote(payload)
         if isinstance(raw, dict):
             norm = _normalize_remote(raw, backend="modal")
@@ -462,9 +466,11 @@ def predict_structure_esmfold2(
     # (100 diffusion steps, 3 samples) because structural precision matters.
     if result is None and not is_complex and len(seqs) == 1:
         try:
+            import modal_compute_layer
+
             import modal as _modal
 
-            fn = _modal.Function.from_name(_MODAL_APP, "fold_structure")
+            fn = modal_compute_layer.function(_MODAL_APP, "fold_structure")
             raw = fn.remote(seqs[0], 0, "production")
             if isinstance(raw, dict) and raw.get("success"):
                 norm = _normalize_remote(raw, backend="modal")

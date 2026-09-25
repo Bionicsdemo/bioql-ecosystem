@@ -558,7 +558,10 @@ class RoutedCall:
         self.backend = backend
         self.routing = routing
         self._h = handle
-        self.object_id = handle if backend == "brev" else getattr(handle, "object_id", None)
+        # A Brev id is prefixed so call_from_id() can tell the two apart later.
+        self.object_id = (
+            f"brev-{handle}" if backend == "brev" else getattr(handle, "object_id", None)
+        )
 
     def get(self, timeout: Optional[float] = None):
         if self.backend == "modal":
@@ -720,6 +723,16 @@ class RoutedCls:
 
     def __call__(self, *args, **kwargs) -> _RoutedInstance:
         return _RoutedInstance(self.app, self.name, (args, kwargs))
+
+
+def call_from_id(object_id: str) -> RoutedCall:
+    """Use in place of `modal.FunctionCall.from_id(object_id)`: collects a job that
+    RoutedFunction.spawn() started, on whichever backend it went to."""
+    if str(object_id).startswith("brev-"):
+        return RoutedCall("brev", str(object_id)[len("brev-") :], {"chosen": "brev"})
+    from modal import FunctionCall
+
+    return RoutedCall("modal", FunctionCall.from_id(object_id), {"chosen": "modal"})
 
 
 def function(app: str, fn: str) -> RoutedFunction:

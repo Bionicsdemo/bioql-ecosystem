@@ -109,7 +109,9 @@ def probe_cudaq() -> Dict[str, Any]:
             # falla, asi que esta sonda decia "disponible" siempre -- y pedia ::run,
             # que no existe (medido 2026-09-24). hydrate() es la consulta real, la
             # misma que usa modal_compute_layer.
-            modal.Function.from_name("bioql-quantum-gpu", "cudaq_statevector").hydrate()
+            import modal_compute_layer
+
+            modal_compute_layer.function("bioql-quantum-gpu", "cudaq_statevector").hydrate()
             return {
                 "available": True,
                 "engine": "CUDA-Q en Modal (GPU remota)",

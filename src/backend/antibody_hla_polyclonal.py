@@ -239,7 +239,9 @@ def _rank_peptides_class_i(peptides, names, alleles):
         mf_alleles = None
         if alleles:
             mf_alleles = [(a if str(a).upper().startswith("HLA") else f"HLA-{a}") for a in alleles]
-        res = _modal.Cls.from_name("bioql-mhcflurry", "MHCflurry")().predict.remote(
+        import modal_compute_layer
+
+        res = modal_compute_layer.cls("bioql-mhcflurry", "MHCflurry")().predict.remote(
             {"peptides": list(peptides), "alleles": mf_alleles}
         )
     except Exception:
@@ -1498,9 +1500,11 @@ def _dock_clone(
     if len(seqs) < 2 or not peptide:
         return {"available": False, "reason": "need antibody + peptide sequences to dock"}
     try:
+        import modal_compute_layer
+
         import modal as _modal
 
-        fold = _modal.Function.from_name("bioql-esmfold2-service", "predict")
+        fold = modal_compute_layer.function("bioql-esmfold2-service", "predict")
         res = fold.remote({"sequences": seqs, "complex": True, "name": name})
         if isinstance(res, dict) and res.get("success") and tracker is not None:
             try:

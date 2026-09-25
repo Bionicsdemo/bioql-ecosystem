@@ -511,12 +511,12 @@ def _quantum_leg(
     `force=True` la salta a peticion explicita, y queda constancia de que se
     salto.
     """
+    # La pata corre en Modal o en Brev, segun salud (modal_compute_layer, BIOQL_COMPUTE_PREFER).
     try:
+        import modal_compute_layer
         from quantum_arm import _COST
-
-        import modal
     except Exception as e:  # noqa: BLE001
-        return {"available": False, "reason": f"modal no disponible: {str(e)[:110]}"}
+        return {"available": False, "reason": f"computo remoto no disponible: {str(e)[:100]}"}
     # ── PUERTA: no se gasta A100 sin justificarlo ───────────────────────────
     if not force:
         try:
@@ -538,7 +538,7 @@ def _quantum_leg(
             pass
 
     try:
-        f = modal.Function.from_name("bioql-ewf-sqd", "sqd_embedded")
+        f = modal_compute_layer.function("bioql-ewf-sqd", "sqd_embedded")
         _COST.modal_calls += 1
         t = time.time()
         # `remote()` NO acepta plazo: espera al de la propia funcion remota, que
@@ -1042,9 +1042,9 @@ def _quantum_remoto(payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     if os.environ.get("BIOQL_NIR_NO_MODAL", "").strip().lower() in ("1", "true", "si"):
         return None
     try:
-        import modal  # noqa: F401
+        import modal_compute_layer
 
-        fn = modal.Function.from_name("bioql-nir-differential", "site_s1")
+        fn = modal_compute_layer.function("bioql-nir-differential", "site_s1")
     except Exception:  # noqa: BLE001
         return None
 
