@@ -342,3 +342,89 @@ def test_a_composite_that_does_not_match_its_parts_is_said_out_loud():
 def test_each_pipeline_gets_its_own_model():
     assert SM.matches(small_molecule_run()) and not mrna.matches(small_molecule_run())
     assert mrna.matches(run_json()) and not SM.matches(run_json())
+
+
+# -- the peptide model ------------------------------------------------------------------
+from artifact_engine.models import peptide as PEP  # noqa: E402
+
+
+def peptide_run(**over):
+    r = {
+        "pipeline": "PEPTIDE_DISCOVERY",
+        "timestamp": "2026-09-25T00:00:00Z",
+        "target": "TESTR",
+        "indication": "test",
+        "n_candidates": 1,
+        "optimize_for": "binding",
+        "quantum_backend": "AerSimulator",
+        "on_real_quantum_hardware": False,
+        "pipeline_architecture": "Generate -> Evaluate -> Optimize",
+        "stages": {
+            "2_quantum_generation": {
+                "candidates_generated": 1,
+                "peptides": [{"sequence": "ACDKFG", "source": "test"}],
+            },
+            "3_variant_optimization": {
+                "total_variants": 1,
+                "variants": [{"original": "ACDKFG", "optimized": "ACDRFG", "score": 0.7}],
+            },
+            "11_scoring": {
+                "composite_score": 0.6,
+                "peptide_bonus": 0.1,
+                "drug_candidate_class": "Good",
+                "score_breakdown": {
+                    "admet": {"score": 0.5, "weight": 0.6, "weighted": 0.3},
+                    "tox": {"score": 0.5, "weight": 0.4, "weighted": 0.2},
+                },
+            },
+        },
+        "candidates": [
+            {
+                "rank": 1,
+                "sequence": "ACDRFG",
+                "original_sequence": "ACDKFG",
+                "optimization_score": 0.7,
+                "mutations": ["K4R"],
+                "molecular_weight_da": 650.7,
+                "net_charge": 1,
+                "serum_half_life_hours": 5.0,
+                "protease_resistance": "HIGH",
+                "aggregation_risk": "LOW",
+            }
+        ],
+        "optimization": {"iterations": 1, "converged": True, "improvement_pct": 0.0},
+    }
+    r["best_candidate"] = dict(r["candidates"][0])
+    for k, v in over.items():
+        r[k] = v
+    return r
+
+
+def test_mutations_are_rederived_from_the_sequences_not_trusted():
+    assert [c["label"] for c in PEP.diff("ACDKFG", "ACDRFG")] == ["K4R"]
+    p = build.build(peptide_run(), mesh_fn=fake_mesh)
+    assert next(c for c in p["checks"] if c["id"] == "mutations")["ok"] is True
+
+    r = peptide_run()
+    r["best_candidate"]["mutations"] = ["K9W"]  # a label that does not match the sequences
+    p2 = build.build(r, mesh_fn=fake_mesh)
+    assert next(c for c in p2["checks"] if c["id"] == "mutations")["ok"] is False
+    said = " ".join(b["es"] for ch in p2["chapters"] for b in ch["beats"])
+    assert "recalculados comparando" not in said
+
+
+def test_the_peptide_bonus_is_part_of_the_composite_check():
+    p = build.build(peptide_run(), mesh_fn=fake_mesh)  # 0.3 + 0.2 + 0.1 == 0.6
+    assert next(c for c in p["checks"] if c["id"] == "composite")["ok"] is True
+    r = peptide_run()
+    r["stages"]["11_scoring"]["peptide_bonus"] = 0.0
+    p2 = build.build(r, mesh_fn=fake_mesh)
+    assert next(c for c in p2["checks"] if c["id"] == "composite")["ok"] is False
+
+
+def test_three_models_each_match_only_their_own_pipeline():
+    runs = {"mrna": run_json(), "sm": small_molecule_run(), "pep": peptide_run()}
+    models = {"mrna": mrna, "sm": SM, "pep": PEP}
+    for name, run in runs.items():
+        hit = [n for n, m in models.items() if m.matches(run)]
+        assert hit == [name], f"{name} matched {hit}"

@@ -485,6 +485,63 @@ const SCENES = {
     return { tick: (dt) => { world.rotation.y = Math.sin(performance.now() / 4200) * 0.3; } };
   },
 
+  async sequences(sc) {
+    const items = (sc.items || []).filter(i => i.seq);
+    if (!items.length) return gapScene();
+    const AA = a => "AVLIMFWYC".includes(a) ? 0xe9a032 : "DEKRH".includes(a) ? 0x5b8def : "STNQ".includes(a) ? 0x2dd4bf : 0x7b8a9c;
+    items.forEach((it, row) => {
+      const g = ribbon(it.seq, { perRow: it.seq.length, cell: 2.1, colorFn: AA, y0: (items.length / 2 - row) * 5.4 });
+      world.add(g);
+    });
+    fit(Math.max(60, (items[0].seq.length + 4) * 2.4));
+    return {};
+  },
+
+  async variants(sc) {
+    const vs = (sc.variants || []).filter(v => v.optimized);
+    if (!vs.length) return gapScene();
+    const AA = a => "AVLIMFWYC".includes(a) ? 0xe9a032 : "DEKRH".includes(a) ? 0x5b8def : "STNQ".includes(a) ? 0x2dd4bf : 0x7b8a9c;
+    vs.forEach((v, row) => {
+      const y = (vs.length / 2 - row) * 7.6;
+      const changed = new Set((v.changes || []).map(c => c.pos - 1));
+      const g = ribbon(v.optimized, {
+        perRow: v.optimized.length, cell: 2.1, y0: y,
+        colorFn: (a, i) => (changed.has(i) ? 0xffffff : AA(a)),
+      });
+      world.add(g);
+      (v.changes || []).forEach(c => {
+        const t = label(`${c.from}${c.pos}${c.to}`, "sig");
+        t.position.copy(cellPos(g, c.pos - 1)).add(new THREE.Vector3(0, 2.6, 0));
+        world.add(t);
+      });
+      if (typeof v.score === "number") {
+        const t = label(v.score.toFixed(3), "reg");
+        t.position.set((v.optimized.length / 2 + 2) * 2.1, y + 1, 0);
+        world.add(t);
+      }
+    });
+    fit(Math.max(64, (vs[0].optimized.length + 8) * 2.4));
+    return {};
+  },
+
+  async ranking(sc) {
+    const items = (sc.items || []).slice(0, 10);
+    if (!items.length) return gapScene();
+    const best = Math.max(...items.map(i => Number(i.score) || 0), 0.0001);
+    items.forEach((it, i) => {
+      const w = 34 * (Number(it.score) || 0) / best;
+      const m = new THREE.Mesh(new THREE.BoxGeometry(Math.max(w, 0.6), 3.6, 3.6),
+        new THREE.MeshStandardMaterial({ color: DOM_COL[i % DOM_COL.length], roughness: 0.4 }));
+      m.position.set(-20 + w / 2, 14 - i * 7, 0);
+      world.add(m);
+      const t = label(`${it.rank ?? i + 1}. ${it.seq} · ${Number(it.score ?? 0).toFixed(3)}`, "reg");
+      t.position.set(-20 + w + 12, 16 - i * 7, 0);
+      world.add(t);
+    });
+    fit(items.length * 8 + 34);
+    return {};
+  },
+
   async safety(sc) { return meterScene(sc); },
   async panel(sc) { return gapScene(true); },
 };

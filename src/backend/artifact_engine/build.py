@@ -21,9 +21,9 @@ from typing import Any, Callable, Dict, List, Optional
 
 from . import facts as F
 from . import narrate
-from .models import mrna, small_molecule
+from .models import mrna, peptide, small_molecule
 
-MODELS = [mrna, small_molecule]
+MODELS = [mrna, small_molecule, peptide]
 ANNEX = "annex"
 
 
