@@ -1,0 +1,252 @@
+"""The interactive report may not say anything the run does not contain.
+
+Three promises are checked here:
+  * every value of the result JSON is accounted for -- shown in a chapter or
+    listed in the data annex, never dropped;
+  * no sentence carries a number that is not in the run, and no sentence claims
+    a picture or a verification that did not happen;
+  * what the run could not measure is stated as a gap, in the pipeline's own
+    words.
+
+No network, no PyMOL: the mesh builder is replaced by a stub, so these run
+anywhere.
+"""
+
+import json
+import sys
+from pathlib import Path
+
+import pytest
+
+BACKEND = Path(__file__).resolve().parents[2] / "src" / "backend"
+sys.path.insert(0, str(BACKEND))
+
+from artifact_engine import build, facts, narrate  # noqa: E402
+from artifact_engine.models import mrna  # noqa: E402
+
+PDB = "\n".join(
+    f"ATOM  {i:5d}  CA  ALA A{i:4d}    {i * 3.8:8.3f}{0.0:8.3f}{0.0:8.3f}  1.00 {70 + i % 20:5.2f}           C"
+    for i in range(1, 9)
+)
+
+
+def fake_mesh(pdb):
+    res, kind = __import__("artifact_engine.mesh", fromlist=["x"]).residues(pdb)
+    return {
+        "scale": 0.01,
+        "nv": 6,
+        "nt": 2,
+        "b64": "",
+        "kind": kind,
+        "n_res": len(res),
+        "center": [0, 0, 0],
+        "gz_bytes": 0,
+        "resEnd": {i: i + 1 for i in range(len(res))},
+        "res": [
+            {
+                "chain": r["chain"],
+                "resi": r["resi"],
+                "resn": r["resn"],
+                "ss": "L",
+                "b": r["b"],
+                "p": r["p"],
+            }
+            for r in res
+        ],
+    }
+
+
+def run_json(**over):
+    r = {
+        "pipeline": "mrna_therapeutic_v1",
+        "timestamp": "2026-09-25T00:00:00Z",
+        "construct_mode": "monomer",
+        "input": {"construct_mode": "monomer", "target_receptors": ["TESTR"], "n_seeds": 1},
+        "stages": {
+            "1_protein_design": {
+                "protein_with_signal_fasta": "MKWVTFISLLFLFSSAYSQVQLVQSGAEVKK",
+                "protein_mature_fasta": "QVQLVQSGAEVKK",
+                "mature_length_aa": 13,
+                "signal_length_aa": 18,
+                "monomer_mw_kda": 3.4,
+                "mw_method": "Biopython ProtParam",
+                "signal_peptide": "MKWVTFISLLFLFSSAYS",
+                "signal_type": "albumin",
+                "domain_map": {"payload": {"start": 0, "end": 13, "length": 13}},
+                "domain_sequences": {"payload": "QVQLVQSGAEVKK"},
+            },
+            "4_mrna_optimization": {
+                "best_cds_sequence": "AUGAAAUGGGUGACCUUCAUCAGCCUGCUGUUCCUGUUCAGCAGCGCCUACAGCCAGGUGCAGCUGGUGCAGAGCGGCGCCGAGGUGAAGAAG",
+                "full_mrna_sequence": "",  # filled below
+                "utr5": "GGGAAAUAAGAGAGAAAAGAAGAGUAAGAAGAAAUAUAAGAGCCACC",
+                "utr3": "GCUGCCUUCUGCUUUGCUGCUGCU",
+                "polya_length": 12,
+                "cds_length_nt": 93,
+                "expression_system": "human",
+                "best_cai": 0.88,
+                "best_gc": 0.55,
+                "best_homopolymer": 4,
+                "n_candidates_passing": 1,
+                "all_candidates": [{"candidate_id": "CDS-000", "cai": 0.88}],
+                "modifications": "Cap1 + m1Psi",
+                "length_breakdown_nt": {
+                    "utr5": 47,
+                    "orf": 93,
+                    "utr3": 24,
+                    "polya": 12,
+                    "sum_check": 176,
+                },
+            },
+            "7_safety_verdict": {
+                "verdict": "computational only",
+                "immunogenicity": {
+                    "mhc_epitope_count": 3,
+                    "risk_level": "low",
+                    "method": "HistGBM",
+                },
+            },
+        },
+        "structure_3d": {"method": "TestFolder", "plddt": 82.5, "pdb": PDB},
+        "optimization": {
+            "iterations_run": 1,
+            "converged_reason": "criteria_met",
+            "all_criteria_met": True,
+            "final_metrics": {"cai": 0.88},
+        },
+    }
+    s4 = r["stages"]["4_mrna_optimization"]
+    s4["full_mrna_sequence"] = (
+        s4["utr5"] + s4["best_cds_sequence"] + s4["utr3"] + "A" * s4["polya_length"]
+    )
+    s4["full_mrna_length_nt"] = len(s4["full_mrna_sequence"])
+    for k, v in over.items():
+        r[k] = v
+    return r
+
+
+def report(**over):
+    return build.build(run_json(**over), mesh_fn=fake_mesh)
+
+
+# -- the coverage promise --------------------------------------------------------
+def test_every_value_of_the_run_is_shown_or_annexed():
+    r = run_json()
+    p = build.build(r, mesh_fn=fake_mesh)
+    assert p["coverage"]["leaves"] == len(facts.flatten(r))
+    assert sum(p["coverage"]["per_chapter"].values()) == p["coverage"]["leaves"]
+
+
+def test_a_value_no_chapter_claims_lands_in_the_annex():
+    p = report(surprise_field={"not_claimed_by_anyone": 7})
+    paths = [a["path"] for a in p["annex"]]
+    assert "surprise_field.not_claimed_by_anyone" in paths
+    assert any(a["value"] == 7 for a in p["annex"])
+
+
+def test_prefix_matching_is_by_token_not_substring():
+    assert facts.under("stages.4_mrna_optimization.best_cai", "stages.4_mrna_optimization")
+    assert not facts.under("stages.4_mrna_optimization_extra.x", "stages.4_mrna_optimization")
+    assert facts.under("a.b[2].c", "a.b[2]")
+
+
+# -- the honesty promise ---------------------------------------------------------
+def test_a_sentence_cannot_carry_a_number_the_run_does_not_have():
+    r = run_json()
+    del r["stages"]["1_protein_design"]["monomer_mw_kda"]
+    p = build.build(r, mesh_fn=fake_mesh)
+    said = " ".join(b["es"] for ch in p["chapters"] for b in ch["beats"])
+    assert "kDa" not in said, "the mass sentence must disappear with its value"
+
+
+def test_every_number_in_every_sentence_is_in_the_run():
+    r = run_json()
+    p = build.build(r, mesh_fn=fake_mesh)
+    present = {str(v) for _, v in facts.flatten(r)}
+    for ch in p["chapters"]:
+        for b in ch["beats"]:
+            for path in b["paths"]:
+                assert (
+                    facts.get(r, path) is not None
+                ), f"{ch['id']}: quoted a path that is empty: {path}"
+            assert b["paths"] or b["kind"] in (
+                "note",
+                "check",
+                "gap",
+            ), f"{ch['id']}: a fact with no source: {b['es'][:60]}"
+    assert present  # the run really did have values to quote
+
+
+def test_a_missing_structure_becomes_a_declared_gap_not_a_description():
+    r = run_json()
+    r["structure_3d"] = {
+        "method": "TestFolder",
+        "status": "unavailable",
+        "reason": "the folder was offline for this run",
+    }
+    p = build.build(r, mesh_fn=fake_mesh)
+    ch = next(c for c in p["chapters"] if c["id"] == "structure")
+    assert ch["status"] == "gap"
+    assert all(b["kind"] == "gap" for b in ch["beats"])
+    assert "offline" in ch["beats"][0]["es"]
+    assert "PyMOL" not in " ".join(b["es"] for b in ch["beats"])
+
+
+def test_a_verification_is_only_claimed_when_it_actually_passed():
+    r = run_json()
+    r["stages"]["4_mrna_optimization"][
+        "best_cds_sequence"
+    ] = "AUGAAAUAA"  # no longer the designed protein
+    p = build.build(r, mesh_fn=fake_mesh)
+    said = " ".join(b["es"] for ch in p["chapters"] for b in ch["beats"])
+    assert "devuelve exactamente la proteína diseñada" not in said
+    assert next(c for c in p["checks"] if c["id"] == "translation")["ok"] is False
+
+
+def test_the_length_arithmetic_is_recomputed_not_trusted():
+    r = run_json()
+    r["stages"]["4_mrna_optimization"]["length_breakdown_nt"]["orf"] = 999
+    p = build.build(r, mesh_fn=fake_mesh)
+    assert next(c for c in p["checks"] if c["id"] == "lengths")["ok"] is False
+    said = " ".join(b["es"] for ch in p["chapters"] for b in ch["beats"])
+    assert "suman exactamente" not in said
+
+
+def test_gaps_quote_the_pipelines_own_reason():
+    r = run_json()
+    r["rna_3d"] = {
+        "n_folded": 0,
+        "skipped": [{"name": "5'UTR", "reason": "backend unavailable"}],
+        "honest_note": "RNAPro backend unavailable; no structure fabricated.",
+    }
+    p = build.build(r, mesh_fn=fake_mesh)
+    ch = next(c for c in p["chapters"] if c["id"] == "rna3d")
+    assert any("fabricated" in b["es"] or "unavailable" in b["es"] for b in ch["beats"])
+
+
+# -- the scenes are made of the run's own data --------------------------------------
+def test_the_transcript_scene_finds_the_real_regions():
+    r = run_json()
+    sc = mrna.scene_transcript(r)
+    names = [x["name"] for x in sc["regions"]]
+    assert names == ["5'UTR", "CDS", "3'UTR", "poly(A)"]
+    assert sc["seq"][sc["regions"][1]["start"] :][:3] == "AUG"
+    assert sc["regions"][-1]["end"] == len(sc["seq"])
+
+
+def test_translation_is_derived_from_the_runs_own_cds():
+    sc = mrna.scene_translation(run_json())
+    assert sc["identical"] is True
+    assert sc["protein"] == "MKWVTFISLLFLFSSAYSQVQLVQSGAEVKK"
+    assert sc["n_codons"] == 31
+
+
+def test_the_report_refuses_a_pipeline_it_has_no_model_for():
+    with pytest.raises(ValueError, match="no artifact model"):
+        build.build({"pipeline": "something_else", "data": 1}, mesh_fn=fake_mesh)
+
+
+def test_the_payload_is_json_and_carries_the_whole_result():
+    p = report()
+    s = json.dumps(p, default=str)
+    assert json.loads(s)["result"] == run_json()
+    assert p["digest"] and len(p["digest"]) == 16

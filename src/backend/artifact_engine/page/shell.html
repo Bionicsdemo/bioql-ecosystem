@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>__TITLE__</title>
+<style>
+:root{
+  --bg:#0b0f14; --panel:#101722; --line:#1e2936; --ink:#e8edf3; --muted:#8b9bb0;
+  --accent:#e9a032; --ok:#7ed08a; --bad:#e4574c; --note:#8b74f4;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Inter,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:14px/1.6 var(--sans);overflow:hidden}
+#app{display:grid;grid-template-columns:1fr minmax(320px,420px);grid-template-rows:auto 1fr auto;height:100%;
+     padding-top:env(safe-area-inset-top,0);padding-bottom:env(safe-area-inset-bottom,0)}
+header{grid-column:1/-1;display:flex;align-items:baseline;gap:12px;padding:12px 18px;border-bottom:1px solid var(--line)}
+#title{font-size:16px;font-weight:700;letter-spacing:-.01em}
+#subject{font:12px var(--mono);color:var(--muted)}
+header .sp{flex:1}
+header button{background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:6px;
+  padding:4px 9px;font:11px var(--mono);cursor:pointer}
+header button:hover{color:var(--ink);border-color:var(--accent)}
+
+/* the animation owns its own column: text never sits on top of it */
+#stage{position:relative;overflow:hidden;background:var(--bg);min-height:0}
+#stage canvas{display:block}
+.labels{position:absolute;inset:0;pointer-events:none}
+.tag{position:absolute;transform:translate(-50%,-100%);white-space:nowrap;
+  font:10px/1.4 var(--mono);color:var(--ink);background:rgba(11,15,20,.82);
+  border:1px solid var(--line);border-radius:5px;padding:2px 6px}
+.tag.reg{border-color:#2a3a4c}
+.tag.sig{border-color:#d0577f;color:#f0a6bd}
+.tag.dom{border-width:0 0 2px 0;border-radius:0;background:transparent}
+
+aside{display:flex;flex-direction:column;min-height:0;border-left:1px solid var(--line);background:var(--panel)}
+.chapter{padding:14px 18px 8px;border-bottom:1px solid var(--line)}
+#ch-title{margin:0;font-size:15px;font-weight:700}
+#ch-index{font:11px var(--mono);color:var(--muted)}
+#beats{list-style:none;margin:0;padding:8px 10px;overflow-y:auto;flex:1;min-height:0}
+.beat{display:flex;gap:8px;align-items:flex-start;padding:9px 10px;border-radius:8px;cursor:pointer;
+  color:var(--muted);border-left:2px solid transparent;transition:background .15s,color .15s}
+.beat:hover{background:#16202c}
+.beat.on{background:#16202c;color:var(--ink);border-left-color:var(--accent)}
+.beat.gap{border-left-color:var(--bad)}
+.beat.check{border-left-color:var(--ok)}
+.beat.note{font-size:12.5px;font-style:italic}
+.beat .src{margin-left:auto;background:transparent;border:1px solid var(--line);color:var(--muted);
+  border-radius:4px;font:10px var(--mono);padding:0 5px;cursor:help;flex:none}
+footer{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:8px 18px;border-top:1px solid var(--line);flex-wrap:wrap}
+#nav{display:flex;gap:4px;flex-wrap:wrap}
+#nav button{width:26px;height:26px;border-radius:6px;border:1px solid var(--line);background:transparent;
+  color:var(--muted);font:11px var(--mono);cursor:pointer}
+#nav button.on{background:var(--accent);border-color:var(--accent);color:#0b0f14;font-weight:700}
+footer .sp{flex:1}
+footer .meta{font:10px var(--mono);color:var(--muted)}
+dialog{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:12px;max-width:min(860px,92vw);
+  max-height:82vh;overflow:auto;padding:0}
+dialog::backdrop{background:rgba(0,0,0,.62)}
+dialog h3{margin:0;padding:14px 18px;border-bottom:1px solid var(--line);font-size:14px}
+dialog .body{padding:14px 18px}
+#checks{list-style:none;margin:0 0 14px;padding:0;font:12px var(--mono)}
+#checks li{padding:5px 0 5px 20px;position:relative}
+#checks li::before{position:absolute;left:0}
+#checks li.ok::before{content:"✓";color:var(--ok)}
+#checks li.bad::before{content:"✕";color:var(--bad)}
+table{width:100%;border-collapse:collapse;font:11px var(--mono)}
+td{border-top:1px solid var(--line);padding:5px 8px;vertical-align:top;word-break:break-all}
+td:first-child{color:var(--muted);white-space:nowrap}
+@media (max-width:900px){
+  #app{grid-template-columns:1fr;grid-template-rows:auto 46vh 1fr auto}
+  aside{border-left:0;border-top:1px solid var(--line)}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <span id="title"></span><span id="subject"></span><span class="sp"></span>
+    <button id="lang">EN</button>
+    <button id="data">datos</button>
+    <button id="dl">JSON</button>
+  </header>
+  <div id="stage"></div>
+  <aside>
+    <div class="chapter"><h2 id="ch-title"></h2><span id="ch-index"></span></div>
+    <ul id="beats"></ul>
+  </aside>
+  <footer>
+    <button id="prev" title="anterior">◀</button>
+    <button id="play" title="reproducir">▶</button>
+    <button id="next" title="siguiente">▶|</button>
+    <div id="nav"></div>
+    <span class="sp"></span>
+    <span class="meta" id="coverage"></span>
+  </footer>
+</div>
+
+<dialog id="dlg">
+  <h3>Todo el resultado</h3>
+  <div class="body">
+    <ul id="checks"></ul>
+    <table><tbody id="annex"></tbody></table>
+  </div>
+</dialog>
+
+<script id="payload" type="application/json">__PAYLOAD__</script>
+<script>window.__BIOQL_REPORT = JSON.parse(document.getElementById("payload").textContent);</script>
+<script type="module">__APP__</script>
+<script>
+  const dlg = document.getElementById("dlg");
+  document.getElementById("data").onclick = () => dlg.showModal();
+  dlg.onclick = e => { if (e.target === dlg) dlg.close(); };
+</script>
+</body>
+</html>
