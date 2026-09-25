@@ -179,6 +179,7 @@ def build_beats(
         beat = {
             "es": es,
             "en": en,
+            "_check": b.get("requires_check") or "",
             "kind": b.get("kind", "fact"),
             "focus": b.get("focus", {}),
             "paths": sorted(set(r.used)),

@@ -723,20 +723,32 @@ def chapters(
             "scene": scene_cover(r, ag),
             "beats": [
                 {
-                    "es": "Una corrida del pipeline {pipeline} contra {target_description}, pidiendo un {antibody_type}: un anticuerpo de cadena única, las dos mitades variables unidas en una sola proteína.",
-                    "en": "A run of the {pipeline} pipeline against {target_description}, asking for an {antibody_type}: a single-chain antibody, the two variable halves joined into one protein.",
+                    # the gloss is tied to the two chain lengths, so a run with only one
+                    # variable domain drops the sentence instead of asserting two halves
+                    "es": "Una corrida del pipeline {pipeline} contra {target_description}, pidiendo un {antibody_type}: las dos mitades variables, de {b:vh_length} y {b:vl_length} residuos, unidas en una sola proteína.",
+                    "en": "A run of the {pipeline} pipeline against {target_description}, asking for an {antibody_type}: the two variable halves, {b:vh_length} and {b:vl_length} residues, joined into one protein.",
                     "tech": {
                         "es": "versión {md:pipeline_version} · registrada el {md:timestamp} · {total_time_seconds|n1} s de extremo a extremo",
                         "en": "version {md:pipeline_version} · recorded on {md:timestamp} · {total_time_seconds|n1} s end to end",
                     },
                 },
                 {
-                    "es": "La estructura de partida fue {in:pdb_id}, pedida explícitamente en la entrada; la indicación se dejó vacía.",
-                    "en": "The starting structure was {in:pdb_id}, explicitly requested in the input; the indication was left empty.",
+                    "es": "La estructura de partida fue {in:pdb_id}, pedida explícitamente en la entrada.",
+                    "en": "The starting structure was {in:pdb_id}, explicitly requested in the input.",
                     "tech": {
                         "es": "verificación cruzada con Boltz-2: {in:boltz2_crosscheck} · energía libre de unión: {in:compute_binding_free_energy}",
                         "en": "Boltz-2 cross-check: {in:boltz2_crosscheck} · binding free energy: {in:compute_binding_free_energy}",
                     },
+                },
+                {
+                    # the indication steers the framework choice, so its absence is said
+                    # out loud rather than asserted from nowhere
+                    "es": "La indicación pedida es {in:indication}, y es a ella que se ajusta la elección del armazón.",
+                    "en": "The requested indication is {in:indication}, and it is what the framework choice is keyed to.",
+                    # when it is empty the pipeline's own rationale says what it did instead
+                    "gap": ["input.indication", f"{S_FW}.selection_rationale"],
+                    "gap_es": "La entrada no trae indicación",
+                    "gap_en": "The input carries no indication",
                 },
                 {
                     "es": "Terminó en {status} y llevó {rep:candidates_evaluated} candidatos hasta el informe; el líder es {rep:lead_candidate}.",
@@ -785,8 +797,8 @@ def chapters(
             "scene": scene_antigen(r, ag, meshes),
             "beats": [
                 {
-                    "es": "El blanco es {ta:target}, tomado de la estructura {ta:pdb_id} con {ta:antigen_length} residuos en la cadena A; el pipeline la considera de drogabilidad {ta:druggability}.",
-                    "en": "The target is {ta:target}, taken from structure {ta:pdb_id} with {ta:antigen_length} residues in chain A; the pipeline rates its druggability {ta:druggability}.",
+                    "es": "El blanco es {ta:target}, tomado de la estructura {ta:pdb_id} con {ta:antigen_length} residuos; el pipeline la considera de drogabilidad {ta:druggability}.",
+                    "en": "The target is {ta:target}, taken from structure {ta:pdb_id} with {ta:antigen_length} residues; the pipeline rates its druggability {ta:druggability}.",
                     "tech": {
                         "es": "origen de la estructura: {ta:structure_source} · contexto del antígeno: {ta:antigen_context_source} · epítopo: {ta:epitope_residues}",
                         "en": "structure source: {ta:structure_source} · antigen context: {ta:antigen_context_source} · epitope: {ta:epitope_residues}",
@@ -802,15 +814,17 @@ def chapters(
                     "gap_en": "This run has no predicted structure to draw",
                 },
                 {
-                    "es": "Comprobado sobre los átomos: el residuo 12 de la cadena dibujada es una cisteína, que es la mutación G12C que nombra {target_description}.",
-                    "en": "Checked on the atoms: residue 12 of the drawn chain is a cysteine, the G12C mutation that {target_description} names.",
+                    # the check reads the PDB string the run stores, which is there whether or
+                    # not PyMOL drew it, so the sentence must not claim a picture
+                    "es": "Comprobado sobre los átomos: el residuo 12 de la cadena que guarda la corrida es una cisteína, que es la mutación G12C que nombra {target_description}.",
+                    "en": "Checked on the atoms: residue 12 of the chain the run stores is a cysteine, the G12C mutation that {target_description} names.",
                     "kind": "check",
                     "requires_check": "g12c",
                     "focus": {"residue": 12},
                 },
                 {
-                    "es": "Pero lo dibujado es el antígeno que se pidió, no un anticuerpo: ninguna de las cadenas diseñadas aparece en esa estructura, aunque el bloque la marque como {m3:is_antibody}.",
-                    "en": "But what is drawn is the antigen that was asked for, not an antibody: neither designed chain appears in that structure, although the block marks it as {m3:is_antibody}.",
+                    "es": "Pero esa estructura es el antígeno que se pidió, no un anticuerpo: ninguna de las cadenas diseñadas aparece en ella, aunque el bloque la marque como {m3:is_antibody}.",
+                    "en": "But that structure is the antigen that was asked for, not an antibody: neither designed chain appears in it, although the block marks it as {m3:is_antibody}.",
                     "kind": "gap",
                     "requires_failed_check": "drawn_is_antibody",
                 },
@@ -975,8 +989,8 @@ def chapters(
                     "requires_check": "seq_state",
                 },
                 {
-                    "es": "Una cascada aparte corrió cuatro algoritmos en {qcas:lane} sobre {qcas:n_qubits} cúbits: QSVM clasifica la molécula como {qcas:algorithms.QSVM.classification} con confianza {qcas:algorithms.QSVM.confidence|n2}.",
-                    "en": "A separate cascade ran four algorithms on {qcas:lane} over {qcas:n_qubits} qubits: QSVM classes the molecule as {qcas:algorithms.QSVM.classification} with confidence {qcas:algorithms.QSVM.confidence|n2}.",
+                    "es": "Una cascada aparte corrió {qcas:algorithms|count} algoritmos en {qcas:lane} sobre {qcas:n_qubits} cúbits: QSVM clasifica la molécula como {qcas:algorithms.QSVM.classification} con confianza {qcas:algorithms.QSVM.confidence|n2}.",
+                    "en": "A separate cascade ran {qcas:algorithms|count} algorithms on {qcas:lane} over {qcas:n_qubits} qubits: QSVM classes the molecule as {qcas:algorithms.QSVM.classification} with confidence {qcas:algorithms.QSVM.confidence|n2}.",
                     "tech": {
                         "es": "{qcas:quantum_provenance.substrate} · reutilizado de una corrida previa: {qcas:cached}",
                         "en": "{qcas:quantum_provenance.substrate} · reused from an earlier run: {qcas:cached}",
@@ -984,8 +998,10 @@ def chapters(
                     "focus": {"cascade": True},
                 },
                 {
-                    "es": "Parte de los bloques no se calculó en esta corrida: alguno declara más segundos de los que duró el pipeline entero.",
-                    "en": "Some blocks were not computed in this run: one of them declares more seconds than the whole pipeline lasted.",
+                    # the `elapsed` check shows one block's own clock, nothing about
+                    # whether other blocks were computed
+                    "es": "Los tiempos no cuadran entre sí: un bloque declara más segundos de los que duró el pipeline entero, así que ese tiempo no se midió dentro de esta corrida.",
+                    "en": "The timings do not agree with each other: one block declares more seconds than the whole pipeline lasted, so that time was not measured inside this run.",
                     "kind": "gap",
                     "requires_failed_check": "elapsed",
                 },
@@ -1257,8 +1273,10 @@ def chapters(
                     "focus": {"group": "metabolism"},
                 },
                 {
-                    "es": "Aun así un segundo modelo, {a92:model}, corre sobre un SMILES peptídico de la misma molécula y sí devuelve números: hERG {a92:toxicity.herg.value|n3} ({a92:toxicity.herg.interpretation}), AMES {a92:toxicity.ames.value|n3}, daño hepático {a92:toxicity.dili.value|n3}.",
-                    "en": "Even so a second model, {a92:model}, runs on a peptide SMILES of the same molecule and does return numbers: hERG {a92:toxicity.herg.value|n3} ({a92:toxicity.herg.interpretation}), AMES {a92:toxicity.ames.value|n3}, liver injury {a92:toxicity.dili.value|n3}.",
+                    # NOT "the same molecule": source_sequence_length is the heavy chain
+                    # alone (127 aa), not the 234-residue scFv the rest of the page is about
+                    "es": "Aun así un segundo modelo, {a92:model}, corre sobre un SMILES peptídico de {a92:source_sequence_type} — {a92:source_sequence_length} residuos, sólo la cadena pesada — y sí devuelve números: hERG {a92:toxicity.herg.value|n3} ({a92:toxicity.herg.interpretation}), AMES {a92:toxicity.ames.value|n3}, daño hepático {a92:toxicity.dili.value|n3}.",
+                    "en": "Even so a second model, {a92:model}, runs on a peptide SMILES of {a92:source_sequence_type} — {a92:source_sequence_length} residues, the heavy chain alone — and does return numbers: hERG {a92:toxicity.herg.value|n3} ({a92:toxicity.herg.interpretation}), AMES {a92:toxicity.ames.value|n3}, liver injury {a92:toxicity.dili.value|n3}.",
                     "tech": {
                         "es": "hERG validado en {a92:toxicity.herg.validation.measured.dataset}: {a92:toxicity.herg.validation.measured.metric} {a92:toxicity.herg.validation.measured.value|n3} sobre {a92:toxicity.herg.validation.measured.n_test} compuestos · {a92:validation_summary.source}",
                         "en": "hERG validated on {a92:toxicity.herg.validation.measured.dataset}: {a92:toxicity.herg.validation.measured.metric} {a92:toxicity.herg.validation.measured.value|n3} over {a92:toxicity.herg.validation.measured.n_test} compounds · {a92:validation_summary.source}",
@@ -1266,8 +1284,17 @@ def chapters(
                     "focus": {"group": "toxicity"},
                 },
                 {
-                    "es": "Las dos lecturas no pueden ser ambas verdad para la misma molécula, y el bloque además no tiene el tamaño que su nombre anuncia.",
-                    "en": "Both readings cannot be true of the same molecule, and the block is also not the size its name announces.",
+                    # the contradiction is now an arithmetic check of its own (`endpoint_clash`),
+                    # instead of being asserted off the back of a check that only counts endpoints
+                    "es": "Y las mismas casillas quedan contestadas dos veces y de forma distinta: la comprobación de al lado nombra las que un bloque marca N/A por tratarse de un biológico mientras el otro les pone un número.",
+                    "en": "And the same boxes end up answered twice, differently: the check beside this names the ones one block marks N/A because this is a biologic while the other puts a number on them.",
+                    "kind": "gap",
+                    "requires_failed_check": "endpoint_clash",
+                },
+                {
+                    "es": "El bloque tampoco tiene el tamaño que su nombre anuncia, y lo dice él mismo: {a92:parameters_note}",
+                    "en": "Nor is the block the size its name announces, and it says so itself: {a92:parameters_note}",
+                    "tech": {"es": "{a92:biologics_note}", "en": "{a92:biologics_note}"},
                     "kind": "gap",
                     "requires_failed_check": "admet_panel",
                 },
@@ -1574,6 +1601,13 @@ def checks(r: Dict[str, Any]) -> List[Dict[str, Any]]:
             n = extra.get("vh", 0) + extra.get("vl", 0)
             if n % 2 == 1:
                 odd.append(f"{c.get('candidate_id')} (+{n})")
+        # counted, not assumed: how many cysteines the chosen framework regions carry
+        n_fw_cys = sum(
+            v.count("C")
+            for k in (f"{S_FW}.vh_framework_regions", f"{S_FW}.vl_framework_regions")
+            for v in (F.get(r, k) or {}).values()
+            if isinstance(v, str)
+        )
         out.append(
             {
                 "id": "free_cys",
@@ -1581,14 +1615,14 @@ def checks(r: Dict[str, Any]) -> List[Dict[str, Any]]:
                 "es": (
                     "ningún candidato añade cisteínas sueltas a las del marco germinal"
                     if not odd
-                    else f"{len(odd)} de {len(cs)} candidatos añaden un número impar de cisteínas a las 4 del marco: "
+                    else f"{len(odd)} de {len(cs)} candidatos añaden un número impar de cisteínas a las {n_fw_cys} del marco: "
                     + ", ".join(odd)
                     + "; el escaneo de responsabilidades sólo mira el CDR-H3 y no las ve"
                 ),
                 "en": (
                     "no candidate adds loose cysteines to the germline framework's"
                     if not odd
-                    else f"{len(odd)} of {len(cs)} candidates add an odd number of cysteines to the framework's 4: "
+                    else f"{len(odd)} of {len(cs)} candidates add an odd number of cysteines to the framework's {n_fw_cys}: "
                     + ", ".join(odd)
                     + "; the liability scan looks only at CDR-H3 and does not see them"
                 ),
@@ -1610,15 +1644,15 @@ def checks(r: Dict[str, Any]) -> List[Dict[str, Any]]:
                 "id": "drawn_is_antibody",
                 "ok": found,
                 "es": (
-                    f"la cadena dibujada ({dr['n']} residuos) contiene la secuencia del candidato"
+                    f"la cadena que guarda la corrida ({dr['n']} residuos) contiene la secuencia del candidato"
                     if found
-                    else f"la cadena dibujada tiene {dr['n']} residuos y no contiene ni la pesada ({len(vh)} aa) "
+                    else f"la cadena que guarda la corrida tiene {dr['n']} residuos y no contiene ni la pesada ({len(vh)} aa) "
                     f"ni la ligera ({len(vl)} aa); la misma estructura está guardada {dr['copies']} veces"
                 ),
                 "en": (
-                    f"the drawn chain ({dr['n']} residues) contains the candidate's sequence"
+                    f"the stored chain ({dr['n']} residues) contains the candidate's sequence"
                     if found
-                    else f"the drawn chain has {dr['n']} residues and contains neither the heavy ({len(vh)} aa) "
+                    else f"the stored chain has {dr['n']} residues and contains neither the heavy ({len(vh)} aa) "
                     f"nor the light ({len(vl)} aa) chain; the same structure is stored {dr['copies']} times"
                 ),
                 "paths": ["mol_3d.protein_pdb", "mol_3d.is_antibody", f"{BEST}.vh_sequence"],
@@ -1631,8 +1665,8 @@ def checks(r: Dict[str, Any]) -> List[Dict[str, Any]]:
                 {
                     "id": "g12c",
                     "ok": mut["resn"] == "CYS",
-                    "es": f"el residuo 12 de la cadena dibujada es {mut['resn']}, y la corrida declara {r.get('target_description')}",
-                    "en": f"residue 12 of the drawn chain is {mut['resn']}, and the run declares {r.get('target_description')}",
+                    "es": f"el residuo 12 de la cadena que guarda la corrida es {mut['resn']}, y la corrida declara {r.get('target_description')}",
+                    "en": f"residue 12 of the stored chain is {mut['resn']}, and the run declares {r.get('target_description')}",
                     "paths": ["mol_3d.protein_pdb", "target_description"],
                 }
             )
@@ -1722,25 +1756,70 @@ def checks(r: Dict[str, Any]) -> List[Dict[str, Any]]:
                 if isinstance(v, dict) and isinstance(v.get("value"), (int, float))
             )
         declared = a92.get("n_endpoints")
-        adv, cnt = F.get(r, "admet.advertised_panel"), F.get(r, "admet.parameters_count")
-        ok = real == declared == adv == cnt
+        # each counter is quoted against the block that actually holds it: the four
+        # numbers live in TWO different blocks and they are not the same four numbers
+        a_adv, a_cnt = a92.get("advertised_panel"), a92.get("parameters_count")
+        m_adv = F.get(r, "admet.advertised_panel")
+        m_cnt = F.get(r, "admet.parameters_count")
+        counters = [x for x in (declared, a_adv, a_cnt, m_adv, m_cnt) if isinstance(x, int)]
+        ok = bool(counters) and all(x == real for x in counters)
         out.append(
             {
                 "id": "admet_panel",
                 "ok": ok,
                 "es": (
-                    f"el bloque se llama admet_92_parameters, declara {declared} puntos finales, "
-                    f"{real} traen un valor real, el panel anunciado es {adv} y parameters_count dice {cnt}"
+                    f"el bloque se llama admet_92_parameters y su propio advertised_panel dice {a_adv}, "
+                    f"pero declara {declared} puntos finales, su parameters_count dice {a_cnt} y sólo "
+                    f"{real} traen un valor real; el bloque admet, aparte, anuncia {m_adv} y cuenta {m_cnt}"
                 ),
                 "en": (
-                    f"the block is named admet_92_parameters, declares {declared} endpoints, "
-                    f"{real} carry a real value, the advertised panel is {adv} and parameters_count says {cnt}"
+                    f"the block is named admet_92_parameters and its own advertised_panel says {a_adv}, "
+                    f"yet it declares {declared} endpoints, its parameters_count says {a_cnt} and only "
+                    f"{real} carry a real value; the separate admet block advertises {m_adv} and counts {m_cnt}"
                 ),
                 "paths": [
                     "admet_92_parameters.n_endpoints",
+                    "admet_92_parameters.advertised_panel",
+                    "admet_92_parameters.parameters_count",
                     "admet.advertised_panel",
                     "admet.parameters_count",
                 ],
+            }
+        )
+
+    # 13b -- the same endpoint answered twice: "N/A (biologic)" in one block, a number
+    # in the other. This is the contradiction the ADMET chapter points at, so it is
+    # derived here rather than asserted.
+    clash_es, clash_en = [], []
+    _PAIRS = [
+        (f"admet.metabolism.{k}", f"admet_92_parameters.metabolism.{k}.value", k)
+        for k in ("cyp3a4", "cyp2d6", "cyp2c9", "cyp1a2", "cyp2c19")
+    ] + [
+        (
+            "admet.absorption.oral_bioavailability",
+            "admet_92_parameters.absorption.hia.value",
+            "absorción oral / oral absorption",
+        )
+    ]
+    for flat_p, num_p, name in _PAIRS:
+        flat, num = F.get(r, flat_p), F.get(r, num_p)
+        if isinstance(flat, str) and "n/a" in flat.lower() and isinstance(num, (int, float)):
+            clash_es.append(f"{name}: admet dice «{flat}» y admet_92_parameters {num:g}")
+            clash_en.append(f"{name}: admet says '{flat}' while admet_92_parameters says {num:g}")
+    if clash_en:
+        out.append(
+            {
+                "id": "endpoint_clash",
+                "ok": False,
+                "es": (
+                    f"{len(clash_es)} casillas están contestadas dos veces y de forma incompatible "
+                    f"para la misma molécula: " + "; ".join(clash_es)
+                ),
+                "en": (
+                    f"{len(clash_en)} endpoints are answered twice, incompatibly, for the same "
+                    f"molecule: " + "; ".join(clash_en)
+                ),
+                "paths": [p for pair in _PAIRS for p in pair[:2]],
             }
         )
 

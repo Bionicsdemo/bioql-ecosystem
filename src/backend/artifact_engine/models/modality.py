@@ -327,26 +327,41 @@ def scene_cover(r: Dict[str, Any], mesh_key: Optional[str]) -> Dict[str, Any]:
 
 def scene_axes(r: Dict[str, Any]) -> Dict[str, Any]:
     """One bar per axis: how many arms produced a number for it, out of how many
-    arms ran. Green when the run marks the axis genuinely aligned."""
+    arms ran.
+
+    The bar passes when that count reaches every arm -- the same arithmetic the bar
+    prints beside itself -- and NOT when the run declares the axis aligned. The two
+    come apart in exactly the case this report exists to show: `structure_plddt` is
+    the one axis the run calls fully comparable and it arrives empty on both arms,
+    so colouring it by the declaration would paint a green bar over `0 / 2` next to
+    a sentence saying the opposite. The declaration is not lost: it rides in the
+    bar's own name, which the page prints in full.
+    """
     names = arms(r)
+    need = max(1, len(names))
     rules = []
     for a in axis_list(r):
         filled = sum(1 for m in names if _num(F.get(a, f"{m}.value")) is not None)
+        state = a.get("aligned")
+        tag = "aligned" if state is True else ("partial" if state == "partial" else "")
         rules.append(
             {
-                "name": str(a.get("axis")),
+                "name": f"{a.get('axis')} · {tag}" if tag else str(a.get("axis")),
                 "value": filled,
-                "limit": max(1, len(names)),
+                "limit": need,
                 "op": ">=",
-                "pass": a.get("aligned") is True,
+                "pass": filled >= need,
             }
         )
     return {
         "type": "rules",
         "rules": rules,
         "violations": sum(1 for x in rules if not x["pass"]),
+        # drug_like / brenk / pains count small-molecule structural alerts. This run
+        # has no small molecule and no such count, so they stay empty rather than
+        # carrying some other number under a name that would misread it.
         "drug_like": None,
-        "brenk": len(F.get(r, f"{AP}.partial_axes") or []),
+        "brenk": None,
         "pains": None,
     }
 
@@ -463,12 +478,14 @@ def scene_binders(r: Dict[str, Any]) -> Dict[str, Any]:
             }
         )
     plddts = [b["plddt"] for b in bs if b["plddt"] is not None]
-    iptms = [b["iptm"] for b in bs if b["iptm"] is not None]
     return {
         "type": "binders",
         "binders": bs,
         "best_plddt": max(plddts) if plddts else None,
-        "best_ipae": max(iptms) if iptms else None,
+        # `best_ipae` is an interface predicted aligned error. This run records no
+        # PAE of any kind, so the field stays empty; the best ipTM is a different
+        # quantity and travels with its own candidate, under `iptm`.
+        "best_ipae": None,
         "gpu": F.get(r, f"{ANT}.protenix_structure.gpu"),
     }
 
@@ -591,6 +608,21 @@ def axis_beats(r: Dict[str, Any]) -> List[Dict[str, Any]]:
         if not name:
             continue
         vals = [_num(F.get(a, f"{m}.value")) for m in names]
+        # which arms left the cell empty, by the same rule the resolver uses, so the
+        # gap names them instead of guessing that exactly one of them is missing
+        empty = [m for m in names if F.get(a, f"{m}.value") in (None, "", [], {})]
+        if not empty:
+            gap_es = f"Eje {name}, la fila de la tabla está incompleta"
+            gap_en = f"Axis {name}, the table's row is incomplete"
+        elif len(empty) == len(names):
+            gap_es = f"Eje {name}, sin número en ninguna rama"
+            gap_en = f"Axis {name}, no number on any arm"
+        else:
+            gap_es = f"Eje {name}, sin número en {' ni '.join(ARM_ES.get(m, m) for m in empty)}"
+            gap_en = (
+                f"Axis {name}, no number on the "
+                f"{' or '.join(ARM_EN.get(m, m) for m in empty)} arm"
+            )
         pairs_es = " y ".join(
             f"{ARM_ES.get(m, m)} {field(f'ax:[{i}].{m}.value', vals)}" for m in names
         )
@@ -635,8 +667,8 @@ def axis_beats(r: Dict[str, Any]) -> List[Dict[str, Any]]:
                     + [f"{AXES}[{i}].alignment_note"]
                     if F.get(r, p) is not None
                 ],
-                "gap_es": f"Eje {name}, sin número en alguna rama",
-                "gap_en": f"Axis {name}, no number on one of the arms",
+                "gap_es": gap_es,
+                "gap_en": gap_en,
             }
         )
     return out
@@ -1517,12 +1549,15 @@ def chapters(
                     "kind": "gap",
                 },
                 {
+                    # each endpoint quotes its own field: naming four and reading one
+                    # would state three values the run never supplied here
                     "es": "En el anticuerpo casi todo el panel de molécula pequeña sale como "
-                    "no aplicable: hERG, Ames, Caco-2 y barrera hematoencefálica quedan en "
-                    "{ab:herg}, que es la respuesta correcta para un biológico.",
+                    "no aplicable: hERG {ab:herg}, Ames {ab:ames}, Caco-2 {ab:caco2} y "
+                    "barrera hematoencefálica {ab:bbb}, que es la respuesta correcta para "
+                    "un biológico.",
                     "en": "For the antibody almost the whole small-molecule panel comes back "
-                    "not applicable: hERG, Ames, Caco-2 and blood-brain barrier all read "
-                    "{ab:herg}, which is the right answer for a biologic.",
+                    "not applicable: hERG {ab:herg}, Ames {ab:ames}, Caco-2 {ab:caco2} and "
+                    "blood-brain barrier {ab:bbb}, which is the right answer for a biologic.",
                     "kind": "note",
                 },
                 {

@@ -814,8 +814,9 @@ function renderVerification() {
   el.innerHTML = `<div class="hd">${t ? "Verificación de frases (Jev)" : "Sentence verification (Jev)"}</div>` +
     `<div>${v.n_ok}/${v.checked} ${t ? "sostenidas por los datos que citan" : "supported by the values they quote"}` +
     (v.removed ? ` · ${v.removed} ${t ? "retiradas" : "removed"}` : "") + `</div>` +
-    (bad.length ? `<ul>${bad.slice(0, 12).map(x =>
-      `<li><em>${esc(x.relation)}</em> — ${esc(x.note || "")}</li>`).join("")}</ul>` : "");
+    (bad.length ? `<ul>${bad.map(x =>
+      `<li><span class="snt">${esc(x.sentence || "")}</span>` +
+      `<span class="why"><em>${esc(x.relation)}</em> — ${esc(x.note || "")}</span></li>`).join("")}</ul>` : "");
 }
 
 function renderBand(ch) {

@@ -420,6 +420,7 @@ def chapters(
                 {
                     "es": "Un segundo plegador, {st:boltz2_crosscheck.engine}, llega por su cuenta a pLDDT {st:boltz2_crosscheck.plddt|n1} y pTM {st:boltz2_crosscheck.ptm|n2}.",
                     "en": "A second folder, {st:boltz2_crosscheck.engine}, independently reaches pLDDT {st:boltz2_crosscheck.plddt|n1} and pTM {st:boltz2_crosscheck.ptm|n2}.",
+                    "requires_check": "independent_fold",
                 },
                 {
                     "es": "Los {p:domain_sequences|count} dominio(s) se localizan sobre la estructura buscando su secuencia exacta.",
@@ -511,8 +512,8 @@ def chapters(
             "scene": scene_translation(r),
             "beats": [
                 {
-                    "es": "El ribosoma lee la región codificante en tripletes: {m:cds_length_nt} nucleótidos son {p:mature_length_aa} aminoácidos más la señal y el codón de parada.",
-                    "en": "The ribosome reads the coding region in triplets: {m:cds_length_nt} nucleotides give {p:mature_length_aa} amino acids plus the signal and the stop codon.",
+                    "es": "El ribosoma lee la región codificante en tripletes: {m:cds_length_nt} nucleótidos son {p:mature_length_aa} aminoácidos más los {p:signal_length_aa} de la señal y el codón de parada.",
+                    "en": "The ribosome reads the coding region in triplets: {m:cds_length_nt} nucleotides give {p:mature_length_aa} amino acids plus the {p:signal_length_aa}-residue signal and the stop codon.",
                     "focus": {"ribosome": True},
                 },
                 {
@@ -681,6 +682,28 @@ def mesh_targets(r: Dict[str, Any]) -> List[Dict[str, Any]]:
 def checks(r: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Arithmetic the page states as verified, recomputed from the run's own data."""
     out = []
+    # A cross-check is only independent when the second folder is a different one.
+    # On some runs the "crosscheck" engine IS the engine that folded it, and calling
+    # that a second opinion would be the page's own overclaim.
+    primary = F.get(r, "structure_3d.method")
+    second = F.get(r, "structure_3d.boltz2_crosscheck.engine")
+    if isinstance(primary, str) and isinstance(second, str):
+        ok = primary.strip().lower() != second.strip().lower()
+        out.append(
+            {
+                "id": "independent_fold",
+                "ok": ok,
+                "es": (
+                    f"el plegador principal es {primary} y el de contraste {second}"
+                    + ("" if ok else ": es el mismo, no hay segunda opinión")
+                ),
+                "en": (
+                    f"the primary folder is {primary} and the cross-check {second}"
+                    + ("" if ok else ": the same one, so there is no second opinion")
+                ),
+                "paths": ["structure_3d.method", "structure_3d.boltz2_crosscheck.engine"],
+            }
+        )
     lb = F.get(r, f"{S4}.length_breakdown_nt") or {}
     full = rna(F.get(r, f"{S4}.full_mrna_sequence"))
     parts = [lb.get(k) for k in ("utr5", "orf", "utr3", "polya")]

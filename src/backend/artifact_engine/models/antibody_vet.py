@@ -725,12 +725,14 @@ def chapters(
                     },
                 },
                 {
-                    "es": "Que sea veterinario no es una etiqueta: el antígeno, el armazón variable "
-                    "y la cola constante se buscan en la propia especie, y los modelos de MHC "
-                    "humanos del resto de la plataforma no se reutilizan aquí.",
-                    "en": "Being veterinary is not a label: the antigen, the variable framework and "
-                    "the constant tail are all sourced from that species, and the human MHC models "
-                    "the rest of the platform owns are not reused here.",
+                    "es": "Que sea veterinario no es una etiqueta sino una regla de diseño: el "
+                    "antígeno, el armazón variable y la cola constante se piden a la propia especie, "
+                    "y los modelos de MHC humanos del resto de la plataforma no se reutilizan aquí. "
+                    "Si esta corrida cumplió esa regla se comprueba más adelante, campo por campo.",
+                    "en": "Being veterinary is not a label but a design rule: the antigen, the "
+                    "variable framework and the constant tail are all asked of that species, and the "
+                    "human MHC models the rest of the platform owns are not reused here. Whether this "
+                    "run kept that rule is checked later, field by field.",
                     "kind": "note",
                 },
                 {
@@ -754,9 +756,11 @@ def chapters(
                 },
                 {
                     "es": "Cada número de esta página se lee del resultado de la corrida; cada valor "
-                    "del resultado aparece en algún capítulo o en el anexo.",
+                    "del resultado queda asignado a un capítulo o al anexo, y el resultado completo "
+                    "viaja dentro de esta página y puede descargarse.",
                     "en": "Every number on this page is read from the run's result; every value in "
-                    "that result appears in some chapter or in the annex.",
+                    "that result is assigned to a chapter or to the annex, and the complete result "
+                    "travels inside this page and can be downloaded.",
                     "kind": "note",
                 },
             ],
@@ -1216,8 +1220,12 @@ def chapters(
                     },
                 },
                 {
-                    "es": "No se publica una Kd del líder: {L:scores.kd_disclaimer}",
-                    "en": "No Kd is published for the lead: {L:scores.kd_disclaimer}",
+                    "es": "El campo de Kd calibrada del líder queda vacío y en su lugar se guarda un "
+                    "proxy ordinal de {L:scores.kd_nm_uncalibrated_proxy} nM, que no es una afinidad "
+                    "medida: {L:scores.kd_disclaimer}",
+                    "en": "The lead's calibrated-Kd field stays empty and what is stored in its place "
+                    "is an ordinal proxy of {L:scores.kd_nm_uncalibrated_proxy} nM, which is not a "
+                    "measured affinity: {L:scores.kd_disclaimer}",
                     "kind": "gap",
                 },
                 {
@@ -1494,12 +1502,12 @@ def chapters(
                 {
                     "es": "Semivida {ad:excretion.half_life_days.value} días (IC90 "
                     "{ad:excretion.half_life_days.ci90}), aclaramiento "
-                    "{ad:metabolism.clearance_ml_day_kg.value} mL/día/kg y volumen central "
+                    "{ad:metabolism.clearance_ml_day_kg.value} mL/día/kg y volumen de distribución "
                     "{ad:distribution.vd_ml_kg.value} mL/kg: un anticuerpo se recicla por FcRn y se "
                     "degrada como proteína, no por el hígado.",
                     "en": "Half-life {ad:excretion.half_life_days.value} days (90% CI "
                     "{ad:excretion.half_life_days.ci90}), clearance "
-                    "{ad:metabolism.clearance_ml_day_kg.value} mL/day/kg and central volume "
+                    "{ad:metabolism.clearance_ml_day_kg.value} mL/day/kg and volume of distribution "
                     "{ad:distribution.vd_ml_kg.value} mL/kg: an antibody is recycled by FcRn and "
                     "broken down as protein, not by the liver.",
                     "tech": {
@@ -1583,18 +1591,17 @@ def chapters(
                 },
                 {
                     "es": "El perfil de producto fija formato {tpp:antibody_format} e isotipo "
-                    "{tpp:fc_isotype}, y deja sin definir indicación, vía, forma farmacéutica, "
-                    "concentración, intervalo, almacenamiento y hospedador de producción.",
+                    "{tpp:fc_isotype}, y deja sin definir indicación, intención de efector Fc, vía, "
+                    "forma farmacéutica, concentración, intervalo, almacenamiento y hospedador de "
+                    "producción.",
                     "en": "The product profile fixes the {tpp:antibody_format} format and the "
-                    "{tpp:fc_isotype} isotype, and leaves indication, route, dosage form, "
-                    "concentration, interval, storage and manufacturing host undefined.",
+                    "{tpp:fc_isotype} isotype, and leaves indication, Fc effector intent, route, "
+                    "dosage form, concentration, interval, storage and manufacturing host undefined.",
                     "kind": "gap",
                 },
                 {
-                    "es": "La dosis es {tpp:dose_status} y hay {tpp:dose_calculations|count} cálculos "
-                    "de dosis: {tpp:dose_note}",
-                    "en": "The dose is {tpp:dose_status} and there are "
-                    "{tpp:dose_calculations|count} dose calculations: {tpp:dose_note}",
+                    "es": "La dosis es {tpp:dose_status}: {tpp:dose_note}",
+                    "en": "The dose is {tpp:dose_status}: {tpp:dose_note}",
                     "kind": "gap",
                 },
                 {
@@ -1674,12 +1681,14 @@ def chapters(
                     "requires_check": "variational",
                 },
                 {
+                    # No count of `ibm_job_ids` here: on a simulation run that list is empty, and an
+                    # empty required field would drop the one sentence that says where this ran.
                     "es": "Dónde corrió: {qp:backend}, modo {qp:execution_mode}, hardware cuántico "
                     "real: {qp:is_real_hardware}. Trabajos del motor: {qp:all_engine_job_ids}; "
-                    "trabajos IBM: {ibm_job_ids|count}; reintentos de respaldo: {fallback_count}.",
+                    "reintentos de respaldo: {fallback_count}.",
                     "en": "Where it ran: {qp:backend}, mode {qp:execution_mode}, real quantum "
-                    "hardware: {qp:is_real_hardware}. Engine jobs: {qp:all_engine_job_ids}; IBM jobs: "
-                    "{ibm_job_ids|count}; fallbacks: {fallback_count}.",
+                    "hardware: {qp:is_real_hardware}. Engine jobs: {qp:all_engine_job_ids}; "
+                    "fallbacks: {fallback_count}.",
                     "kind": "note",
                     "tech": {
                         "es": "{q:quantum_real_hamiltonian.resolved_plan.resolve_reason} "
@@ -1687,6 +1696,23 @@ def chapters(
                         "en": "{q:quantum_real_hamiltonian.resolved_plan.resolve_reason} "
                         "{q:quantum_real_hamiltonian.quantum_provenance.hardware_note}",
                     },
+                },
+                {
+                    "es": "Comprobado aquí: la etiqueta de hardware concuerda con los identificadores "
+                    "de trabajo que la corrida guarda — hay identificador de IBM exactamente cuando "
+                    "se afirma hardware real.",
+                    "en": "Checked here: the hardware label agrees with the job ids the run stores — "
+                    "there is an IBM job id exactly when real hardware is claimed.",
+                    "kind": "check",
+                    "requires_check": "hardware_label",
+                },
+                {
+                    "es": "La etiqueta de hardware de esta corrida y sus identificadores de trabajo no "
+                    "cuentan lo mismo; lo que dice cada campo está en el recuadro de comprobaciones.",
+                    "en": "This run's hardware label and its job ids do not tell the same story; what "
+                    "each field says is in the checks panel.",
+                    "kind": "check",
+                    "requires_failed_check": "hardware_label",
                 },
                 {
                     "es": "La secuencia entera se carga además en un estado cuántico: "
@@ -1801,10 +1827,10 @@ def chapters(
                     "experimental confirmation required: {sel:experimental_confirmation_required}.",
                 },
                 {
-                    "es": "Comprobado aquí sobre los candidatos: bajo la regla que la corrida declara "
-                    "para esta selección, ninguno le gana al elegido.",
-                    "en": "Checked here across the candidates: under the rule the run declares for "
-                    "this selection, none of them beats the one chosen.",
+                    "es": "Comprobado aquí sobre los candidatos: bajo la regla que declara el propio "
+                    "líder, «{L:selection_basis[0]}», ninguno le gana al elegido.",
+                    "en": "Checked here across the candidates: under the rule the lead itself "
+                    'declares, "{L:selection_basis[0]}", none of them beats the one chosen.',
                     "kind": "check",
                     "requires_check": "lead_selection",
                 },
@@ -2437,7 +2463,34 @@ def checks(r: Dict[str, Any]) -> List[Dict[str, Any]]:
             }
         )
 
-    # 18. the candidate count, against the lists that carry it
+    # 18. the backend label against the job ids: a hardware claim needs an IBM job id
+    real = F.get(r, "quantum_provenance.is_real_hardware")
+    if not isinstance(real, bool):
+        real = F.get(r, "on_real_quantum_hardware")
+    ibm = F.get(r, "ibm_job_ids")
+    sim = F.get(r, "simulator_job_ids")
+    if isinstance(real, bool) and isinstance(ibm, list) and isinstance(sim, list):
+        ok = bool(real) == bool(ibm)
+        backend = F.get(r, "quantum_provenance.backend") or F.get(r, "quantum_backend")
+        out.append(
+            {
+                "id": "hardware_label",
+                "ok": ok,
+                "es": f"hardware cuántico real: {'sí' if real else 'no'}, con {len(ibm)} "
+                f"identificador(es) de trabajo de IBM y {len(sim)} de simulador ({backend})"
+                + ("" if ok else ": la etiqueta y los identificadores no concuerdan"),
+                "en": f"real quantum hardware: {'yes' if real else 'no'}, with {len(ibm)} IBM job "
+                f"id(s) and {len(sim)} simulator job id(s) ({backend})"
+                + ("" if ok else ": the label and the job ids do not agree"),
+                "paths": [
+                    "quantum_provenance.is_real_hardware",
+                    "ibm_job_ids",
+                    "simulator_job_ids",
+                ],
+            }
+        )
+
+    # 19. the candidate count, against the lists that carry it
     n = F.get(r, "candidate_count")
     lists = {
         "candidates": len(candidates(r)),

@@ -91,7 +91,11 @@ def _poster_for(targets: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     return img
 
 
-def _verify(beats: List[Dict[str, Any]], result: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def _verify(
+    beats: List[Dict[str, Any]],
+    result: Dict[str, Any],
+    checks: Optional[List[Dict[str, Any]]] = None,
+) -> Optional[Dict[str, Any]]:
     """Ask Jev whether each sentence is supported by the values it quotes.
 
     Off unless BIOQL_REPORT_VERIFY is set, because it costs an API call per sentence.
@@ -106,7 +110,7 @@ def _verify(beats: List[Dict[str, Any]], result: Dict[str, Any]) -> Optional[Dic
     except Exception as e:  # noqa: BLE001
         return {"available": False, "why": f"verifier not importable: {type(e).__name__}: {e}"}
     try:
-        v = _verify_mod.verify(beats, result)
+        v = _verify_mod.verify(beats, result, checks=checks)
     except Exception as e:  # noqa: BLE001
         return {"available": False, "why": f"{type(e).__name__}: {str(e)[:200]}"}
     v["mode"] = mode
@@ -165,7 +169,7 @@ def build(
 
     # every sentence of the report, in the order a reader meets them
     all_beats = [b for ch in chapters_out for b in ch["beats"]]
-    verification = _verify(all_beats, r)
+    verification = _verify(all_beats, r, checks)
     if verification and verification.get("available") and verification.get("mode") == "strict":
         unsupported = {v["i"] for v in verification.get("verdicts", []) if not v.get("ok")}
         if unsupported:
