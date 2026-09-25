@@ -6,12 +6,18 @@ import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.183.2/+esm";
 import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.183.2/examples/jsm/controls/OrbitControls.js/+esm";
 import { RoomEnvironment } from "https://cdn.jsdelivr.net/npm/three@0.183.2/examples/jsm/environments/RoomEnvironment.js/+esm";
 import { CSS2DRenderer, CSS2DObject } from "https://cdn.jsdelivr.net/npm/three@0.183.2/examples/jsm/renderers/CSS2DRenderer.js/+esm";
+import { EffectComposer } from "https://cdn.jsdelivr.net/npm/three@0.183.2/examples/jsm/postprocessing/EffectComposer.js/+esm";
+import { RenderPass } from "https://cdn.jsdelivr.net/npm/three@0.183.2/examples/jsm/postprocessing/RenderPass.js/+esm";
+import { GTAOPass } from "https://cdn.jsdelivr.net/npm/three@0.183.2/examples/jsm/postprocessing/GTAOPass.js/+esm";
+import { OutputPass } from "https://cdn.jsdelivr.net/npm/three@0.183.2/examples/jsm/postprocessing/OutputPass.js/+esm";
 
 const R = window.__BIOQL_REPORT;
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
-const S = { lang: (navigator.language || "es").startsWith("es") ? "es" : "en", ch: 0, beat: 0, playing: false, t: 0 };
+const NARROW = matchMedia("(max-width: 980px)").matches;
+// English is the report's own language; Spanish is the toggle.
+const S = { lang: "en", ch: 0, beat: 0, playing: false, t: 0 };
 
 const COL = { bg: 0x0b0f14, ss: { H: 0x6f8aa8, S: 0xa9bfd4, L: 0x56697d } };
 
@@ -22,10 +28,11 @@ const esc = v => String(v ?? "").replace(/[&<>"']/g, c =>
 
 /* ── three.js stage ───────────────────────────────────────────────────── */
 const host = $("#stage");
-const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
+renderer.setPixelRatio(Math.min(devicePixelRatio, NARROW ? 1.5 : 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.08;
 host.appendChild(renderer.domElement);
 const labels = new CSS2DRenderer();
 labels.domElement.className = "labels";
@@ -33,16 +40,48 @@ host.appendChild(labels.domElement);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(COL.bg);
-const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 4000);
+scene.fog = new THREE.FogExp2(COL.bg, 0.0042);
+const camera = new THREE.PerspectiveCamera(36, 1, 0.3, 4000);
 camera.position.set(0, 0, 140);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
-controls.dampingFactor = 0.08;
+controls.dampingFactor = 0.07;
+controls.minDistance = 4;
 const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-const key = new THREE.DirectionalLight(0xffffff, 1.5); key.position.set(60, 90, 70); scene.add(key);
-const rim = new THREE.DirectionalLight(0x88aaff, 0.6); rim.position.set(-70, -30, -60); scene.add(rim);
+scene.environmentIntensity = 0.55;
+scene.add(new THREE.HemisphereLight(0xdfe8f5, 0x1e170f, 0.7));
+const key = new THREE.DirectionalLight(0xffffff, 1.7); key.position.set(-30, 45, 40); scene.add(key);
+const fill = new THREE.DirectionalLight(0xc9d8ff, 0.45); fill.position.set(40, -10, 30); scene.add(fill);
+const rim = new THREE.DirectionalLight(0x8fb8ff, 0.6); rim.position.set(10, 20, -50); scene.add(rim);
+
+// Ambient occlusion is what makes a cartoon read as a solid object rather than a
+// flat ribbon. Faded or see-through meshes must not cast it, or a ghosted layer
+// darkens everything behind it.
+const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 }));
+composer.addPass(new RenderPass(scene, camera));
+let gtao = null;
+if (!NARROW) {
+  try {
+    gtao = new GTAOPass(scene, camera, 1, 1);
+    gtao.output = GTAOPass.OUTPUT.Default;
+    gtao.blendIntensity = 0.9;
+    gtao.updateGtaoMaterial({ radius: 2.6, distanceExponent: 1.4, thickness: 1.6, scale: 1.25, samples: 14 });
+    gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 12 });
+    const base = gtao._overrideVisibility.bind(gtao);
+    gtao._overrideVisibility = function () {
+      base();
+      this.scene.traverse(o => {
+        if (o.isMesh && o.visible && o.material && (o.material.opacity < 0.95 || !o.material.depthWrite)) {
+          o.visible = false;
+          this._visibilityCache.push(o);
+        }
+      });
+    };
+    composer.addPass(gtao);
+  } catch (e) { gtao = null; }
+}
+composer.addPass(new OutputPass());
 
 const world = new THREE.Group();
 scene.add(world);
@@ -61,7 +100,8 @@ function label(text, cls = "") {
 }
 function resize() {
   const w = host.clientWidth, h = host.clientHeight;
-  renderer.setSize(w, h); labels.setSize(w, h);
+  renderer.setSize(w, h); labels.setSize(w, h); composer.setSize(w, h);
+  gtao?.setSize(w, h);
   camera.aspect = w / Math.max(1, h); camera.updateProjectionMatrix();
 }
 addEventListener("resize", resize);
@@ -201,12 +241,25 @@ const SCENES = {
   async cartoon(sc) {
     const mesh = sc.mesh ? await addCartoon(sc.mesh, { grow: true, mode: "ss", domains: sc.domains }) : null;
     if (!mesh) return gapScene();
-    fit(mesh.userData.fit * 1.2);
+    const size = mesh.userData.fit;
+    fit(size * 1.25);
+    const res = mesh.userData.meta.res || [];
     return {
-      tick: (dt) => { world.rotation.y += dt * 0.1; },
+      tick: (dt) => { if (!fly) world.rotation.y += dt * 0.08; },
       focus: (f) => {
         if (f.color) paintMesh(mesh.geometry, mesh.userData.meta, f.color, sc.domains);
-        if (f.grow && !REDUCED) { mesh.geometry.setDrawRange(0, 0); mesh.userData.grow = { t: 0, total: mesh.userData.meta.nt }; }
+        if (f.grow && !REDUCED) {
+          mesh.geometry.setDrawRange(0, 0);
+          mesh.userData.grow = { t: 0, total: mesh.userData.meta.nt };
+          fit(size * 1.25, { snap: false });
+        }
+        // a domain sentence flies to that domain; a confidence one pulls back to the whole fold
+        if (f.color === "domains" && sc.domains?.length && res.length) {
+          const d = sc.domains[0], mid = res[Math.floor((d.from + d.to) / 2)];
+          if (mid) lookAt(mid.p, size * 0.75);
+        } else if (f.color === "plddt") {
+          fit(size * 1.1, { snap: false, angle: -0.35, height: 0.3 });
+        }
       },
     };
   },
@@ -234,7 +287,15 @@ const SCENES = {
       }
       inst.instanceColor.needsUpdate = true;
     };
-    return { focus: paint };
+    return {
+      focus: (f) => {
+        paint(f);
+        const r = f.region && (sc.regions || []).find(x => x.name === f.region);
+        if (r) lookAt(cellPos(g, Math.floor((r.start + r.end) / 2)), 44);
+        else if (f.kozak && sc.kozak >= 0) lookAt(cellPos(g, sc.kozak), 26);
+        else if (f.regions) fit(124, { snap: false });
+      },
+    };
   },
 
   async translation(sc) {
@@ -244,11 +305,15 @@ const SCENES = {
     world.add(prot);
     prot.userData.inst.count = 0;
     fit(130);
-    let i = 0, acc = 0;
+    let i = 0, acc = 0, lastLook = -1;
     return {
       tick: (dt) => {
         if (REDUCED) { prot.userData.inst.count = sc.protein.length; return; }
         acc += dt * 26;
+        if (!fly && i < sc.n_codons && i % 24 === 0 && i !== lastLook) {
+          lastLook = i;
+          lookAt(cellPos(g, Math.min(i * 3, sc.cds.length - 1)), 58, 1.2);
+        }
         while (acc > 1 && i < sc.n_codons) {
           const inst = g.userData.inst;
           for (let k = 0; k < 3; k++) inst.setColorAt(i * 3 + k, new THREE.Color(0xe9a032));
@@ -342,8 +407,15 @@ const SCENES = {
     }
     sticks.instanceColor.needsUpdate = true;
     world.add(sticks);
-    fit((sc.span || 10) * K * 2.4);
-    return { tick: (dt) => { world.rotation.y += dt * 0.28; world.rotation.x = Math.sin(performance.now() / 5200) * 0.16; } };
+    fit((sc.span || 10) * K * 2.5, { height: 0.12 });
+    return {
+      tick: (dt) => {
+        if (fly) return;
+        world.rotation.y += dt * 0.24;
+        world.rotation.x = Math.sin(performance.now() / 5200) * 0.14;
+      },
+      focus: (f) => { if (f.spin) fit((sc.span || 10) * K * 2.1, { snap: false, angle: 0.5, height: 0.28 }); },
+    };
   },
 
   async rules(sc) {
@@ -571,10 +643,33 @@ function meterScene(sc) {
   return {};
 }
 
-function fit(size) {
-  const d = size / (2 * Math.tan((camera.fov * Math.PI / 180) / 2));
-  camera.position.set(0, 0, Math.max(30, d));
-  controls.target.set(0, 0, 0); controls.update();
+let fly = null, lastInput = performance.now();
+["pointerdown", "wheel", "keydown"].forEach(ev =>
+  addEventListener(ev, () => { lastInput = performance.now(); }, { passive: true }));
+
+function fit(size, { angle = 0.22, height = 0.18, snap = true } = {}) {
+  const d = Math.max(12, size / (2 * Math.tan((camera.fov * Math.PI / 180) / 2)));
+  const to = new THREE.Vector3(Math.sin(angle) * d, height * d, Math.cos(angle) * d);
+  if (snap) {
+    camera.position.copy(to);
+    controls.target.set(0, 0, 0);
+    controls.update();
+    fly = null;
+  } else {
+    flyTo(to, new THREE.Vector3(0, 0, 0));
+  }
+  return d;
+}
+
+function flyTo(pos, target = new THREE.Vector3(0, 0, 0), dur = 1.8) {
+  fly = { fp: camera.position.clone(), ft: controls.target.clone(),
+          tp: pos.clone(), tt: target.clone(), t: 0, dur: REDUCED ? 0.001 : dur };
+}
+
+/** Frame a point of the current scene: `d` is how far back to sit from it. */
+function lookAt(point, d = 40, dur = 1.8) {
+  const p = new THREE.Vector3(...(Array.isArray(point) ? point : [point.x, point.y, point.z]));
+  flyTo(p.clone().add(new THREE.Vector3(d * 0.34, d * 0.22, d)), p, dur);
 }
 
 /* ── chapter flow ─────────────────────────────────────────────────────── */
@@ -590,15 +685,86 @@ async function setChapter(i) {
   renderChapter();
   applyBeat();
 }
+const T = {
+  en: { measured: "measured", checked: "checked here", gap: "not measured", note: "note",
+        kicker: "chapter", data: "Everything in this run", checks: "Recomputed and checked",
+        annex: "Values no chapter shows", values: "values in the result", annexed: "in the annex" },
+  es: { measured: "medido", checked: "comprobado aquí", gap: "sin medir", note: "nota",
+        kicker: "capítulo", data: "Todo lo que trae esta corrida", checks: "Recalculado y comprobado",
+        annex: "Valores que ningún capítulo muestra", values: "valores del resultado", annexed: "en el anexo" },
+};
+
 function renderChapter() {
-  const ch = R.chapters[S.ch];
+  const ch = R.chapters[S.ch], t = T[S.lang];
+  $("#kicker").textContent = `${t.kicker} ${S.ch + 1}`;
   $("#ch-title").textContent = ch.title[S.lang];
-  $("#ch-index").textContent = `${S.ch + 1} / ${R.chapters.length}`;
-  $("#beats").innerHTML = ch.beats.map((b, i) =>
-    `<li class="beat ${esc(b.kind)}" data-i="${i}"><span>${esc(b[S.lang])}</span>${b.paths?.length
-      ? `<button class="src" title="${esc(b.paths.join("\n"))}">${b.paths.length}</button>` : ""}</li>`).join("");
+  $("#ch-index").textContent = `${S.ch + 1} / ${R.chapters.length} · ${ch.beats.length}`;
+  $("#beats").innerHTML = ch.beats.map((b, i) => {
+    const lab = b.kind === "check" ? t.checked : b.kind === "gap" ? t.gap : b.kind === "note" ? t.note : "";
+    return `<li class="beat ${esc(b.kind)}" data-i="${i}">` +
+      (lab ? `<div class="lab">${esc(lab)}</div>` : "") +
+      `<div class="txt">${esc(b[S.lang])}</div>` +
+      (b.paths?.length ? `<button class="src" title="${esc(b.paths.join("\n"))}">${b.paths.length}</button>` : "") +
+      `</li>`;
+  }).join("");
   $$("#beats .beat").forEach(el => el.onclick = () => { S.beat = +el.dataset.i; applyBeat(); });
-  $$("#nav button").forEach((b, i) => b.classList.toggle("on", i === S.ch));
+  $$("#nav button").forEach((b, i) => {
+    b.classList.toggle("on", i === S.ch);
+    b.classList.toggle("gap", R.chapters[i].status === "gap");
+  });
+  renderBand(ch);
+}
+
+/* The band under the animation: this chapter's own figures, each drawn against the
+   largest of its group so the bars mean something instead of decorating. */
+function bandRows(ch) {
+  const sc = ch.scene || {}, out = [];
+  const push = (k, v, unit, max) => {
+    if (v == null || v === "" || Number.isNaN(Number(v))) return;
+    out.push({ k, v, unit: unit || "", frac: max ? Math.max(0.04, Math.min(1, Number(v) / max)) : null });
+  };
+  if (Array.isArray(sc.stats)) sc.stats.forEach(x => push(x[S.lang] || x.es, x.value, x.unit));
+  if (sc.properties) for (const [k, v] of Object.entries(sc.properties).slice(0, 6))
+    if (typeof v === "number") push(k.replace(/_/g, " "), v, "");
+  if (sc.props) for (const [k, v] of Object.entries(sc.props))
+    if (typeof v === "number") push(k.replace(/_/g, " "), v, "");
+  if (Array.isArray(sc.regions) && sc.seq) {
+    const n = sc.seq.length;
+    sc.regions.forEach(r => push(r.name, r.end - r.start, "nt", n));
+  }
+  if (Array.isArray(sc.rules)) sc.rules.forEach(r => push(r.name, r.value, `/ ${r.limit}`, r.limit));
+  if (Array.isArray(sc.parts)) {
+    const m = Math.max(...sc.parts.map(p => Number(p.weighted) || 0), 0.001);
+    sc.parts.forEach(p => push(p.name, Number(p.weighted).toFixed(3), "", Number(p.weighted) / m * m));
+    if (sc.composite != null) push("composite", sc.composite, "", 1);
+  }
+  if (Array.isArray(sc.items) && sc.items.length && sc.items[0].value !== undefined)
+    sc.items.slice(0, 8).forEach(i => push(i.name.replace(/_/g, " "), i.value, i.unit || "", i.value <= 1 ? 1 : null));
+  if (Array.isArray(sc.items) && sc.items.length && sc.items[0].score !== undefined) {
+    const m = Math.max(...sc.items.map(i => Number(i.score) || 0), 0.001);
+    sc.items.slice(0, 6).forEach(i => push(i.seq || i.rank, Number(i.score).toFixed(3), "", Number(i.score) / m));
+  }
+  if (sc.n_qubits) { push("qubits", sc.n_qubits, ""); push("terms", sc.n_terms, ""); push("contacts", sc.n_contacts, ""); }
+  if (sc.energy != null) push("VQE", Number(sc.energy).toFixed(3), "Ha",
+    sc.reference ? Math.abs(Number(sc.energy) / Number(sc.reference)) : null);
+  if (sc.epitopes != null) push("MHC-II epitopes", sc.epitopes, "");
+  if (sc.half_life_h != null) push("half-life", Number(sc.half_life_h).toFixed(1), "h");
+  if (sc.bioavailability != null) push("bioavailability", Number(sc.bioavailability).toFixed(1), "%", 100);
+  if (Array.isArray(sc.binders)) {
+    sc.binders.slice(0, 6).forEach(b => push(b.id, b.plddt, "pLDDT", 100));
+  }
+  const m = R.meshes[sc.mesh];
+  if (m) { push("residues", m.n_res, ""); push("triangles", m.nt, ""); }
+  return out.slice(0, 7);
+}
+
+function renderBand(ch) {
+  const rows = bandRows(ch);
+  $("#band").innerHTML = rows.map(r =>
+    `<div class="bar"><div class="bk">${esc(r.k)}</div>` +
+    `<div class="bv">${esc(r.v)}${r.unit ? `<small>${esc(r.unit)}</small>` : ""}</div>` +
+    (r.frac != null ? `<div class="track"><div class="fill" style="width:${(r.frac * 100).toFixed(1)}%"></div></div>` : "") +
+    `</div>`).join("");
 }
 function applyBeat() {
   const ch = R.chapters[S.ch], b = ch.beats[S.beat];
@@ -625,9 +791,22 @@ function frame(now) {
     }
   });
   active?.tick?.(dt);
-  if (S.playing) { S.t += dt; if (S.t > 6.5) { S.t = 0; nextBeat(); } }
+  if (S.playing) {
+    S.t += dt;
+    $("#prog").style.width = `${Math.min(100, (S.t / 7.2) * 100)}%`;
+    if (S.t > 7.2) { S.t = 0; nextBeat(); }
+  }
+  if (fly) {
+    fly.t += dt / fly.dur;
+    const u = Math.min(1, fly.t), e = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+    camera.position.lerpVectors(fly.fp, fly.tp, e);
+    controls.target.lerpVectors(fly.ft, fly.tt, e);
+    if (u >= 1) fly = null;
+  }
+  controls.autoRotate = !REDUCED && !fly && now - lastInput > 7000;
+  controls.autoRotateSpeed = 0.35;
   controls.update();
-  renderer.render(scene, camera);
+  composer.render();
   labels.render(scene, camera);
   requestAnimationFrame(frame);
 }
@@ -640,13 +819,18 @@ function boot() {
   $$("#nav button").forEach((b, i) => b.onclick = () => setChapter(i));
   $("#prev").onclick = () => setChapter(S.ch - 1);
   $("#next").onclick = () => nextBeat();
-  $("#play").onclick = () => { S.playing = !S.playing; S.t = 0; $("#play").textContent = S.playing ? "❚❚" : "▶"; };
+  $("#play").onclick = () => {
+    S.playing = !S.playing; S.t = 0;
+    $("#play").textContent = S.playing ? "❚❚" : "▶";
+    if (!S.playing) $("#prog").style.width = "0";
+  };
   $("#lang").onclick = () => { S.lang = S.lang === "es" ? "en" : "es"; boot(); setChapter(S.ch); };
+  const c = R.coverage, t = T[S.lang];
+  $("#coverage").textContent = `${c.leaves.toLocaleString(S.lang)} ${t.values} · ${c.annex} ${t.annexed}`;
+  $("#dlg-title").textContent = t.data;
+  $("#h-checks").textContent = t.checks;
+  $("#h-annex").textContent = t.annex;
   $("#lang").textContent = S.lang === "es" ? "EN" : "ES";
-  const c = R.coverage;
-  $("#coverage").textContent = S.lang === "es"
-    ? `${c.leaves} valores del resultado · ${c.annex} en el anexo`
-    : `${c.leaves} values in the result · ${c.annex} in the annex`;
   $("#checks").innerHTML = (R.checks || []).map(k =>
     `<li class="${k.ok ? "ok" : "bad"}">${esc(k[S.lang])}</li>`).join("");
   $("#annex").innerHTML = (R.annex || []).map(a =>

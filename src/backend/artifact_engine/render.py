@@ -47,7 +47,8 @@ def render(
     )
     shell = open(os.path.join(PAGE, "shell.html"), encoding="utf-8").read()
     app = open(os.path.join(PAGE, "report.js"), encoding="utf-8").read()
-    title = f"{payload['title']['es']} · {payload.get('subject') or payload['pipeline']}"
+    # the document's own language is English, like the report it opens on
+    title = f"{payload['title']['en']} · {payload.get('subject') or payload['pipeline']}"
     html = (
         shell.replace("__TITLE__", title.replace("<", "&lt;"))
         .replace("__PAYLOAD__", _safe_json(payload))
