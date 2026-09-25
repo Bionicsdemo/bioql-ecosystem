@@ -16,6 +16,7 @@ MOLEVERA / BIOQL
 
 import hashlib
 import json
+import os
 import time
 from typing import Any, Callable, Dict, List, Optional
 
@@ -69,6 +70,49 @@ def pick_model(result: Dict[str, Any]):
     return None
 
 
+def _poster_for(targets: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """A ray-traced still of the run's main structure, when PyMOL can make one.
+
+    Optional in every sense: if the module is absent or PyMOL fails, the report is
+    built without it rather than not at all.
+    """
+    if not targets or os.environ.get("BIOQL_REPORT_POSTER", "1") != "1":
+        return None
+    try:
+        from . import poster as _poster
+    except Exception:
+        return None
+    try:
+        img = _poster.poster(targets[0]["pdb"])
+    except Exception:  # noqa: BLE001 -- a poster may never cost the report
+        return None
+    if img:
+        img["of"] = targets[0]["label"]
+    return img
+
+
+def _verify(beats: List[Dict[str, Any]], result: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Ask Jev whether each sentence is supported by the values it quotes.
+
+    Off unless BIOQL_REPORT_VERIFY is set, because it costs an API call per sentence.
+    "strict" also removes any sentence Jev does not support -- the page would rather
+    say less than say something the data does not carry.
+    """
+    mode = os.environ.get("BIOQL_REPORT_VERIFY", "")
+    if mode not in ("1", "strict"):
+        return None
+    try:
+        from . import verify as _verify_mod
+    except Exception as e:  # noqa: BLE001
+        return {"available": False, "why": f"verifier not importable: {type(e).__name__}: {e}"}
+    try:
+        v = _verify_mod.verify(beats, result)
+    except Exception as e:  # noqa: BLE001
+        return {"available": False, "why": f"{type(e).__name__}: {str(e)[:200]}"}
+    v["mode"] = mode
+    return v
+
+
 def build(
     result: Dict[str, Any],
     mesh_fn: Optional[Callable[[str], Optional[Dict[str, Any]]]] = None,
@@ -119,6 +163,18 @@ def build(
             }
         )
 
+    # every sentence of the report, in the order a reader meets them
+    all_beats = [b for ch in chapters_out for b in ch["beats"]]
+    verification = _verify(all_beats, r)
+    if verification and verification.get("available") and verification.get("mode") == "strict":
+        unsupported = {v["i"] for v in verification.get("verdicts", []) if not v.get("ok")}
+        if unsupported:
+            keep = [b for i, b in enumerate(all_beats) if i not in unsupported]
+            kept = {id(b) for b in keep}
+            for ch in chapters_out:
+                ch["beats"] = [b for b in ch["beats"] if id(b) in kept]
+            verification["removed"] = len(unsupported)
+
     cov = F.coverage(r, claims, annex=ANNEX)
     annex = [{"path": p, "value": F.get(r, p)} for p in cov["annex_paths"]]
 
@@ -133,6 +189,8 @@ def build(
         "chapters": chapters_out,
         "meshes": meshes,
         "mesh_notes": mesh_notes,
+        "poster": _poster_for(model.mesh_targets(r) if want_meshes else []),
+        "verification": verification,
         "checks": checks,
         "coverage": {
             "leaves": cov["leaves"],

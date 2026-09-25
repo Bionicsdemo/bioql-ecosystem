@@ -46,6 +46,18 @@ header button:hover{color:var(--ink);border-color:var(--accent)}
 .tag.sig{border-color:#d0577f;color:#f3aec2}
 .tag.dom{border:0;border-bottom:2px solid;border-radius:0;background:transparent;padding:0 2px 2px}
 
+/* the ray-traced still: what the reader lands on, before the live model */
+#poster{position:absolute;inset:0;margin:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:12px;cursor:pointer;z-index:2;
+  background:radial-gradient(120% 90% at 30% 20%,#121b25 0%,#0a0f14 62%);
+  animation:posterIn .7s ease both}
+#poster[hidden]{display:none}
+#poster img{max-width:min(78%,760px);max-height:74%;object-fit:contain;
+  filter:drop-shadow(0 18px 44px rgba(0,0,0,.6))}
+#poster figcaption{font:400 10.5px var(--mono);color:var(--muted);letter-spacing:.06em;
+  border:1px solid var(--line2);border-radius:6px;padding:4px 10px;background:rgba(10,15,20,.7)}
+@keyframes posterIn{from{opacity:0;transform:scale(.985)}to{opacity:1;transform:none}}
+
 /* the data band: the chapter's own numbers, drawn to scale */
 #band{position:absolute;left:0;right:0;bottom:0;padding:11px 20px 13px;
   background:linear-gradient(180deg,rgba(10,15,20,0) 0%,rgba(10,15,20,.92) 38%);
@@ -118,6 +130,11 @@ dialog h4{margin:18px 0 8px;font:500 10px var(--mono);color:var(--muted);text-tr
 #checks li.ok::before{content:"✓";color:var(--ok)}
 #checks li.bad::before{content:"✕";color:var(--bad)}
 #checks li.bad{color:var(--ink)}
+#verif{margin-top:16px;font:400 12.5px/1.6 var(--sans);color:var(--body)}
+#verif .hd{font:500 10px var(--mono);color:var(--muted);text-transform:uppercase;
+  letter-spacing:.12em;margin-bottom:7px}
+#verif .no{color:var(--bad)}
+#verif ul{margin:7px 0 0;padding-left:18px}
 table{width:100%;border-collapse:collapse;font:400 11px var(--mono)}
 td{border-top:1px solid var(--line);padding:6px 9px;vertical-align:top;word-break:break-all;color:var(--body)}
 td:first-child{color:var(--muted);white-space:nowrap;width:36%}
@@ -136,7 +153,13 @@ td:first-child{color:var(--muted);white-space:nowrap;width:36%}
     <button id="data">data</button>
     <button id="dl">JSON</button>
   </header>
-  <div id="stage"><div id="band"></div></div>
+  <div id="stage">
+    <figure id="poster" hidden>
+      <img alt="">
+      <figcaption></figcaption>
+    </figure>
+    <div id="band"></div>
+  </div>
   <aside>
     <div class="chapter">
       <div id="kicker"></div>
@@ -161,6 +184,7 @@ td:first-child{color:var(--muted);white-space:nowrap;width:36%}
   <div class="body">
     <h4 id="h-checks">Recomputed and checked</h4>
     <ul id="checks"></ul>
+    <div id="verif"></div>
     <h4 id="h-annex">Values no chapter shows</h4>
     <table><tbody id="annex"></tbody></table>
   </div>

@@ -17,7 +17,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const NARROW = matchMedia("(max-width: 980px)").matches;
 // English is the report's own language; Spanish is the toggle.
-const S = { lang: "en", ch: 0, beat: 0, playing: false, t: 0 };
+const S = { lang: "en", ch: 0, beat: 0, playing: false, t: 0, posterDismissed: false };
 
 const COL = { bg: 0x0b0f14, ss: { H: 0x6f8aa8, S: 0xa9bfd4, L: 0x56697d } };
 
@@ -740,6 +740,7 @@ function renderChapter() {
     b.classList.toggle("gap", R.chapters[i].status === "gap");
   });
   renderBand(ch);
+  renderPoster(ch);
 }
 
 /* The band under the animation: this chapter's own figures, each drawn against the
@@ -783,6 +784,38 @@ function bandRows(ch) {
   const m = R.meshes[sc.mesh];
   if (m) { push("residues", m.n_res, ""); push("triangles", m.nt, ""); }
   return out.slice(0, 7);
+}
+
+/* The still is what the reader meets first on the cover chapter: a PyMOL ray trace
+   of the very structure the live scene then draws. One click goes to the live model. */
+function renderPoster(ch) {
+  const el = $("#poster");
+  const show = R.poster?.b64 && S.ch === 0 && !S.posterDismissed;
+  if (!show) { el.hidden = true; return; }
+  el.querySelector("img").src = `data:image/png;base64,${R.poster.b64}`;
+  el.querySelector("figcaption").textContent = S.lang === "es"
+    ? `PyMOL, trazado de rayos · ${R.poster.of || ""} · toca para ver el modelo vivo`
+    : `PyMOL ray trace · ${R.poster.of || ""} · click for the live model`;
+  el.hidden = false;
+  el.onclick = () => { S.posterDismissed = true; el.hidden = true; };
+}
+
+function renderVerification() {
+  const v = R.verification, el = $("#verif");
+  if (!el) return;
+  if (!v) { el.innerHTML = ""; return; }
+  const t = S.lang === "es";
+  if (!v.available) {
+    el.innerHTML = `<div class="hd">${t ? "Verificación de frases" : "Sentence verification"}</div>` +
+      `<div class="no">${t ? "no disponible" : "unavailable"}: ${esc(v.why || "")}</div>`;
+    return;
+  }
+  const bad = (v.verdicts || []).filter(x => !x.ok);
+  el.innerHTML = `<div class="hd">${t ? "Verificación de frases (Jev)" : "Sentence verification (Jev)"}</div>` +
+    `<div>${v.n_ok}/${v.checked} ${t ? "sostenidas por los datos que citan" : "supported by the values they quote"}` +
+    (v.removed ? ` · ${v.removed} ${t ? "retiradas" : "removed"}` : "") + `</div>` +
+    (bad.length ? `<ul>${bad.slice(0, 12).map(x =>
+      `<li><em>${esc(x.relation)}</em> — ${esc(x.note || "")}</li>`).join("")}</ul>` : "");
 }
 
 function renderBand(ch) {
@@ -860,6 +893,7 @@ function boot() {
   $("#lang").textContent = S.lang === "es" ? "EN" : "ES";
   $("#checks").innerHTML = (R.checks || []).map(k =>
     `<li class="${k.ok ? "ok" : "bad"}">${esc(k[S.lang])}</li>`).join("");
+  renderVerification();
   $("#annex").innerHTML = (R.annex || []).map(a =>
     `<tr><td>${esc(a.path)}</td><td>${esc(typeof a.value === "object" ? JSON.stringify(a.value) : a.value)}</td></tr>`).join("");
   $("#dl").onclick = () => {
