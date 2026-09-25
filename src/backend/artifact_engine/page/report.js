@@ -674,6 +674,31 @@ function lookAt(point, d = 40, dur = 1.8) {
 
 /* ── chapter flow ─────────────────────────────────────────────────────── */
 let active = null;
+/* A scene may carry labels and measured lines in world coordinates. The model can
+   only produce them from a structure that was really drawn, so a measurement here is
+   always between two points the run actually contains. */
+function drawAnnotations(sc) {
+  (sc.annotations || []).forEach(a => {
+    if (!Array.isArray(a.pos)) return;
+    const t = label(String(a.text ?? ""), a.kind || "reg");
+    t.position.set(a.pos[0], a.pos[1], a.pos[2]);
+    world.add(t);
+  });
+  (sc.measures || []).forEach(m => {
+    if (!Array.isArray(m.from) || !Array.isArray(m.to)) return;
+    const A = new THREE.Vector3(...m.from), B = new THREE.Vector3(...m.to);
+    const line = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([A, B]),
+      new THREE.LineDashedMaterial({ color: 0xe9a032, dashSize: 0.55, gapSize: 0.38, transparent: true, opacity: 0.85 }),
+    );
+    line.computeLineDistances();
+    world.add(line);
+    const t = label(String(m.label ?? ""), "reg");
+    t.position.copy(A.clone().add(B).multiplyScalar(0.5));
+    world.add(t);
+  });
+}
+
 async function setChapter(i) {
   S.ch = Math.max(0, Math.min(i, R.chapters.length - 1));
   S.beat = 0;
@@ -682,6 +707,7 @@ async function setChapter(i) {
   world.rotation.set(0, 0, 0);
   const build = SCENES[ch.scene?.type] || (() => gapScene(true));
   active = (await build(ch.scene)) || {};
+  drawAnnotations(ch.scene || {});
   renderChapter();
   applyBeat();
 }
@@ -704,6 +730,7 @@ function renderChapter() {
     return `<li class="beat ${esc(b.kind)}" data-i="${i}">` +
       (lab ? `<div class="lab">${esc(lab)}</div>` : "") +
       `<div class="txt">${esc(b[S.lang])}</div>` +
+      (b.tech ? `<div class="tech">${esc(b.tech[S.lang])}</div>` : "") +
       (b.paths?.length ? `<button class="src" title="${esc(b.paths.join("\n"))}">${b.paths.length}</button>` : "") +
       `</li>`;
   }).join("");

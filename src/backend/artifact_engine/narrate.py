@@ -9,7 +9,12 @@ are optional: missing, they leave an empty string; a missing required path
 turns the beat into a declared gap carrying the pipeline's own reason.
 
 Format after a `|`: `n` plain number, `n2` two decimals, `pct` percent,
-`int` thousands separator, `list` comma-joined, `up`/`low` case.
+`int` thousands separator, `count` length, `up`/`low` case.
+
+A beat may carry a second `tech` line -- the method, backend, uncertainty or
+provenance behind the value it just stated. It is resolved separately, so a
+sentence survives a run that recorded no provenance for it, and a half-filled
+technical line never reaches the page.
 
 MOLEVERA / BIOQL
 """
@@ -32,17 +37,17 @@ def _fmt_number(x: float, spec: str) -> str:
     return f"{x:.4g}"
 
 
-def format_value(v: Any, spec: str = "") -> str:
+def format_value(v: Any, spec: str = "", lang: str = "es") -> str:
     if spec == "count":
         return str(len(v)) if isinstance(v, (list, tuple, dict, str)) else "1"
     if isinstance(v, bool):
-        return "sí" if v else "no"
+        return ("sí" if v else "no") if lang == "es" else ("yes" if v else "no")
     if isinstance(v, (int, float)):
         return _fmt_number(float(v), spec)
     if isinstance(v, (list, tuple)):
-        return ", ".join(format_value(x) for x in v)
+        return ", ".join(format_value(x, "", lang) for x in v)
     if isinstance(v, dict):
-        return ", ".join(f"{k} {format_value(x)}" for k, x in v.items())
+        return ", ".join(f"{k} {format_value(x, '', lang)}" for k, x in v.items())
     s = str(v)
     return s.upper() if spec == "up" else s.lower() if spec == "low" else s
 
@@ -50,9 +55,10 @@ def format_value(v: Any, spec: str = "") -> str:
 class Resolver:
     """Resolves `{path|spec}` against one result, remembering which paths were used."""
 
-    def __init__(self, result: Any, aliases: Optional[Dict[str, str]] = None):
+    def __init__(self, result: Any, aliases: Optional[Dict[str, str]] = None, lang: str = "es"):
         self.result = result
         self.aliases = aliases or {}
+        self.lang = lang  # a boolean reads "sí"/"no" or "yes"/"no" accordingly
         self.used: List[str] = []
 
     def path_of(self, ref: str) -> str:
@@ -80,7 +86,7 @@ class Resolver:
                     missing = True
                 return ""
             self.used.append(path)
-            return format_value(v, spec.strip())
+            return format_value(v, spec.strip(), self.lang)
 
         out = _FIELD.sub(sub, text)
         if missing:
@@ -149,9 +155,9 @@ def build_beats(
                         }
                     )
             continue
-        r = Resolver(result, aliases)
+        r = Resolver(result, aliases, "es")
         es = r.render(b["es"])
-        en = Resolver(result, aliases).render(b["en"])
+        en = Resolver(result, aliases, "en").render(b["en"])
         if es is None or en is None:
             if b.get("gap"):
                 why = gap_reason(result, b["gap"], b.get("gap_text", ""))
@@ -166,15 +172,25 @@ def build_beats(
                         }
                     )
             continue
-        out.append(
-            {
-                "es": es,
-                "en": en,
-                "kind": b.get("kind", "fact"),
-                "focus": b.get("focus", {}),
-                "paths": sorted(set(r.used)),
-            }
-        )
+        beat = {
+            "es": es,
+            "en": en,
+            "kind": b.get("kind", "fact"),
+            "focus": b.get("focus", {}),
+            "paths": sorted(set(r.used)),
+        }
+        # The technical line resolves on its own: a sentence keeps its place even when
+        # the run recorded no method or backend for that value, and a half-filled
+        # provenance line never appears.
+        tech = b.get("tech")
+        if tech:
+            rt_es, rt_en = Resolver(result, aliases, "es"), Resolver(result, aliases, "en")
+            t_es, t_en = rt_es.render(tech["es"]), rt_en.render(tech["en"])
+            if t_es and t_en:
+                beat["tech"] = {"es": t_es, "en": t_en}
+                beat["paths"] = sorted(set(beat["paths"]) | set(rt_es.used))
+                used += rt_es.used
+        out.append(beat)
         used += r.used
     return out, sorted(set(used))
 

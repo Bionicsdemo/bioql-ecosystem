@@ -269,6 +269,7 @@ def chapters(
                 {
                     "es": "La generación produjo {gen:candidates_generated} péptidos de partida.",
                     "en": "Generation produced {gen:candidates_generated} starting peptides.",
+                    "tech": {"es": "estado: {gen:status}", "en": "status: {gen:status}"},
                     "focus": {"sequences": True},
                     "gap": [S2],
                     "gap_es": "Sin generación de péptidos",
@@ -335,6 +336,10 @@ def chapters(
                 {
                     "es": "El mejor es {b:sequence}, de {pp:length} aminoácidos y {b:molecular_weight_da|n1} Da.",
                     "en": "The best is {b:sequence}, {pp:length} amino acids and {b:molecular_weight_da|n1} Da.",
+                    "tech": {
+                        "es": "hidrofóbico {pp:hydrophobic_ratio|n3} · aromático {pp:aromatic_ratio|n3}",
+                        "en": "hydrophobic {pp:hydrophobic_ratio|n3} · aromatic {pp:aromatic_ratio|n3}",
+                    },
                 },
                 {
                     "es": "Viene de {b:original_sequence} y conserva los cambios que mejoraron su puntuación.",
@@ -381,6 +386,10 @@ def chapters(
                 {
                     "es": "Confianza del modelo: pLDDT {px:plddt|n1}, pTM {px:ptm|n3}, ipTM {px:iptm|n3}.",
                     "en": "Model confidence: pLDDT {px:plddt|n1}, pTM {px:ptm|n3}, ipTM {px:iptm|n3}.",
+                    "tech": {
+                        "es": "puntuación de ranking {px:ranking_score|n3}",
+                        "en": "ranking score {px:ranking_score|n3}",
+                    },
                     "focus": {"color": "plddt"},
                 },
                 {
@@ -399,6 +408,7 @@ def chapters(
                 {
                     "es": "Contra {dk:pdb_id}, de {dk:pdb_source}: confianza de interfaz ipTM {dk:interface_confidence_iptm|n3}.",
                     "en": "Against {dk:pdb_id}, from {dk:pdb_source}: interface confidence ipTM {dk:interface_confidence_iptm|n3}.",
+                    "tech": {"es": "método: {dk:method}", "en": "method: {dk:method}"},
                     "gap": [S9],
                     "gap_es": "Sin acoplamiento",
                     "gap_en": "No docking",
@@ -442,6 +452,10 @@ def chapters(
                 {
                     "es": "Puntuación compuesta {sc:composite_score|n4}, clase {sc:drug_candidate_class}, por el método {sc:hybrid_method}.",
                     "en": "Composite score {sc:composite_score|n4}, class {sc:drug_candidate_class}, by the {sc:hybrid_method} method.",
+                    "tech": {
+                        "es": "pesos: {sc:scoring_weights}",
+                        "en": "weights: {sc:scoring_weights}",
+                    },
                     "focus": {"bars": True},
                 },
                 {

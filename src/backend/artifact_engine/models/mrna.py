@@ -141,19 +141,46 @@ def scene_protein(r: Dict[str, Any], mesh_key: Optional[str]) -> Dict[str, Any]:
 def scene_structure(
     r: Dict[str, Any], mesh_key: Optional[str], meshes: Dict[str, Any]
 ) -> Dict[str, Any]:
-    spans = []
+    """The drawn fold, with each domain located by its exact sequence and labelled where
+    it sits, plus the chain measured end to end on the coordinates the folder produced."""
+    spans, notes, measures = [], [], []
     m = meshes.get(mesh_key or "")
     if m:
-        one = "".join(THREE.get(x["resn"], "X") for x in m["res"])
+        res = m["res"]
+        one = "".join(THREE.get(x["resn"], "X") for x in res)
         for name, dseq in (F.get(r, f"{S1}.domain_sequences") or {}).items():
             if isinstance(dseq, str) and len(dseq) >= 5:
                 i = one.find(dseq.upper())
                 if i >= 0:
                     spans.append({"name": name, "from": i, "to": i + len(dseq)})
+                    mid = res[min(len(res) - 1, i + len(dseq) // 2)]
+                    notes.append(
+                        {"text": name, "pos": [mid["p"][0], mid["p"][1] + 3.0, mid["p"][2]]}
+                    )
+        if len(res) >= 2:
+            first, last = res[0], res[-1]
+            d = sum((x - y) ** 2 for x, y in zip(first["p"], last["p"])) ** 0.5
+            measures.append(
+                {"from": first["p"], "to": last["p"], "label": f"N\u2192C {d:.1f} \u00c5"}
+            )
+            notes.append(
+                {
+                    "text": f"N \u00b7 {first['resn']}{first['resi']}",
+                    "pos": [first["p"][0], first["p"][1] + 2.2, first["p"][2]],
+                }
+            )
+            notes.append(
+                {
+                    "text": f"C \u00b7 {last['resn']}{last['resi']}",
+                    "pos": [last["p"][0], last["p"][1] + 2.2, last["p"][2]],
+                }
+            )
     return {
         "type": "cartoon",
         "mesh": mesh_key,
         "domains": spans,
+        "annotations": notes,
+        "measures": measures,
         "receptors": list((F.get(r, f"{S2}.receptor_panel") or {}).keys()),
     }
 
@@ -336,6 +363,7 @@ def chapters(
                 {
                     "es": "Al traducirse, la cadena mide {p:mature_length_aa} aminoácidos de proteína madura más {p:signal_length_aa} de péptido señal.",
                     "en": "As translated, the chain is {p:mature_length_aa} amino acids of mature protein plus {p:signal_length_aa} of signal peptide.",
+                    "tech": {"es": "diseño: {p:design_note}", "en": "design: {p:design_note}"},
                 },
                 {
                     "es": "El péptido señal ({p:signal_type}) la dirige a secreción y se corta al salir de la célula.",
@@ -345,6 +373,10 @@ def chapters(
                 {
                     "es": "Masa del monómero: {p:monomer_mw_kda} kDa, calculada con {p:mw_method}.",
                     "en": "Monomer mass: {p:monomer_mw_kda} kDa, computed with {p:mw_method}.",
+                    "tech": {
+                        "es": "estado oligomérico: {p:oligomeric_state_note}",
+                        "en": "oligomeric state: {p:oligomeric_state_note}",
+                    },
                 },
                 {
                     "es": "El diseño se reparte en {p:domain_map|count} dominio(s); la animación los separa y los nombra.",
@@ -359,6 +391,7 @@ def chapters(
                 {
                     "es": "Superficie accesible del lazo: {p:loop_sasa_A2} Å², por {p:loop_sasa_method}.",
                     "en": "Loop accessible surface: {p:loop_sasa_A2} Å², by {p:loop_sasa_method}.",
+                    "tech": {"es": "{p:loop_sasa_note}", "en": "{p:loop_sasa_note}"},
                 },
             ],
         },
@@ -382,6 +415,7 @@ def chapters(
                     "en": "Mean model confidence, pLDDT {st:plddt|n1} out of 100: colour runs low to high per residue.",
                     "focus": {"color": "plddt"},
                     "requires_mesh": "protein",
+                    "tech": {"es": "{st:display_note}", "en": "{st:display_note}"},
                 },
                 {
                     "es": "Un segundo plegador, {st:boltz2_crosscheck.engine}, llega por su cuenta a pLDDT {st:boltz2_crosscheck.plddt|n1} y pTM {st:boltz2_crosscheck.ptm|n2}.",
@@ -437,6 +471,10 @@ def chapters(
                     "es": "El transcrito completo mide {m:full_mrna_length_nt} nt: 5'UTR {m:length_breakdown_nt.utr5}, ORF {m:length_breakdown_nt.orf}, 3'UTR {m:length_breakdown_nt.utr3} y poli(A) {m:length_breakdown_nt.polya}.",
                     "en": "The full transcript is {m:full_mrna_length_nt} nt: 5'UTR {m:length_breakdown_nt.utr5}, ORF {m:length_breakdown_nt.orf}, 3'UTR {m:length_breakdown_nt.utr3} and poly(A) {m:length_breakdown_nt.polya}.",
                     "focus": {"regions": True},
+                    "tech": {
+                        "es": "sistema de expresión: {m:expression_system}",
+                        "en": "expression system: {m:expression_system}",
+                    },
                 },
                 {
                     "es": "Química del transcrito: {m:modifications}. La caperuza protege el extremo 5' y la uridina modificada baja la alarma inmune innata.",
@@ -542,6 +580,10 @@ def chapters(
                 {
                     "es": "El paso cuántico cifra el plegado como un problema de energía: {q:quantum_compute.n_residues} residuos y {q:quantum_compute.n_contacts} contactos se vuelven {q:quantum_compute.n_qubits} cúbits y {q:quantum_compute.n_terms} términos.",
                     "en": "The quantum step casts folding as an energy problem: {q:quantum_compute.n_residues} residues and {q:quantum_compute.n_contacts} contacts become {q:quantum_compute.n_qubits} qubits and {q:quantum_compute.n_terms} terms.",
+                    "tech": {
+                        "es": "hamiltoniano: {q:quantum_compute.hamiltonian_source} · variacional válido: {q:quantum_compute.variational_ok}",
+                        "en": "Hamiltonian: {q:quantum_compute.hamiltonian_source} · variational bound holds: {q:quantum_compute.variational_ok}",
+                    },
                     "focus": {"register": True},
                     "gap": ["stages.6_quantum_cascade"],
                     "gap_es": "Sin paso cuántico en esta corrida",
@@ -585,6 +627,10 @@ def chapters(
                     "es": "Inmunogenicidad predicha: {v:immunogenicity.mhc_epitope_count} epítopos MHC-II, riesgo {v:immunogenicity.risk_level}, con {v:immunogenicity.method}.",
                     "en": "Predicted immunogenicity: {v:immunogenicity.mhc_epitope_count} MHC-II epitopes, risk {v:immunogenicity.risk_level}, using {v:immunogenicity.method}.",
                     "focus": {"meter": "immunogenicity"},
+                    "tech": {
+                        "es": "{v:immunogenicity.disclaimer}",
+                        "en": "{v:immunogenicity.disclaimer}",
+                    },
                 },
                 {
                     "es": "Accesibilidad del lazo: {v:loop_accessibility|n2}.",

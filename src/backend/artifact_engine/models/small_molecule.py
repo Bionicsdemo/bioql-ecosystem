@@ -269,6 +269,10 @@ def chapters(
                 {
                     "es": "Fórmula {m:properties.formula}, {m:properties.num_heavy_atoms} átomos pesados y {m:properties.molecular_weight|n1} Da.",
                     "en": "Formula {m:properties.formula}, {m:properties.num_heavy_atoms} heavy atoms and {m:properties.molecular_weight|n1} Da.",
+                    "tech": {
+                        "es": "logP {m:properties.logp|n2} · TPSA {m:properties.tpsa|n1} Å² · enlaces rotables {m:properties.num_rotatable_bonds}",
+                        "en": "logP {m:properties.logp|n2} · TPSA {m:properties.tpsa|n1} Å² · rotatable bonds {m:properties.num_rotatable_bonds}",
+                    },
                     "focus": {"spin": True},
                 },
                 {
@@ -318,6 +322,10 @@ def chapters(
                 {
                     "es": "{ad:n_endpoints} puntos finales ADMET predichos por {ad:model}: absorción, distribución, metabolismo, excreción y toxicidad.",
                     "en": "{ad:n_endpoints} ADMET endpoints predicted by {ad:model}: absorption, distribution, metabolism, excretion and toxicity.",
+                    "tech": {
+                        "es": "corrida en {ad:elapsed_s|n1} s",
+                        "en": "computed in {ad:elapsed_s|n1} s",
+                    },
                     "focus": {"endpoints": True},
                     "gap": [S2],
                     "gap_es": "Sin predicción ADMET",
@@ -326,6 +334,10 @@ def chapters(
                 {
                     "es": "Absorción intestinal humana: {ad:absorption.hia.value|n2} ({ad:absorption.hia.label}).",
                     "en": "Human intestinal absorption: {ad:absorption.hia.value|n2} ({ad:absorption.hia.label}).",
+                    "tech": {
+                        "es": "interpretación del modelo: {ad:absorption.hia.interpretation} · solubilidad {ad:absorption.solubility.value|n2} {ad:absorption.solubility.unit}",
+                        "en": "model reading: {ad:absorption.hia.interpretation} · solubility {ad:absorption.solubility.value|n2} {ad:absorption.solubility.unit}",
+                    },
                     "focus": {"group": "absorption"},
                 },
                 {
@@ -344,6 +356,10 @@ def chapters(
                 {
                     "es": "Estudio de toxicología por {tx:method}, sobre {tx:backend}; puntuación global {tx:overall_score|n3}.",
                     "en": "Toxicology study by {tx:method}, on {tx:backend}; overall score {tx:overall_score|n3}.",
+                    "tech": {
+                        "es": "{tx:quantum_jobs|count} trabajo(s) cuántico(s) · en simulador: {tx:ran_on_simulator}",
+                        "en": "{tx:quantum_jobs|count} quantum job(s) · on a simulator: {tx:ran_on_simulator}",
+                    },
                     "focus": {"endpoints": True},
                     "gap": [S3],
                     "gap_es": "Sin estudio de toxicología",
@@ -352,6 +368,10 @@ def chapters(
                 {
                     "es": "Dosis letal media oral estimada: {tx:acute_toxicity.ld50_oral.value|n1} {tx:acute_toxicity.ld50_oral.unit}, clase GHS {tx:acute_toxicity.ld50_oral.ghs_class}.",
                     "en": "Estimated oral median lethal dose: {tx:acute_toxicity.ld50_oral.value|n1} {tx:acute_toxicity.ld50_oral.unit}, GHS class {tx:acute_toxicity.ld50_oral.ghs_class}.",
+                    "tech": {
+                        "es": "incertidumbre {tx:acute_toxicity.ld50_oral.uncertainty} · confianza {tx:acute_toxicity.ld50_oral.confidence}",
+                        "en": "uncertainty {tx:acute_toxicity.ld50_oral.uncertainty} · confidence {tx:acute_toxicity.ld50_oral.confidence}",
+                    },
                     "focus": {"group": "acute_toxicity"},
                 },
                 {
@@ -408,6 +428,10 @@ def chapters(
                 {
                     "es": "Protenix pliega el complejo con {px:model_used} en {px:gpu}: pLDDT {px:confidence.plddt|n1}, pTM {px:confidence.ptm|n3}, ipTM {px:confidence.iptm|n3}.",
                     "en": "Protenix folds the complex with {px:model_used} on {px:gpu}: pLDDT {px:confidence.plddt|n1}, pTM {px:confidence.ptm|n3}, ipTM {px:confidence.iptm|n3}.",
+                    "tech": {
+                        "es": "{px:prediction_time_seconds|n1} s · trabajo {px:job_id} · puntuación de ranking {px:confidence.ranking_score|n3}",
+                        "en": "{px:prediction_time_seconds|n1} s · job {px:job_id} · ranking score {px:confidence.ranking_score|n3}",
+                    },
                     "focus": {"confidence": True},
                 },
             ],
@@ -508,6 +532,10 @@ def chapters(
                 {
                     "es": "Puntuación compuesta {sc:composite_score|n3}, que la corrida clasifica como {sc:drug_candidate_class}.",
                     "en": "Composite score {sc:composite_score|n3}, which the run classes as {sc:drug_candidate_class}.",
+                    "tech": {
+                        "es": "pesos: {sc:scoring_weights}",
+                        "en": "weights: {sc:scoring_weights}",
+                    },
                     "focus": {"bars": True},
                 },
                 {
