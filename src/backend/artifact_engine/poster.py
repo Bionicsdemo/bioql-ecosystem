@@ -6,17 +6,47 @@ own ray tracer is, so every report opens on one: the same structure the live sce
 then draws, rendered once at build time and inlined as a data URI, so the page needs
 no second request and works from a file.
 
-Choices behind the numbers, since they are trade-offs rather than defaults:
-  * 1280x860 at ray_trace_mode 0 with a 2x oversample lands a protein at roughly
-    120-260 kB of PNG after quantisation -- large enough to fill a laptop stage,
-    small enough that a report with three structures stays under a megabyte of
-    image. Bigger sizes gain little: the still is shown at most 78% of the stage.
+Choices behind the numbers, since they are trade-offs rather than defaults. The
+sizes below are measured, not estimated -- the three structures the engine is
+tested against, at 1400x900 with antialias 2:
+
+    251-residue protein, cartoon     1.2 s    201 kB
+     47-nucleotide RNA,  cartoon     0.7 s    229 kB
+    993-residue protein, cartoon     3.9 s    231 kB
+    251-residue protein, surface     5.8 s    465 kB
+    993-residue protein, surface    25.5 s    374 kB
+
+  * 1400x900 at ray_trace_mode 0 keeps every one of those well inside the ~900 kB
+    budget, so nothing has to be quantised and the still stays lossless. Quantising
+    is kept as a fallback (`_shrink`) for a structure that surprises us, not as the
+    normal path -- and it is best-effort, not a guarantee: it stops at a 64-colour
+    palette, which on a forced 80 kB budget still came back 86 kB. `bytes` in the
+    result is the measured truth, so a caller who tightens `max_bytes` should read it
+    rather than assume. At the default 900 kB the margin is roughly 2x the worst case
+    above, so the fallback does not run at all.
+    Bigger sizes gain little: the still is shown at most 78% of a stage.
+    Note the smaller protein's surface is the heaviest file of the five: bytes track
+    how much of the frame carries fine texture, not how many residues there are, and
+    a 251-residue surface fills the frame that a 993-residue one shares with
+    background. Surface is also the slow style -- budget ~25 s, not the ~1-4 s a
+    cartoon takes -- because ambient_occlusion_mode 1 is per-atom.
   * The background is a flat near-black matching the page (#0a0f14) rather than
     transparent: a transparent PNG of a ray trace carries its own antialiased edge,
     which fringes against any other background.
   * Ambient occlusion on, specular low, depth cue off. Depth cue fogs the far side of
     a fold into the background, which reads as detail loss rather than depth in a
     still this size.
+  * Both styles colour by residue order in the file -- first residue deep blue, last
+    orange -- and nothing else. That is file order, not N-to-C within each chain: on
+    a multi-chain complex it comes out as one band per chain, which reads well and is
+    how the 5-chain target above separates. A colour ramp is a claim; B-factor or pLDDT painted on
+    a still with no legend is a claim the viewer cannot check, and on a predicted
+    model blue_white_red would put high confidence at the red end, inverting the
+    convention every reader of these structures already has. Position is the one
+    quantity a picture can assert on its own.
+  * Secondary structure is assigned with `cmd.dss`, not taken from the file's HELIX
+    and SHEET records, because mesh.py does the same for the live scene. The poster
+    and the WebGL mesh in the same report must not disagree about where a helix is.
 
 PyMOL runs as a subprocess, so a crash, a missing PyMOL or a structure it dislikes
 costs the poster and nothing else: `poster()` returns None and puts the reason in
@@ -48,7 +78,7 @@ cmd.set("cartoon_sampling", 14)
 cmd.set("cartoon_ring_mode", 3)
 cmd.set("cartoon_ring_finder", 1)
 cmd.set("cartoon_nucleic_acid_mode", 4)
-cmd.spectrum("count", "deepblue white orange", "polymer and name CA+C4'")
+cmd.spectrum("count", "deepblue white orange", "polymer", byres=1)
 """,
     "surface": """
 cmd.hide("everything")
@@ -56,8 +86,7 @@ cmd.show("surface", "polymer")
 cmd.set("surface_quality", 1)
 cmd.set("transparency", 0.08)
 cmd.set("solvent_radius", 1.6)
-cmd.color("grey70", "polymer")
-cmd.spectrum("b", "blue_white_red", "polymer") if cmd.count_atoms("polymer and not b=0") else None
+cmd.spectrum("count", "deepblue white orange", "polymer", byres=1)
 """,
 }
 
@@ -65,6 +94,8 @@ _SCRIPT = r"""
 from pymol import cmd
 cmd.load({pdb!r}, "m")
 cmd.remove("solvent or inorganic or (hetatm and not polymer)")
+if {is_protein}:
+    cmd.dss("m")
 {style}
 cmd.bg_color("bgcol")
 cmd.set("ray_opaque_background", 1)
@@ -99,7 +130,11 @@ def _bg_color(hex_rgb: str) -> str:
 
 
 def _shrink(png: bytes, max_bytes: int) -> bytes:
-    """Quantise to a palette if the PNG is over budget. Without Pillow, leave it be."""
+    """Quantise to a palette if the PNG is over budget. Without Pillow, leave it be.
+
+    Best-effort: the palette stops at 64 colours, so a budget below what 64 colours
+    can reach returns the smallest it managed, still over. The caller reads `bytes`.
+    """
     if len(png) <= max_bytes:
         return png
     try:
@@ -123,8 +158,8 @@ def _shrink(png: bytes, max_bytes: int) -> bytes:
 def poster(
     pdb: str,
     *,
-    width: int = 1280,
-    height: int = 860,
+    width: int = 1400,
+    height: int = 900,
     style: str = "cartoon",
     background: str = "#0a0f14",
     pad: float = 3.0,
@@ -166,6 +201,7 @@ def poster(
                     w=int(width),
                     h=int(height),
                     pad=float(pad),
+                    is_protein=kind == "protein",
                 )
             )
         try:

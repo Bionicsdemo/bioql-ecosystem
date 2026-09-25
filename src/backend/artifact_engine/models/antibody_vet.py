@@ -517,6 +517,10 @@ def scene_candidates(r: Dict[str, Any]) -> Dict[str, Any]:
             x["affinity_rank"] if x["affinity_rank"] is not None else big,
         ),
     )
+    # Only the fields whose names mean here what they mean everywhere else: the bar is
+    # the structural ipTM and the label is the loop. A liability count carried under
+    # `aggregation`, or a pLDDT under `protease`, would be a number wearing another
+    # number's name the moment the page decides to print those columns.
     return {
         "type": "ranking",
         "items": [
@@ -525,11 +529,6 @@ def scene_candidates(r: Dict[str, Any]) -> Dict[str, Any]:
                 "seq": x["cdr_h3"],
                 "score": x["iptm"],
                 "mw": x["mw"],
-                "charge": x["composite"],
-                "half_life_h": None,
-                "protease": x["plddt"],
-                "aggregation": x["liabilities"],
-                "changes": x["affinity_rank"],
             }
             for i, x in enumerate(rows)
         ],

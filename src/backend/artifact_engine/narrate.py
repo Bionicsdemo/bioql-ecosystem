@@ -9,7 +9,13 @@ are optional: missing, they leave an empty string; a missing required path
 turns the beat into a declared gap carrying the pipeline's own reason.
 
 Format after a `|`: `n` plain number, `n2` two decimals, `pct` percent,
-`int` thousands separator, `count` length, `up`/`low` case.
+`int` thousands separator, `count` length, `up`/`low` case. A missing value drops
+the sentence, but an empty list under `count` does not: zero of something is an
+answer the run gives, and dropping it loses a sentence the data supports.
+
+A gap quotes the pipeline verbatim, so its reason reads the same in both
+languages; only the framing around it is translated. Rewording a pipeline's own
+explanation would put words in its mouth.
 
 A beat may carry a second `tech` line -- the method, backend, uncertainty or
 provenance behind the value it just stated. It is resolved separately, so a
@@ -80,13 +86,18 @@ class Resolver:
             optional = body.endswith("?")
             body = body[:-1] if optional else body
             ref, _, spec = body.partition("|")
+            spec = spec.strip()
             v, path = self.value(ref.strip())
-            if v is None or v == "" or v == [] or v == {}:
+            # An empty list is a real answer when the sentence is counting: "0 safety
+            # flags" is a fact the run carries. Treating it as missing silently dropped
+            # sentences the run had every value for.
+            empty = v is None or v == "" or (v in ([], {}) and spec != "count")
+            if empty:
                 if not optional:
                     missing = True
                 return ""
             self.used.append(path)
-            return format_value(v, spec.strip(), self.lang)
+            return format_value(v, spec, self.lang)
 
         out = _FIELD.sub(sub, text)
         if missing:
