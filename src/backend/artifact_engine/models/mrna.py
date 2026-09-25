@@ -259,6 +259,31 @@ def scene_safety(r: Dict[str, Any]) -> Dict[str, Any]:
 
 
 # ── chapters ───────────────────────────────────────────────────────────────────────
+def receptor_beats(r: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """One sentence per receptor in the panel: its measured ipTM, or why there is none.
+
+    The panel's keys are whatever the run recorded, so these templates are generated
+    from the run itself -- a receptor the pipeline never looked at can never get a
+    sentence, and one it looked at but could not score says so."""
+    out: List[Dict[str, Any]] = []
+    for rec in F.get(r, f"{S2}.receptor_panel") or {}:
+        if "." in rec or "[" in rec:  # not addressable as a path; the annex still carries it
+            continue
+        out.append(
+            {
+                "es": f"Receptor {rec}: ipTM medio {{s:receptor_panel.{rec}.mean_iptm|n3}} sobre "
+                f"{{s:receptor_panel.{rec}.n_seeds}} semilla(s), tomado como {{s:receptor_panel.{rec}.applicability}}.",
+                "en": f"Receptor {rec}: mean ipTM {{s:receptor_panel.{rec}.mean_iptm|n3}} over "
+                f"{{s:receptor_panel.{rec}.n_seeds}} seed(s), taken as {{s:receptor_panel.{rec}.applicability}}.",
+                "focus": {"receptor": rec},
+                "gap": [f"{S2}.receptor_panel.{rec}"],
+                "gap_es": f"Receptor {rec}, sin ipTM",
+                "gap_en": f"Receptor {rec}, no ipTM",
+            }
+        )
+    return out
+
+
 def chapters(
     r: Dict[str, Any], meshes: Dict[str, Any], mesh_keys: Dict[str, str]
 ) -> List[Dict[str, Any]]:
@@ -368,7 +393,8 @@ def chapters(
                     "focus": {"color": "domains"},
                     "requires_mesh": "protein",
                 },
-            ],
+            ]
+            + receptor_beats(r),
         },
         {
             "id": "activation",
