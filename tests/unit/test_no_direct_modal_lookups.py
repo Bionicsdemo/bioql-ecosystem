@@ -45,7 +45,11 @@ def _direct_lookups(root=REPO):
                 continue
             try:
                 tree = ast.parse(p.read_text(encoding="utf-8"))
-            except (SyntaxError, UnicodeDecodeError):
+            except (SyntaxError, UnicodeDecodeError) as e:
+                if p.parent.name == "scripts" and p.name.startswith("bioql_job_"):
+                    continue  # generated per-job execution scripts, saved as submitted; nothing imports them
+                # Any other unreadable file is unchecked, not clean: say so instead of skipping it.
+                hits.append(f"{rel}: not checked ({type(e).__name__})")
                 continue
             parents = {c: n for n in ast.walk(tree) for c in ast.iter_child_nodes(n)}
             for n in ast.walk(tree):
