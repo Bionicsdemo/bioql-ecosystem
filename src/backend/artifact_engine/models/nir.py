@@ -99,15 +99,72 @@ def _arm_ran(r: Dict[str, Any], arm: str) -> bool:
 
 
 def _pdb_in_arm(r: Dict[str, Any], arm: str):
-    for p in (
-        f"arms.{arm}.stages.structure.pdb",
+    """The fold this arm loaded, if it loaded one.
+
+    It sits at `arms.<arm>.pdb_text`, beside the stages rather than inside the
+    `structure` stage -- that stage records what was read from it (atom count,
+    source) and not the file. Guessing `stages.structure.pdb` cost a 20-minute
+    618-residue phytochrome its cartoon and left the report all value grids."""
+    for path in (
+        f"arms.{arm}.pdb_text",
         f"arms.{arm}.stages.structure.pdb_text",
-        f"arms.{arm}.stages.structure.structure.pdb",
+        f"arms.{arm}.stages.structure.pdb",
     ):
-        v = F.get(r, p)
+        v = F.get(r, path)
         if F.is_pdb(v):
-            return v, p
+            return v, path
     return None, None
+
+
+# The pocket measurements share one shape -- value, unit, method and the caveat the
+# run attaches to it -- so they are read as a set rather than one by one.
+_POCKET = (
+    ("o2_accessibility", {"es": "oxígeno accesible", "en": "accessible oxygen"}),
+    ("proton_wire", {"es": "cadena de protones", "en": "proton wire"}),
+    ("redox_environment", {"es": "donadores redox", "en": "redox donors"}),
+    ("electrostatics", {"es": "carga formal cercana", "en": "nearby formal charge"}),
+    ("water_network", {"es": "red de aguas", "en": "water network"}),
+    ("chromophore", {"es": "átomos del cromóforo", "en": "chromophore atoms"}),
+)
+
+
+# The QM region is a handful of named counts, which is a bar chart and not a grid.
+_QM_COUNTS = (
+    ("n_atoms_total", {"en": "atoms in region", "es": "átomos de la región"}, ""),
+    ("n_electrons", {"en": "electrons", "es": "electrones"}, ""),
+    ("n_heavy_observed", {"en": "heavy, observed", "es": "pesados observados"}, ""),
+    ("n_heavy_template", {"en": "heavy, from template", "es": "pesados de plantilla"}, ""),
+    ("n_hydrogens_added", {"en": "hydrogens added", "es": "hidrógenos añadidos"}, ""),
+)
+
+
+def _qm_items(r: Dict[str, Any], arm: str) -> List[Dict[str, Any]]:
+    out = []
+    for key, name, unit in _QM_COUNTS:
+        v = F.get(r, f"arms.{arm}.qm_region.{key}")
+        if isinstance(v, (int, float)):
+            out.append({"name": name["en"], "value": float(v), "unit": unit, "key": key})
+    return out
+
+
+def _pocket_items(r: Dict[str, Any], arm: str) -> List[Dict[str, Any]]:
+    """The pocket's own numbers, each with the unit the run gave it."""
+    out = []
+    for key, name in _POCKET:
+        blk = F.get(r, f"arms.{arm}.stages.pocket.{key}")
+        if not isinstance(blk, dict):
+            continue
+        v = blk.get("value")
+        if isinstance(v, (int, float)):
+            out.append(
+                {
+                    "name": name["en"],
+                    "value": float(v),
+                    "unit": str(blk.get("unit") or ""),
+                    "key": key,
+                }
+            )
+    return out
 
 
 def mesh_targets(r: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -215,18 +272,19 @@ _ARM_TITLE = {
 }
 
 
-def _arm_chapter(r: Dict[str, Any], arm: str, _drawn=None) -> Dict[str, Any]:
-    """One chapter per arm the run answered for.
+def _arm_chapters(r: Dict[str, Any], arm: str, drawn) -> List[Dict[str, Any]]:
+    """The chapters one arm earns.
 
-    An arm that never ran still gets its chapter: the reason it did not run is
-    the finding, and `what_would_be_needed` is the run telling the reader what
-    would change that. Dropping it would hide the more interesting half.
-
-    Only the module's own ALIASES reach a beat, so each arm addresses itself
-    through the alias declared for it rather than a per-chapter one."""
+    An arm that never ran earns exactly one: the reason it did not is the
+    finding, and `what_would_be_needed` is the run saying what would change it.
+    An arm that ran earns as many as it has evidence for -- how it was
+    recognised, the fold, the pocket it measured, the region it handed to
+    quantum chemistry, and whatever it failed to compute -- because those are
+    separate claims and a reader checks them separately."""
     base = f"arms.{arm}"
     v = _ARM_ALIAS[arm]
     ran = _arm_ran(r, arm)
+    title = _ARM_TITLE.get(arm, {"es": f"Brazo {arm}", "en": f"Arm {arm}"})
 
     rows = F.get(r, "cross_arm.rows") or []
     i = next(
@@ -237,70 +295,261 @@ def _arm_chapter(r: Dict[str, Any], arm: str, _drawn=None) -> Dict[str, Any]:
         ),
         None,
     )
-
-    beats: List[Dict[str, Any]] = []
-    if i is not None:
-        beats.append(
+    chromo = (
+        [
             {
                 "es": f"El cromóforo de este brazo: «{{x:rows[{i}].chromophore}}»",
-                "en": f"This arm's chromophore, as the run describes it: «{{x:rows[{i}].chromophore}}»",
+                "en": f"This arm's chromophore, as the run describes it: "
+                f"«{{x:rows[{i}].chromophore}}»",
             }
-        )
+        ]
+        if i is not None
+        else []
+    )
+
     if not ran:
-        beats.append(
+        return [
             {
-                "es": f"Este brazo no corrió: «{{{v}:reason}}»",
-                "en": f"This arm did not run: «{{{v}:reason}}»",
-                "kind": "gap",
+                "id": f"arm_{arm.lower()}",
+                "title": title,
+                "claims": [base] + ([f"cross_arm.rows[{i}]"] if i is not None else []),
+                "scene": {"type": "panel", "root": base},
+                "beats": chromo
+                + [
+                    {
+                        "es": f"Este brazo no corrió: «{{{v}:reason}}»",
+                        "en": f"This arm did not run: «{{{v}:reason}}»",
+                        "kind": "gap",
+                    },
+                    {
+                        "es": f"Para que corriera haría falta: «{{{v}:what_would_be_needed}}»",
+                        "en": f"Running it would need: «{{{v}:what_would_be_needed}}»",
+                        "kind": "note",
+                    },
+                ],
+            }
+        ]
+
+    meshed = f"arm{arm}" in (drawn or {})
+    chs: List[Dict[str, Any]] = []
+
+    # ── how the engine knew which arm this is ───────────────────────────────────
+    chs.append(
+        {
+            "id": f"arm_{arm.lower()}",
+            "title": title,
+            "claims": [
+                f"{base}.arm_detection",
+                f"{base}.sequence_source",
+                f"{base}.arm",
+                f"{base}.engine",
+                f"{base}.level",
+                f"{base}.stages_planned",
+                f"{base}.wall_seconds",
+                f"{base}.quantum_cost",
+                f"{base}.visualization",
+            ]
+            + ([f"cross_arm.rows[{i}]"] if i is not None else []),
+            "scene": (
+                {"type": "cartoon", "mesh": f"arm{arm}"}
+                if meshed
+                else {"type": "panel", "root": f"{base}.arm_detection"}
+            ),
+            "beats": chromo
+            + [
+                {
+                    "es": f"El motor reconoció este brazo solo: «{{{v}:arm_detection.why}}»",
+                    "en": f"The engine recognised this arm on its own: «{{{v}:arm_detection.why}}»",
+                },
+                {
+                    "es": f"Cromóforo {{{v}:arm_detection.chromophore}} sobre {{{v}:arm_detection.n_residues}} residuos; "
+                    f"el cofactor es endógeno: {{{v}:arm_detection.cofactor_endogenous}}.",
+                    "en": f"Chromophore {{{v}:arm_detection.chromophore}} over {{{v}:arm_detection.n_residues}} residues; "
+                    f"the cofactor is endogenous: {{{v}:arm_detection.cofactor_endogenous}}.",
+                    "tech": {
+                        "es": f"reconocido por: {{{v}:arm_detection.recognized_by}}",
+                        "en": f"recognised by: {{{v}:arm_detection.recognized_by}}",
+                    },
+                },
+                {
+                    "es": f"Corrió a nivel {{{v}:level}} sobre {{{v}:stages_planned}}, en {{{v}:wall_seconds|n1}} s.",
+                    "en": f"It ran at {{{v}:level}} level over {{{v}:stages_planned}}, in {{{v}:wall_seconds|n1}} s.",
+                },
+                # describes the picture, not a value, so it cites nothing and says so
+                {
+                    "es": "La estructura se dibuja aquí, residuo a residuo.",
+                    "en": "The structure is drawn here, residue by residue.",
+                    "kind": "note",
+                    "requires_mesh": f"arm{arm}",
+                    "focus": {"grow": True},
+                },
+            ],
+        }
+    )
+
+    # ── the fold it loaded ──────────────────────────────────────────────────────
+    if isinstance(F.get(r, f"{base}.stages.structure"), dict):
+        chs.append(
+            {
+                "id": f"arm_{arm.lower()}_structure",
+                "title": {"es": "La estructura que cargó", "en": "The structure it loaded"},
+                "claims": [f"{base}.stages.structure", f"{base}.pdb_text"],
+                "scene": (
+                    {"type": "cartoon", "mesh": f"arm{arm}"}
+                    if meshed
+                    else {"type": "panel", "root": f"{base}.stages.structure"}
+                ),
+                "beats": [
+                    {
+                        "es": f"La estructura viene de {{{v}:stages.structure.source}} y trae "
+                        f"{{{v}:stages.structure.atoms|int}} átomos.",
+                        "en": f"The structure comes from {{{v}:stages.structure.source}} and carries "
+                        f"{{{v}:stages.structure.atoms|int}} atoms.",
+                    },
+                    {
+                        "es": "Nada de lo que sigue se midió sobre un modelo: todo sale de esta estructura.",
+                        "en": "Nothing that follows was measured on a model: it all comes off this structure.",
+                        "kind": "note",
+                        "requires_mesh": f"arm{arm}",
+                    },
+                ],
             }
         )
-        beats.append(
+
+    # ── the pocket, which is where this arm's physics is decided ───────────────
+    items = _pocket_items(r, arm)
+    if items:
+        # The count of quantities is something this file would be computing, not
+        # something the run states, so it is not put in a sentence as if it were.
+        beats: List[Dict[str, Any]] = [
             {
-                "es": f"Para que corriera haría falta: «{{{v}:what_would_be_needed}}»",
-                "en": f"Running it would need: «{{{v}:what_would_be_needed}}»",
+                "es": "El bolsillo alrededor del cromóforo se midió magnitud a magnitud, y "
+                "cada una llega con el método que la produjo y con lo que no demuestra.",
+                "en": "The pocket around the chromophore was measured one quantity at a time, "
+                "each arriving with the method behind it and with what it does not show.",
                 "kind": "note",
             }
-        )
-    else:
-        beats.append(
-            {
-                "es": f"Corrió a nivel {{{v}:level}}, sobre las etapas {{{v}:stages_planned}}.",
-                "en": f"It ran at {{{v}:level}} level, over the stages {{{v}:stages_planned}}.",
-            }
-        )
-        if i is not None:
+        ]
+        for it in items:
+            k = it["key"]
             beats.append(
                 {
-                    "es": f"El mecanismo que este brazo admite: «{{x:rows[{i}].mechanism}}»",
-                    "en": f"The mechanism this arm allows: «{{x:rows[{i}].mechanism}}»",
+                    "es": f"{it['name'].capitalize()}: {{{v}:stages.pocket.{k}.value|n2}} "
+                    f"{{{v}:stages.pocket.{k}.unit}}.",
+                    "en": f"{it['name'].capitalize()}: {{{v}:stages.pocket.{k}.value|n2}} "
+                    f"{{{v}:stages.pocket.{k}.unit}}.",
+                    "tech": {
+                        "es": f"método: {{{v}:stages.pocket.{k}.method}}",
+                        "en": f"method: {{{v}:stages.pocket.{k}.method}}",
+                    },
                 }
             )
             beats.append(
                 {
-                    "es": f"Lo que lo limita: «{{x:rows[{i}].limiting_factor}}»",
-                    "en": f"What bounds it: «{{x:rows[{i}].limiting_factor}}»",
+                    "es": f"Lo que esa cifra no dice: «{{{v}:stages.pocket.{k}.notes}}»",
+                    "en": f"What that figure does not say: «{{{v}:stages.pocket.{k}.notes}}»",
+                    "kind": "note",
                 }
             )
-        beats.append(
+        chs.append(
             {
-                "es": "La estructura de este brazo se dibuja aquí, residuo a residuo.",
-                "en": "This arm's structure is drawn here, residue by residue.",
-                "requires_mesh": f"arm{arm}",
-                "focus": {"grow": True},
+                "id": f"arm_{arm.lower()}_pocket",
+                "title": {"es": "El bolsillo, medido", "en": "The pocket, measured"},
+                "claims": [f"{base}.stages.pocket"],
+                "scene": {"type": "endpoints", "items": items},
+                "beats": beats,
             }
         )
 
-    scene: Dict[str, Any] = {"type": "panel", "root": base}
-    if _drawn and f"arm{arm}" in _drawn:
-        scene = {"type": "cartoon", "mesh": f"arm{arm}"}
+    # ── the region handed to quantum chemistry ─────────────────────────────────
+    if isinstance(F.get(r, f"{base}.qm_region"), dict):
+        chs.append(
+            {
+                "id": f"arm_{arm.lower()}_qm",
+                "title": {
+                    "es": "La región que fue a química cuántica",
+                    "en": "The region handed to quantum chemistry",
+                },
+                "claims": [f"{base}.qm_region"],
+                "scene": (
+                    {"type": "endpoints", "items": _qm_items(r, arm)}
+                    if _qm_items(r, arm)
+                    else {"type": "panel", "root": f"{base}.qm_region"}
+                ),
+                "beats": [
+                    {
+                        "es": f"Se aisló {{{v}:qm_region.resname}} en la cadena {{{v}:qm_region.chain}}: "
+                        f"{{{v}:qm_region.n_atoms_total|int}} átomos y {{{v}:qm_region.n_electrons|int}} electrones.",
+                        "en": f"It isolated {{{v}:qm_region.resname}} on chain {{{v}:qm_region.chain}}: "
+                        f"{{{v}:qm_region.n_atoms_total|int}} atoms and {{{v}:qm_region.n_electrons|int}} electrons.",
+                        "tech": {
+                            "es": f"método: {{{v}:qm_region.method}}",
+                            "en": f"method: {{{v}:qm_region.method}}",
+                        },
+                    },
+                    {
+                        "es": f"De los pesados, {{{v}:qm_region.n_heavy_observed|int}} se observan y "
+                        f"{{{v}:qm_region.n_heavy_template|int}} vienen de la plantilla; se añadieron "
+                        f"{{{v}:qm_region.n_hydrogens_added|int}} hidrógenos.",
+                        "en": f"Of the heavy atoms {{{v}:qm_region.n_heavy_observed|int}} are observed and "
+                        f"{{{v}:qm_region.n_heavy_template|int}} come from the template; "
+                        f"{{{v}:qm_region.n_hydrogens_added|int}} hydrogens were added.",
+                    },
+                    {
+                        "es": f"Carga formal {{{v}:qm_region.formal_charge}}, capa cerrada: "
+                        f"{{{v}:qm_region.closed_shell}}.",
+                        "en": f"Formal charge {{{v}:qm_region.formal_charge}}, closed shell: "
+                        f"{{{v}:qm_region.closed_shell}}.",
+                    },
+                    {
+                        "es": f"«{{{v}:qm_region.electron_count_note}}»",
+                        "en": f"«{{{v}:qm_region.electron_count_note}}»",
+                        "kind": "note",
+                    },
+                ],
+            }
+        )
 
-    return {
-        "id": f"arm_{arm.lower()}",
-        "title": _ARM_TITLE.get(arm, {"es": f"Brazo {arm}", "en": f"Arm {arm}"}),
-        "claims": [base] + ([f"cross_arm.rows[{i}]"] if i is not None else []),
-        "scene": scene,
-        "beats": beats,
-    }
+    # ── and what it could not compute ──────────────────────────────────────────
+    if isinstance(F.get(r, f"{base}.stages.electronic"), dict) or isinstance(
+        F.get(r, f"{base}.completeness"), dict
+    ):
+        chs.append(
+            {
+                "id": f"arm_{arm.lower()}_missing",
+                "title": {"es": "Lo que no consiguió calcular", "en": "What it could not compute"},
+                "claims": [
+                    f"{base}.stages.electronic",
+                    f"{base}.completeness",
+                    f"{base}.electronic_cascade",
+                ],
+                "scene": {"type": "panel", "root": f"{base}.completeness"},
+                "beats": [
+                    {
+                        "es": f"Etapas que corrieron: {{{v}:completeness.stages_run|int}}. "
+                        f"Sin resultado: {{{v}:completeness.stages_unavailable|int}}.",
+                        "en": f"Stages that ran: {{{v}:completeness.stages_run|int}}. "
+                        f"Without a result: {{{v}:completeness.stages_unavailable|int}}.",
+                    },
+                    {
+                        "es": f"La etapa electrónica no dio valor: «{{{v}:stages.electronic.reason}}»",
+                        "en": f"The electronic stage produced no value: «{{{v}:stages.electronic.reason}}»",
+                        "kind": "gap",
+                    },
+                    {
+                        "es": f"Lo que haría falta: «{{{v}:stages.electronic.what_would_be_needed}}»",
+                        "en": f"What it would take: «{{{v}:stages.electronic.what_would_be_needed}}»",
+                        "kind": "note",
+                    },
+                    {
+                        "es": f"«{{{v}:completeness.note}}»",
+                        "en": f"«{{{v}:completeness.note}}»",
+                        "kind": "note",
+                    },
+                ],
+            }
+        )
+    return chs
 
 
 def chapters(
@@ -387,7 +636,7 @@ def chapters(
 
     for arm in ARMS:
         if isinstance(F.get(r, f"arms.{arm}"), dict):
-            chs.append(_arm_chapter(r, arm, meshes or {}))
+            chs.extend(_arm_chapters(r, arm, meshes or {}))
 
     chs.append(
         {
