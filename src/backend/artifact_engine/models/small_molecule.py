@@ -58,7 +58,7 @@ def unwrap(result: Dict[str, Any]) -> Dict[str, Any]:
         and isinstance(result.get("result"), dict)
         and "stages" in result["result"]
     ):
-        return result["result"]
+        return dict(result["result"])
     return result
 
 
@@ -261,6 +261,7 @@ def chapters(
             "id": "overview",
             "title": {"es": "La molécula y su blanco", "en": "The molecule and its target"},
             "claims": [
+                S0,  # the molecule itself; `druglike` claims its two sub-blocks
                 "pipeline",
                 "pipeline_id",
                 "mode",
@@ -311,7 +312,10 @@ def chapters(
         {
             "id": "druglike",
             "title": {"es": "¿Parece un fármaco?", "en": "Does it look like a drug?"},
-            "claims": [],
+            # This chapter draws `properties` and `drug_likeness`, so it owns them:
+            # left unclaimed they were shown on screen while the coverage map said
+            # no chapter showed them, which is the one thing the annex is for saying.
+            "claims": [f"{S0}.properties", f"{S0}.drug_likeness"],
             "scene": scene_druglike(r),
             "beats": [
                 {
