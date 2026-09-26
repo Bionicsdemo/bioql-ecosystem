@@ -51,7 +51,29 @@ while [ $(( $(date +%s) - START )) -lt "$DEADLINE" ]; do
   sleep 5
 done
 
-echo "--- when each service started answering ---"
+# When a process actually started, asked of the process itself. The poll above can
+# only report when this agent first looked, and this agent starts at *login*, which
+# on the 2026-09-26 restart was 129 s after the kernel came up -- so every number it
+# printed carried that delay and read as if the stack had been slow. ps -o etime is
+# the honest measure. (macOS ps has no etimes, and lstart is localised, so etime it is.)
+echo "--- when each service's process actually started ---"
+for spec in $PORTS; do
+  port="${spec%%:*}"; name="${spec#*:}"
+  pid=$(/usr/sbin/lsof -ti :"$port" 2>/dev/null | head -1)
+  if [ -z "$pid" ]; then printf "  %-14s :%-5s  not running\n" "$name" "$port"; continue; fi
+  et=$(ps -o etime= -p "$pid" 2>/dev/null | tr -d ' ')
+  secs=$(printf '%s' "$et" | awk -F'[-:]' '{
+      if (NF==4) print $1*86400+$2*3600+$3*60+$4;
+      else if (NF==3) print $1*3600+$2*60+$3;
+      else print $1*60+$2 }')
+  [ -n "$secs" ] || continue
+  began=$(( $(date +%s) - secs ))
+  printf "  %-14s :%-5s  started %s  (+%ss after boot)\n" \
+         "$name" "$port" "$(date -r "$began" '+%H:%M:%S')" "$(( began - BOOT ))"
+done
+
+echo
+echo "--- when this agent first saw each one answer (it starts at login, not at boot) ---"
 ok=0; total=0
 for spec in $PORTS; do
   port="${spec%%:*}"; name="${spec#*:}"; t="$(first_seen "$port")"
@@ -95,3 +117,6 @@ done
 echo
 if [ "$ok" = "$total" ]; then echo "VERDICT: all $total services came up unattended."
 else echo "VERDICT: only $ok of $total came up unattended."; fi
+
+# one report per login adds up; keep the last ten
+ls -t "$HOME"/.bioql/runtime/logs/boot-audit-*.txt 2>/dev/null | tail -n +11 | xargs -r rm -f
