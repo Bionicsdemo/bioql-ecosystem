@@ -43,6 +43,18 @@ To pick up a backend edit: clear the stale `.pyc`, then kill the backend and let
 - **The frontend on :3000 is served from `~/.bioql/runtime/frontend-v2`,** not from the repo. Confirm a change landed by curling the built asset from the running server.
 - **TargetRadar on :4000 is served from `~/.bioql/runtime/targetradar`,** rsynced from the repo at startup only. Repo edits after startup do nothing until the next restart.
 
+- **Most of `src/backend` is not in git — a fix there has no safety net.** 622 of its
+  663 `.py` files are untracked, so a change that works on disk is one `git checkout` or
+  rsync away from being lost. And `git add`-ing the file you touched usually does not
+  work either: the pre-commit hooks follow its imports into other untracked modules and
+  fail on *their* pre-existing type debt. On 2026-09-28 `docking_screening_engine.py`
+  (2 165 lines) dragged in `insight_engine` and `qdesign_optimizer`, and
+  `synthesizability.py` dragged in `validation_registry`; only the self-contained ones
+  went in. Before fixing anything under `src/backend`, run
+  `git ls-files --error-unmatch <file>`. If it is untracked, say so — the change ships
+  without version control — and do not try to add it in passing: clearing that cascade
+  is its own task. New files you create do commit cleanly.
+
 ## Testing
 - **Run tests with `~/.bioql/venv/bin/python -m pytest`,** the backend's own interpreter. Homebrew `python3` lacks `flask`, `block2/pyblock2` and other backend deps, so a run there reports failures that are not regressions — on 2026-09-18 six "failures" all passed under the venv.
 - **A source-level guard must not read its own explanation.** Three guards written on 2026-09-18 fired on their own docstrings or notes (e.g. a docstring saying "nothing here imports cudaq" read as an import). Strip docstrings via AST before substring checks, and skip prose fields (`note`, `reason`, `description`, …) when matching recorded values.
