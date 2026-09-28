@@ -241,10 +241,11 @@ def rank_conformers(
             )
             usar = "xtb"
 
+    razones: List[str] = []
     if usar == "xtb":
         crudas, err = _xtb_energies(conformer_xyz, charge=charge, timeout_s=timeout_s)
     else:
-        crudas, err = _sqd_energies(conformer_xyz, charge=charge, timeout_s=timeout_s)
+        crudas, err, razones = _sqd_energies(conformer_xyz, charge=charge, timeout_s=timeout_s)
     if err:
         out["error"] = err
         return out
@@ -252,14 +253,24 @@ def rank_conformers(
     out["method_used"] = usar
     ref = crudas[reference]
     if ref is None:
-        out["error"] = f"el confórmero de referencia {reference} no dio energía"
+        por_que = (razones[reference] if reference < len(razones) else "") or "sin causa registrada"
+        out["error"] = (
+            f"el confórmero de referencia {reference} no dio energía ({por_que}); "
+            f"sin referencia no hay diferencial que publicar"
+        )
+        out["failure_reasons"] = [r for r in razones if r]
         return out
 
     for i, e in enumerate(crudas):
         if e is None:
+            detalle = (razones[i] if i < len(razones) else "") or "no convergió"
             out["energies"].append(
                 ConformerEnergy(
-                    i, None, usar, reference, note="no convergió; se declara, no se rellena"
+                    i,
+                    None,
+                    usar,
+                    reference,
+                    note=f"{detalle}; se declara, no se rellena",
                 ).__dict__
             )
             continue
@@ -350,6 +361,7 @@ def _sqd_energies(xyzs: List[str], *, charge: int, timeout_s: int, n_act_orb: in
         return [], f"la ruta SQD no está disponible: {type(e).__name__}: {e}"
 
     energias: List[Optional[float]] = []
+    razones: List[str] = []
     for xyz in xyzs:
         try:
             cuerpo = "\n".join(xyz.strip().splitlines()[2:])  # quita cabecera XYZ
@@ -358,9 +370,232 @@ def _sqd_energies(xyzs: List[str], *, charge: int, timeout_s: int, n_act_orb: in
             r = cascade.run(mf, n_act_orb=n_act_orb, allow_qpu=False, allow_cudaq=False)
             energia = (r or {}).get("e_sqd")
             energias.append(float(energia) if energia is not None else None)
-        except Exception:  # noqa: BLE001 — un confórmero que falla no tumba el lote
+            razones.append("" if energia is not None else "la cascada SQD no devolvió e_sqd")
+        except Exception as e:  # noqa: BLE001 — un confórmero que falla no tumba el lote
+            # Se ANOTA por qué. Tragarse esto es lo que hizo que dos candidatos
+            # salieran con "0 de 0 significativos" y ninguna explicación: la
+            # región tenía un número impar de electrones y pyscf la rechazaba.
             energias.append(None)
-    return energias, None
+            razones.append(f"{type(e).__name__}: {str(e).splitlines()[0][:160]}")
+    return energias, None, razones
+
+
+# ── QM/MM: el cuántico solo donde decide, lo demás clásico ───────────────────
+# Anclas por orden de prioridad. Cada una es una razón distinta para gastar
+# cuántico, y todas están declaradas en el gate de reactividad del repo.
+_ANCLAS = (
+    ("S-S", "[SX2][SX2]", "enlace disulfuro: el TS de ruptura S–S es multireferencial"),
+    ("C-S", "[CX4][SX2][CX4]", "puente tioéter: el enlace C–S del cierre"),
+    (
+        "N-Me amida",
+        "[NX3;H0]([CH3])[CX3]=O",
+        "amida N-metilada: su equilibrio cis/trans decide qué confórmero domina",
+    ),
+    (
+        "amida",
+        "[NX3][CX3]=O",
+        "amida del esqueleto: en un cierre head-to-tail la nueva es químicamente "
+        "idéntica a las demás, así que se toma la primera y se dice",
+    ),
+)
+
+# Longitud del enlace C–H con que se capa un enlace cortado.
+_CAP_CH = 1.09
+
+# Cuántas rondas de absorción se permiten antes de rendirse y decirlo.
+_MAX_REPARACIONES = 6
+
+
+def _cortable(mol, dentro: int, fuera: int) -> bool:
+    """¿Se puede cortar este enlace de frontera y capar con un hidrógeno?
+
+    Solo si es C-C, de orden uno y no aromático. Es la condición que hace que un
+    único H restituya la valencia sin cambiar la química de lo que queda dentro.
+    """
+    b = mol.GetBondBetweenAtoms(int(dentro), int(fuera))
+    if b is None or b.GetIsAromatic() or b.GetBondTypeAsDouble() != 1.0:
+        return False
+    return bool(
+        mol.GetAtomWithIdx(int(dentro)).GetAtomicNum() == 6
+        and mol.GetAtomWithIdx(int(fuera)).GetAtomicNum() == 6
+    )
+
+
+def closure_region(smiles: str, molblocks: List[str], radius: int = 2) -> Dict[str, Any]:
+    """Recorta la región que de verdad decide, y deja el resto a la GPU.
+
+    Correr SQD sobre el macrociclo entero gasta el cálculo en átomos que no
+    deciden nada: en un candidato de 8 residuos son 64 átomos pesados, y la
+    región que importa son 9. Lo que cambia entre confórmeros y gobierna el
+    plegamiento está concentrado en el enlace de cierre y en las amidas
+    N-metiladas; el resto es andamiaje que el campo de fuerzas describe bien.
+
+    Dos condiciones para que la diferencia signifique algo:
+
+    1. El conjunto de átomos es EL MISMO en todos los confórmeros. Solo cambia la
+       geometría, que es el régimen donde el error se cancela -- el mismo que
+       midió NIR: 1,348 eV de error absoluto frente a 0,08 eV en diferencial.
+    2. Los enlaces cortados se capan con hidrógeno a lo largo del enlace
+       original. Un corte sin capar deja radicales y el número no significa nada.
+
+    Devuelve las geometrías recortadas y DECLARA qué se cortó, porque una región
+    es una aproximación y el lector tiene que poder discutirla.
+    """
+    try:
+        from rdkit import Chem
+    except Exception as e:  # noqa: BLE001
+        return {"available": False, "reason": f"rdkit no disponible: {e}"}
+    if not molblocks:
+        return {"available": False, "reason": "no se recibió ninguna conformación"}
+
+    plano = Chem.MolFromSmiles(smiles or "")
+    if plano is None:
+        return {"available": False, "reason": "el SMILES no es una molécula válida"}
+
+    ancla_nombre = ancla_por_que = ""
+    match: Tuple[int, ...] = ()
+    for nombre, smarts, por_que in _ANCLAS:
+        patt = Chem.MolFromSmarts(smarts)
+        hits = plano.GetSubstructMatches(patt) if patt else ()
+        if hits:
+            ancla_nombre, ancla_por_que, match = nombre, por_que, hits[0]
+            break
+    if not match:
+        return {
+            "available": False,
+            "reason": "no se encontró ni disulfuro, ni tioéter, ni amida donde anclar",
+        }
+
+    # crecimiento por enlaces desde el ancla
+    nucleo = set(match)
+    for _ in range(max(0, int(radius))):
+        nucleo |= {n.GetIdx() for i in list(nucleo) for n in plano.GetAtomWithIdx(i).GetNeighbors()}
+
+    # Reparación de la frontera. Crecer por radio y cortar lo que cruce es
+    # ingenuo: la primera versión de esto cortaba un C=O y dos amidas, y capar un
+    # doble enlace con UN hidrógeno deja un radical -- la región salía con 63
+    # electrones, pyscf la rechazaba por paridad y el confórmero se perdía sin
+    # que nadie dijera por qué.
+    #
+    # La regla del átomo-enlace en QM/MM es que solo se corta un enlace C-C
+    # SIMPLE y no aromático: apolar, de orden uno, y capable con un hidrógeno sin
+    # cambiar la química de lo que queda dentro. Cualquier otro enlace de
+    # frontera (doble, aromático, o a heteroátomo) se resuelve absorbiendo el
+    # átomo de fuera, nunca cortándolo.
+    absorbidos = 0
+    for _ in range(_MAX_REPARACIONES):
+        pendientes = {
+            nb.GetIdx()
+            for i in nucleo
+            for nb in plano.GetAtomWithIdx(i).GetNeighbors()
+            if nb.GetIdx() not in nucleo and not _cortable(plano, i, nb.GetIdx())
+        }
+        if not pendientes:
+            break
+        nucleo |= pendientes
+        absorbidos += len(pendientes)
+    else:
+        return {
+            "available": False,
+            "reason": (
+                "la frontera de la región no se estabilizó: quedaban "
+                "enlaces que no son C-C simples y cortarlos daría "
+                "una región con la química cambiada"
+            ),
+        }
+    nucleo_ord = sorted(nucleo)
+
+    # enlaces que cruzan la frontera: a estas alturas todos son C-C simples, y
+    # cada uno se capa con un H sobre la dirección del enlace original
+    cortes = []
+    for i in nucleo_ord:
+        for nb in plano.GetAtomWithIdx(i).GetNeighbors():
+            if nb.GetIdx() not in nucleo:
+                cortes.append((i, nb.GetIdx()))
+
+    # Carga formal de la REGIÓN, que no tiene por qué ser la de la molécula: un
+    # recorte que atrapa media cadena de lisina se lleva su carga con él.
+    carga_region = sum(plano.GetAtomWithIdx(i).GetFormalCharge() for i in nucleo_ord)
+
+    # Las geometrías llevan los átomos pesados de la región, SUS HIDRÓGENOS y las
+    # capas. Los hidrógenos no son decorado: la primera versión escribía solo
+    # pesados más capas, y eso no es la región -- es un fragmento deshidrogenado
+    # con la capa electrónica abierta. Salía impar, pyscf lo rechazaba, y el
+    # único candidato que "funcionó" había calculado esa otra cosa.
+    geometrias: List[str] = []
+    n_electrones = None
+    for mbk in molblocks:
+        m3d = Chem.MolFromMolBlock(mbk, removeHs=False)
+        if m3d is None:
+            continue
+        # RemoveHs conserva el orden relativo de lo que queda, así que el k-ésimo
+        # pesado de m3d es el átomo k del SMILES plano.
+        pesados = [a.GetIdx() for a in m3d.GetAtoms() if a.GetAtomicNum() > 1]
+        if len(pesados) != plano.GetNumAtoms():
+            return {
+                "available": False,
+                "reason": (
+                    "la conformación no casa átomo a átomo con el SMILES; "
+                    "sin esa correspondencia el recorte sería de otra molécula"
+                ),
+            }
+        conf = m3d.GetConformer()
+        incluidos: List[int] = []
+        for i in nucleo_ord:
+            j = pesados[i]
+            incluidos.append(j)
+            incluidos += [
+                n.GetIdx() for n in m3d.GetAtomWithIdx(j).GetNeighbors() if n.GetAtomicNum() == 1
+            ]
+        lineas = []
+        carga_nuclear = 0
+        for j in incluidos:
+            pos = conf.GetAtomPosition(j)
+            at = m3d.GetAtomWithIdx(j)
+            carga_nuclear += at.GetAtomicNum()
+            lineas.append(f"{at.GetSymbol()} {pos.x:.5f} {pos.y:.5f} {pos.z:.5f}")
+        for dentro, fuera in cortes:
+            a, b = conf.GetAtomPosition(pesados[dentro]), conf.GetAtomPosition(pesados[fuera])
+            vx, vy, vz = b.x - a.x, b.y - a.y, b.z - a.z
+            d = (vx * vx + vy * vy + vz * vz) ** 0.5 or 1.0
+            f = _CAP_CH / d
+            carga_nuclear += 1
+            lineas.append(f"H {a.x + vx * f:.5f} {a.y + vy * f:.5f} {a.z + vz * f:.5f}")
+        n_electrones = carga_nuclear - carga_region
+        geometrias.append(f"{len(lineas)}\nregión de cierre\n" + "\n".join(lineas))
+
+    # Paridad, contada sobre la geometría que de verdad se emite y no sobre una
+    # fórmula que puede desviarse de ella.
+    if n_electrones is not None and n_electrones % 2:
+        return {
+            "available": False,
+            "reason": (
+                f"la región saldría con {n_electrones} electrones, impar: "
+                f"es una capa abierta y RHF no la describe. Se declara en "
+                f"vez de forzar un espín que nadie ha medido"
+            ),
+        }
+
+    return {
+        "available": bool(geometrias),
+        "anchor": ancla_nombre,
+        "why": ancla_por_que,
+        "n_heavy_region": len(nucleo_ord),
+        "n_heavy_molecule": plano.GetNumHeavyAtoms(),
+        "n_caps": len(cortes),
+        "charge": carga_region,
+        "n_electrons": n_electrones,
+        "n_absorbed_to_repair_boundary": absorbidos,
+        "radius_bonds": int(radius),
+        "atom_indices": nucleo_ord,
+        "geometries": geometrias,
+        "caveat": (
+            "una región QM es una aproximación declarada: los enlaces cortados se "
+            "capan con hidrógeno y el entorno queda fuera. Vale para COMPARAR "
+            "confórmeros de la misma molécula, que es para lo que se usa, no para "
+            "dar una energía de la molécula entera"
+        ),
+    }
 
 
 # ── presupuesto 60/40, medido y no decorado ──────────────────────────────────
@@ -386,6 +621,18 @@ class ComputeBudget:
 
     def add_quantum(self, seconds: float) -> None:
         self.quantum_seconds += max(0.0, float(seconds))
+
+    def quantum_seconds_remaining_for_target(self) -> float:
+        """Segundos de cuántico que faltan para que el reparto alcance su objetivo.
+
+        Sirve para decidir CUÁNTOS confórmeros mandar al peldaño cuántico, no
+        para inflar el número: cada segundo que esto autoriza compra un
+        confórmero más ordenado a nivel QM. Si ya se pasó, devuelve 0.
+        """
+        if self.target_quantum <= 0:
+            return 0.0
+        objetivo = self.gpu_seconds * (self.target_quantum / max(self.target_gpu, 1e-9))
+        return max(0.0, objetivo - self.quantum_seconds)
 
     def report(self) -> Dict[str, Any]:
         total = self.gpu_seconds + self.quantum_seconds

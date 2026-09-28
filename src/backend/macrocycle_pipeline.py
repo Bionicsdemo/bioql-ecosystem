@@ -30,6 +30,10 @@ import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
+# Tope de confórmeros que reciben tratamiento cuántico por candidato. Existe
+# para que una calibración barata no dispare el escenario a miles de segundos.
+_MAX_QM_CONF = 12
+
 PIPELINE = "macrocycle_design"
 
 
@@ -87,8 +91,9 @@ def _diversify(semilla: str, cyc: str, n: int) -> List[Tuple[str, str]]:
     return fuera[:n]
 
 
-def _conformer_xyzs(r: Dict[str, Any], mc: Any, limit: int = 3) -> List[str]:
-    """Geometrías XYZ de los confórmeros de menor energía de un candidato."""
+def _conformer_molblocks(r: Dict[str, Any], limit: int = 3) -> List[str]:
+    """Confórmeros como molblocks, que es lo que el recorte de región necesita
+    para poder casar átomo a átomo con el SMILES."""
     try:
         from rdkit import Chem
         from rdkit.Chem import AllChem
@@ -101,7 +106,7 @@ def _conformer_xyzs(r: Dict[str, Any], mc: Any, limit: int = 3) -> List[str]:
         if not ids:
             return []
         AllChem.MMFFOptimizeMoleculeConfs(m)
-        return [Chem.MolToXYZBlock(m, confId=c) for c in ids[:limit]]
+        return [Chem.MolToMolBlock(m, confId=c) for c in ids[:limit]]
     except Exception:  # noqa: BLE001
         return []
 
@@ -333,29 +338,48 @@ def run_macrocycle(data: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
         "budget": presupuesto.report(),
     }
 
-    # ── 4b. cuántico de verdad, sobre lo poco que se lo gana ────────────────
+    # ── 4b. cuántico de verdad, sobre la región que decide ──────────────────
+    # Correr SQD sobre el macrociclo entero gastaba el cálculo en átomos que no
+    # deciden nada: 64 pesados en un candidato de 8 residuos, de los que unos 15
+    # son la región que gobierna el plegamiento. Con el recorte, lo que antes se
+    # saltaba por tamaño corre en decenas de segundos.
     quantum_on = bool(data.get("run_quantum", True))
-    top_k = int(data.get("quantum_top_k") or 1)
-    max_atoms = int(data.get("quantum_max_atoms") or 40)
+    top_k = int(data.get("quantum_top_k") or 2)
     q_resultados: List[Dict[str, Any]] = []
     q_saltados: List[Dict[str, Any]] = []
     elegibles = [r for r in construidos if r["quantum"]["applies"]]
-    for r in elegibles[:top_k] if quantum_on else []:
-        n_at = int(r["bro5"]["descriptors"].get("n_heavy") or 0)
-        if n_at > max_atoms:
-            q_saltados.append(
-                {
-                    "sequence": r["spec"]["sequence"],
-                    "reason": (
-                        f"{n_at} átomos pesados supera el tope de {max_atoms} para SQD en "
-                        f"esta máquina: el campo medio sobre la molécula entera no cabe en "
-                        f"el presupuesto. Se declara en vez de correrlo a medias."
-                    ),
-                }
-            )
-            continue
-        xyzs = _conformer_xyzs(r, mc, limit=int(data.get("quantum_n_conf") or 3))
-        if len(xyzs) < 2:
+
+    # Cuántos confórmeros reciben tratamiento cuántico.
+    #
+    # Con el recorte de región el SQD pasó a costar segundos, y con tres
+    # confórmeros fijos el reparto salía 98/2: no porque el cuántico sobrara,
+    # sino porque era un redondeo frente al ensemble. La palanca honesta no es
+    # encarecer el cálculo, es ampliarlo: cada confórmero de más es un confórmero
+    # ORDENADO a nivel cuántico, que es justo el producto de este escenario.
+    #
+    # Se calibra con el primer candidato, se mide lo que cuesta una geometría, y
+    # con eso se elige el número para los siguientes. Si el usuario fija
+    # `quantum_n_conf`, manda él y no se calibra nada.
+    n_conf_fijo = data.get("quantum_n_conf")
+    n_conf_base = int(n_conf_fijo or 3)
+    seg_por_geom: Optional[float] = None
+    plan_conf: List[Dict[str, Any]] = []
+
+    for idx, r in enumerate(elegibles[:top_k] if quantum_on else []):
+        n_conf = n_conf_base
+        if n_conf_fijo is None and seg_por_geom and seg_por_geom > 0:
+            restantes = max(1, min(top_k, len(elegibles)) - idx)
+            falta = presupuesto.quantum_seconds_remaining_for_target() / restantes
+            n_conf = max(n_conf_base, min(_MAX_QM_CONF, int(falta // seg_por_geom)))
+        plan_conf.append(
+            {
+                "sequence": r["spec"]["sequence"],
+                "n_conformers": n_conf,
+                "calibrated": n_conf_fijo is None and seg_por_geom is not None,
+            }
+        )
+        blocks = _conformer_molblocks(r, limit=n_conf)
+        if len(blocks) < 2:
             q_saltados.append(
                 {
                     "sequence": r["spec"]["sequence"],
@@ -363,10 +387,29 @@ def run_macrocycle(data: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
                 }
             )
             continue
+        region = mq.closure_region(r["spec"]["smiles"], blocks, radius=2)
+        if not region.get("available"):
+            q_saltados.append(
+                {
+                    "sequence": r["spec"]["sequence"],
+                    "reason": f"no se pudo recortar la región: {region.get('reason','')}",
+                }
+            )
+            continue
         t_q = time.perf_counter()
-        rk = mq.rank_conformers(xyzs, method="sqd", charge=0, timeout_s=3600)
-        presupuesto.add_quantum(time.perf_counter() - t_q)
+        rk = mq.rank_conformers(
+            region["geometries"],
+            method="sqd",
+            charge=int(region.get("charge", 0)),  # la de la REGIÓN, no la de la molécula
+            timeout_s=3600,
+        )
+        gastado = time.perf_counter() - t_q
+        presupuesto.add_quantum(gastado)
+        if region["geometries"]:
+            seg_por_geom = gastado / len(region["geometries"])
         rk["sequence"] = r["spec"]["sequence"]
+        rk["n_conformers_quantum"] = len(region["geometries"])
+        rk["region"] = {k: v for k, v in region.items() if k != "geometries"}
         q_resultados.append(rk)
         r["quantum_energies"] = rk
 
@@ -376,17 +419,29 @@ def run_macrocycle(data: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
         "n_run": len(q_resultados),
         "n_skipped": len(q_saltados),
         "skipped": q_saltados,
+        "conformer_plan": plan_conf,
+        "seconds_per_geometry": round(seg_por_geom, 2) if seg_por_geom else None,
         "results": q_resultados,
         "differential_floor_ev": mq.DIFFERENTIAL_FLOOR_EV,
         "note_es": (
-            "solo se emiten DIFERENCIAS entre confórmeros de la misma molécula. El "
-            "error absoluto medido de este protocolo es 1,348 eV frente a 0,08 eV en "
-            "diferencial, así que una energía absoluta de aquí no significaría nada"
+            "el cuántico corre sobre la REGIÓN de cierre, no sobre la molécula "
+            "entera: en un candidato de 8 residuos son unos 15 átomos pesados de "
+            "64, con sus hidrógenos y con cada enlace cortado capado. La frontera "
+            "se repara antes de cortar, porque solo un enlace C-C simple se puede "
+            "capar con un hidrógeno sin cambiar la química de lo que queda dentro. "
+            "Solo se emiten diferencias entre confórmeros de la misma región, "
+            "porque el error absoluto medido de este protocolo es 1,348 eV frente "
+            "a 0,08 eV en diferencial"
         ),
         "note_en": (
-            "only DIFFERENCES between conformers of the same molecule are emitted. "
-            "The measured absolute error of this protocol is 1.348 eV against 0.08 eV "
-            "differential, so an absolute energy from here would mean nothing"
+            "quantum runs on the closure REGION, not the whole molecule: in an "
+            "8-residue candidate that is about 15 heavy atoms out of 64, with their "
+            "hydrogens and every severed bond capped. The boundary is repaired "
+            "before cutting, because only a single C-C bond can be capped with one "
+            "hydrogen without changing the chemistry of what stays inside. Only "
+            "differences between conformers of the same region are emitted, because "
+            "this protocol's measured absolute error is 1.348 eV against 0.08 eV "
+            "differential"
         ),
     }
 
