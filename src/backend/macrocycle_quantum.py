@@ -326,20 +326,39 @@ def _quantum_available() -> Tuple[bool, str]:
         return False, f"modal_compute_layer no disponible: {type(e).__name__}: {e}"
 
 
-def _sqd_energies(xyzs: List[str], *, charge: int, timeout_s: int):
-    """Peldaño cuántico. No se implementa un sustituto clásico disfrazado: si la
-    ruta no está, el llamante ya degradó a xtb y lo dijo."""
+def _sqd_energies(xyzs: List[str], *, charge: int, timeout_s: int, n_act_orb: int = 6):
+    """Peldaño cuántico real: pyscf sobre la geometría -> SQD por la cascada.
+
+    La primera versión de esto llamaba a `quantum_gpu` con `{"xyz", "charge"}`, y
+    esa función es `cudaq_statevector(qasm_or_spec, shots)`: toma un CIRCUITO, no
+    una molécula. Habría devuelto error en cada confórmero y el llamante habría
+    degradado a xtb creyendo que la ruta cuántica estaba caída.
+
+    El camino verdadero es el que ya usa el resto del repo: campo medio con pyscf
+    y `sqd_cascade.run(mf, n_act_orb=...)`, que elige peldaño (CPU -> CUDA-Q ->
+    QPU) y NUNCA sube solo: `allow_qpu` y `allow_cudaq` son False por defecto
+    porque los dos gastan presupuesto real.
+
+    No se implementa ningún sustituto clásico disfrazado: si la cascada no da
+    valor, ese confórmero sale como None y el llamante lo declara.
+    """
     try:
-        mcl = _optional("modal_compute_layer")
+        pyscf_gto = _optional("pyscf.gto")
+        pyscf_scf = _optional("pyscf.scf")
+        cascade = _optional("sqd_cascade")
     except Exception as e:  # noqa: BLE001
-        return [], f"modal_compute_layer no importable: {type(e).__name__}: {e}"
+        return [], f"la ruta SQD no está disponible: {type(e).__name__}: {e}"
+
     energias: List[Optional[float]] = []
     for xyz in xyzs:
         try:
-            r = mcl.run("quantum_gpu", {"xyz": xyz, "charge": charge}, timeout=timeout_s)
-            energia = (r or {}).get("energy_hartree")
+            cuerpo = "\n".join(xyz.strip().splitlines()[2:])  # quita cabecera XYZ
+            mol = pyscf_gto.M(atom=cuerpo, basis="sto-3g", charge=charge, spin=0, verbose=0)
+            mf = pyscf_scf.RHF(mol).run()
+            r = cascade.run(mf, n_act_orb=n_act_orb, allow_qpu=False, allow_cudaq=False)
+            energia = (r or {}).get("e_sqd")
             energias.append(float(energia) if energia is not None else None)
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001 — un confórmero que falla no tumba el lote
             energias.append(None)
     return energias, None
 

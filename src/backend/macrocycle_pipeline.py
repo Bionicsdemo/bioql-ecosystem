@@ -87,6 +87,25 @@ def _diversify(semilla: str, cyc: str, n: int) -> List[Tuple[str, str]]:
     return fuera[:n]
 
 
+def _conformer_xyzs(r: Dict[str, Any], mc: Any, limit: int = 3) -> List[str]:
+    """Geometrías XYZ de los confórmeros de menor energía de un candidato."""
+    try:
+        from rdkit import Chem
+        from rdkit.Chem import AllChem
+
+        m = Chem.AddHs(Chem.MolFromSmiles(r["spec"]["smiles"]))
+        ps = AllChem.ETKDGv3()
+        ps.useMacrocycleTorsions = True
+        ps.randomSeed = 0xF00D
+        ids = list(AllChem.EmbedMultipleConfs(m, numConfs=max(4, limit * 2), params=ps))
+        if not ids:
+            return []
+        AllChem.MMFFOptimizeMoleculeConfs(m)
+        return [Chem.MolToXYZBlock(m, confId=c) for c in ids[:limit]]
+    except Exception:  # noqa: BLE001
+        return []
+
+
 def _streaming_wrapper() -> Any:
     """El envoltorio de la plataforma, buscado SIN reimportar el monolito.
 
@@ -312,6 +331,63 @@ def run_macrocycle(data: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
             "not used, deliberately."
         ),
         "budget": presupuesto.report(),
+    }
+
+    # ── 4b. cuántico de verdad, sobre lo poco que se lo gana ────────────────
+    quantum_on = bool(data.get("run_quantum", True))
+    top_k = int(data.get("quantum_top_k") or 1)
+    max_atoms = int(data.get("quantum_max_atoms") or 40)
+    q_resultados: List[Dict[str, Any]] = []
+    q_saltados: List[Dict[str, Any]] = []
+    elegibles = [r for r in construidos if r["quantum"]["applies"]]
+    for r in elegibles[:top_k] if quantum_on else []:
+        n_at = int(r["bro5"]["descriptors"].get("n_heavy") or 0)
+        if n_at > max_atoms:
+            q_saltados.append(
+                {
+                    "sequence": r["spec"]["sequence"],
+                    "reason": (
+                        f"{n_at} átomos pesados supera el tope de {max_atoms} para SQD en "
+                        f"esta máquina: el campo medio sobre la molécula entera no cabe en "
+                        f"el presupuesto. Se declara en vez de correrlo a medias."
+                    ),
+                }
+            )
+            continue
+        xyzs = _conformer_xyzs(r, mc, limit=int(data.get("quantum_n_conf") or 3))
+        if len(xyzs) < 2:
+            q_saltados.append(
+                {
+                    "sequence": r["spec"]["sequence"],
+                    "reason": "hacen falta al menos 2 confórmeros para una diferencia",
+                }
+            )
+            continue
+        t_q = time.perf_counter()
+        rk = mq.rank_conformers(xyzs, method="sqd", charge=0, timeout_s=3600)
+        presupuesto.add_quantum(time.perf_counter() - t_q)
+        rk["sequence"] = r["spec"]["sequence"]
+        q_resultados.append(rk)
+        r["quantum_energies"] = rk
+
+    result["stages"]["4b_quantum_run"] = {
+        "requested": quantum_on,
+        "n_eligible": len(elegibles),
+        "n_run": len(q_resultados),
+        "n_skipped": len(q_saltados),
+        "skipped": q_saltados,
+        "results": q_resultados,
+        "differential_floor_ev": mq.DIFFERENTIAL_FLOOR_EV,
+        "note_es": (
+            "solo se emiten DIFERENCIAS entre confórmeros de la misma molécula. El "
+            "error absoluto medido de este protocolo es 1,348 eV frente a 0,08 eV en "
+            "diferencial, así que una energía absoluta de aquí no significaría nada"
+        ),
+        "note_en": (
+            "only DIFFERENCES between conformers of the same molecule are emitted. "
+            "The measured absolute error of this protocol is 1.348 eV against 0.08 eV "
+            "differential, so an absolute energy from here would mean nothing"
+        ),
     }
 
     # ── 5. orden ────────────────────────────────────────────────────────────

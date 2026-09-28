@@ -34,13 +34,15 @@ PIPELINE = "macrocycle_design"
 TITLE = {"es": "Macrociclos peptídicos", "en": "Peptide macrocycles"}
 
 S1, S2 = "stages.1_build", "stages.2_conformers"
-S3, S4, S5 = "stages.3_properties", "stages.4_quantum_triage", "stages.5_rank"
+S3, S4 = "stages.3_properties", "stages.4_quantum_triage"
+S4B, S5 = "stages.4b_quantum_run", "stages.5_rank"
 
 ALIASES = {
     "b": S1,
     "c": S2,
     "p": S3,
     "q": S4,
+    "qr": S4B,
     "r": S5,
     "pop": f"{S2}.population",
     "conv": f"{S2}.convergence",
@@ -336,7 +338,7 @@ def chapters(
         {
             "id": "quantum",
             "title": {"es": "Dónde hacía falta el cuántico", "en": "Where quantum was needed"},
-            "claims": [S4, "compute_budget"],
+            "claims": [S4, S4B, "compute_budget"],
             "scene": {"type": "panel", "root": S4},
             "beats": [
                 {
@@ -358,6 +360,21 @@ def chapters(
                     "{bud:achieved.quantum|pct} on quantum.",
                 },
                 {"es": "{bud:note_es}", "en": "{bud:note_en}", "kind": "note"},
+                {
+                    "es": "De los elegibles se corrieron {qr:n_run} y se saltaron "
+                    "{qr:n_skipped}.",
+                    "en": "Of those eligible, {qr:n_run} were run and {qr:n_skipped} "
+                    "were skipped.",
+                },
+                {"es": "{qr:note_es}", "en": "{qr:note_en}", "kind": "note"},
+                {
+                    "es": "Por debajo de {qr:differential_floor_ev} eV la diferencia no se "
+                    "distingue del error del método, y ese orden no significa nada.",
+                    "en": "Below {qr:differential_floor_ev} eV a difference is "
+                    "indistinguishable from the method's own error, and that order means "
+                    "nothing.",
+                    "kind": "note",
+                },
                 {
                     "es": "Comprobado aquí: los porcentajes del presupuesto son los segundos "
                     "que declara, no una cifra aparte.",

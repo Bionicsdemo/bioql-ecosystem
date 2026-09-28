@@ -15,6 +15,7 @@ import { PipelineResultsChart } from "@/components/visualizations/PipelineResult
 import { useState, useMemo } from 'react';
 import { cn } from '@/utils/cn';
 import { ToolExecutionCard } from './ToolExecutionCard';
+import { MacrocycleCard } from './MacrocycleCard';
 import { InteractiveReportLink } from './InteractiveReportLink';
 import { MoleculePreview } from './MoleculePreview';
 import { PipelineVisualization } from './PipelineVisualization';
@@ -554,6 +555,12 @@ export function ChatMessage({ message }: ChatMessageProps) {
 
       // Navigate into nested result objects
       const root = data?.result || data;
+      // Macrociclos: el pipeline se identifica por su etapa de construcción, que
+      // no escribe ningún otro; `pipeline` sola no basta si el result llegó
+      // envuelto por una post-etapa.
+      if (root?.pipeline === 'macrocycle_design' || root?.stages?.['1_build']) {
+        enrichment.macrocycle = root;
+      }
       if (!root || typeof root !== 'object') continue;
       const discovery = root?.discovery || {};
       const isAntibodyPipeline = String(tool.name || '').includes('antibody')
@@ -3817,6 +3824,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
             {pipelineData.mhsDevices && <MhsDevicePanel data={pipelineData.mhsDevices} />}
             {pipelineData.mhsAssay && <MhsAssayCard data={pipelineData.mhsAssay} />}
             {pipelineData.crisprTherapeutic && <CrisprTherapeuticCard data={pipelineData.crisprTherapeutic} />}
+        {pipelineData.macrocycle && <MacrocycleCard data={pipelineData.macrocycle} />}
 
             {/* AlphaGenome universal: solo si ninguna tarjeta dedicada la pinta
                 ya por dentro, para no duplicar la seccion. */}
