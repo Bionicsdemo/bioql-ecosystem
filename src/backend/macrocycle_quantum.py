@@ -393,30 +393,47 @@ class ComputeBudget:
             "deviation_from_target": round(desvio, 3),
         }
         if abs(desvio) < 0.10:
-            r["note"] = "el reparto conseguido está dentro de lo planeado"
+            r["note_es"] = "el reparto conseguido está dentro de lo planeado"
+            r["note_en"] = "the achieved split is within what was planned"
         elif desvio < 0:
             # Quedarse corto tiene DOS causas distintas y confundirlas era el
             # propio informe mintiendo: que el triaje descartara a los candidatos,
             # o que los eligiera y el cómputo cuántico no llegara a correr.
             if self.quantum_seconds <= 0 and self.sent_to_quantum > 0:
-                r["note"] = (
+                r["note_es"] = (
                     f"el triaje declaró {self.sent_to_quantum} candidatos elegibles para "
                     f"cuántico y NO se ejecutó ninguno: no se gastó un solo segundo. El "
                     f"0% no es que no hiciera falta, es que está pendiente."
                 )
+                r["note_en"] = (
+                    f"triage declared {self.sent_to_quantum} candidates eligible for "
+                    f"quantum and NONE were run: not one second was spent. The 0% does "
+                    f"not mean it was unnecessary, it means it is pending."
+                )
                 r["quantum_eligible_but_not_run"] = self.sent_to_quantum
             else:
-                r["note"] = (
+                r["note_es"] = (
                     f"el cuántico se quedó en {got_q:.0%} frente al {self.target_quantum:.0%} "
                     f"planeado, porque {self.skipped_by_triage} de "
                     f"{self.skipped_by_triage + self.sent_to_quantum} candidatos no pasaron "
                     f"el triaje. Se declara en vez de rellenarlo con cálculos que no "
                     f"cambiarían ninguna decisión."
                 )
+                r["note_en"] = (
+                    f"quantum came in at {got_q:.0%} against the {self.target_quantum:.0%} "
+                    f"planned, because {self.skipped_by_triage} of "
+                    f"{self.skipped_by_triage + self.sent_to_quantum} candidates did not "
+                    f"pass triage. It is declared rather than padded with calculations "
+                    f"that would change no decision."
+                )
         else:
-            r["note"] = (
+            r["note_es"] = (
                 f"el cuántico llegó al {got_q:.0%}, por encima del {self.target_quantum:.0%} "
                 f"planeado: {self.sent_to_quantum} candidatos pasaron el triaje."
+            )
+            r["note_en"] = (
+                f"quantum reached {got_q:.0%}, above the {self.target_quantum:.0%} "
+                f"planned: {self.sent_to_quantum} candidates passed triage."
             )
         return r
 

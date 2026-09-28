@@ -170,10 +170,15 @@ def run_macrocycle(data: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
         "built": len(construidos),
         "dropped": len(fallos_build),
         "drops": fallos_build,
-        "note": (
+        "note_es": (
             "cada candidato se comprueba contra la molécula: que el anillo exista "
             "de verdad y que la estereoquímica sobreviva al round-trip a SDF. Un "
             "anillo que no cerró es un péptido lineal y no entra."
+        ),
+        "note_en": (
+            "every candidate is checked against the molecule: that the ring really "
+            "exists and that the stereochemistry survives the round-trip to SDF. A "
+            "ring that did not close is a linear peptide and does not get in."
         ),
     }
     if not construidos:
@@ -195,11 +200,17 @@ def run_macrocycle(data: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
         "population": poblacion,
         "failure_by_ring": mc.failure_by_ring(ensembles),
         "convergence": mc.convergence_note(ensembles),
-        "note": (
+        "note_es": (
             "el embebido falla sistemáticamente en los anillos grandes y "
             "tensionados, que son los interesantes. Por eso la población se "
             "cuadra y cada caída lleva su razón: un ranking sobre los que "
             "sobrevivieron sin decirlo estaría sesgado hacia lo fácil de embeber."
+        ),
+        "note_en": (
+            "embedding fails systematically on the large, strained rings, which are "
+            "the interesting ones. That is why the population is balanced and every "
+            "drop carries its reason: a ranking over the survivors, unstated, would "
+            "be biased towards whatever was easy to embed."
         ),
     }
 
@@ -210,10 +221,15 @@ def run_macrocycle(data: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
         r["liabilities"] = mf.sequence_liabilities(r["spec"]["sequence"])
         r["ensemble"] = ens.to_dict()
     result["stages"]["3_properties"] = {
-        "space": "bRo5 (Doak/Kihlberg), no la regla de cinco clásica",
-        "why": (
+        "space_es": "bRo5 (Doak/Kihlberg), no la regla de cinco clásica",
+        "space_en": "bRo5 (Doak/Kihlberg), not the classic rule of five",
+        "why_es": (
             "el único Lipinski que había en el backend usa MW 200-600 y "
             "descalificaría a todos los macrociclos: la ciclosporina A pesa 1202 Da"
+        ),
+        "why_en": (
+            "the only Lipinski filter the backend had uses MW 200-600 and would "
+            "disqualify every macrocycle: ciclosporin A weighs 1202 Da"
         ),
         "n_within_bro5": sum(1 for r in construidos if r["bro5"]["ok"]),
         "n_total": len(construidos),
@@ -233,11 +249,17 @@ def run_macrocycle(data: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
         "n_eligible": sum(1 for t in triajes if t.applies),
         "n_classical_suffices": sum(1 for t in triajes if not t.applies),
         "places": sorted({p for t in triajes for p in t.places}),
-        "note": (
+        "note_es": (
             "el cuántico entra donde cambia una decisión: ranking de confórmeros, "
             "barrera cis/trans de amida N-metilada y química de ciclación por "
             "azufre. En scores de docking, descriptores o generación de secuencia "
             "no se usa, a propósito."
+        ),
+        "note_en": (
+            "quantum goes where it changes a decision: conformer ranking, the "
+            "cis/trans barrier of an N-methylated amide, and sulfur cyclisation "
+            "chemistry. On docking scores, descriptors or sequence generation it is "
+            "not used, deliberately."
         ),
         "budget": presupuesto.report(),
     }
@@ -271,10 +293,15 @@ def run_macrocycle(data: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
     ]
     result["stages"]["5_rank"] = {
         "ordered_by": "espacio bRo5, luego liabilities de secuencia, luego tamaño del ensemble",
-        "not_a_potency_prediction": (
+        "not_a_potency_prediction_es": (
             "esto es una priorización para ensayo. No se ha dockeado ni medido "
             "afinidad, y los scores de docking de macrociclos correlacionan mal "
             "con afinidad real incluso cuando se calculan"
+        ),
+        "not_a_potency_prediction_en": (
+            "this is triage for assay. Nothing was docked and no affinity was "
+            "measured, and macrocycle docking scores correlate poorly with measured "
+            "affinity even when they are computed"
         ),
     }
 
@@ -282,11 +309,17 @@ def run_macrocycle(data: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
     result["status"] = "completed"
     result["elapsed_s"] = round(time.perf_counter() - t0, 2)
     result["compute_budget"] = presupuesto.report()
-    result["disclaimer"] = (
+    result["disclaimer_es"] = (
         "Priorización in-silico para ensayo, no predicción de potencia. La química "
         "de ciclación está comprobada contra la molécula; el ensemble conformacional "
         "declara su convergencia; y el cuántico solo se aplica donde el triaje "
         "encuentra una razón."
+    )
+    result["disclaimer_en"] = (
+        "In-silico triage for assay, not a potency prediction. The cyclisation "
+        "chemistry is checked against the molecule; the conformational ensemble "
+        "declares its convergence; and quantum is applied only where triage finds a "
+        "reason for it."
     )
     return result, 200
 
