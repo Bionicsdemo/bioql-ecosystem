@@ -191,3 +191,48 @@ def test_cambiar_la_quiralidad_cambia_el_hash():
 
 
 # MOLEVERA / BIOQL
+
+
+# ── el guard que faltaba: una frase que se cae no deja rastro ─────────────────
+def test_ninguna_frase_del_modelo_referencia_una_ruta_que_no_existe():
+    """Una plantilla con una ruta inexistente no da error: la frase desaparece.
+
+    `convergence_note()` emitía `note` mientras el modelo pedía `note_en`, y esa
+    frase estuvo cayéndose del informe sin que nada lo dijera. La comprobación de
+    "no queda castellano en el informe inglés" daba verde justamente porque la
+    frase no estaba, no porque estuviera traducida.
+
+    Así que aquí se resuelven TODAS las rutas que el modelo referencia contra una
+    corrida real. Las marcadas opcionales con `?` pueden faltar; el resto no.
+    """
+    import json
+    import pathlib
+    import re
+
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
+    from src.backend.artifact_engine import facts as F  # noqa: E402
+    from src.backend.artifact_engine.models import macrocycle as M  # noqa: E402
+
+    ref = pathlib.Path("~/.bioql/artifacts/macrocycle-mdm2-c1/result.json").expanduser()
+    if not ref.is_file():
+        pytest.skip("no hay corrida de referencia de macrociclos en esta máquina")
+    r = json.loads(ref.read_text())
+
+    campo = re.compile(r"\{([^{}]+)\}")
+    faltan = []
+    for ch in M.chapters(r, {}, {}):
+        for b in ch["beats"]:
+            for texto in (b["es"], b["en"], *(b.get("tech") or {}).values()):
+                for cuerpo in campo.findall(texto):
+                    if cuerpo.endswith("?"):
+                        continue  # declarada opcional
+                    ref_path = cuerpo.split("|")[0].strip()
+                    head, _, rest = ref_path.partition(":")
+                    base = (M.ALIASES or {}).get(head)
+                    ruta = f"{base}.{rest}" if base and rest else (base or ref_path)
+                    if F.get(r, ruta) is None:
+                        faltan.append((ch["id"], ruta))
+    assert not faltan, (
+        "el modelo referencia rutas que la corrida no tiene, así que esas frases "
+        f"desaparecen del informe sin avisar: {sorted(set(faltan))}"
+    )

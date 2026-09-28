@@ -275,13 +275,21 @@ def convergence_note(resultados: List[EnsembleResult]) -> Dict[str, Any]:
     return {
         "n_with_curve": len(con_curva),
         "n_not_converged": len(sin_converger),
-        "note": (
+        "note_es": (
             "todos los ensembles habían aplanado su curva"
             if not sin_converger
             else f"{len(sin_converger)} de {len(con_curva)} ensembles seguían "
             f"aportando confórmeros nuevos al parar: su confórmero bioactivo "
             f"puede no haber estado en la caja, y su orden no debe leerse "
             f"como definitivo"
+        ),
+        "note_en": (
+            "every ensemble had flattened its curve"
+            if not sin_converger
+            else f"{len(sin_converger)} of {len(con_curva)} ensembles were still "
+            f"producing new conformers when sampling stopped: their bioactive "
+            f"conformer may never have been in the box, and their order should "
+            f"not be read as settled"
         ),
     }
 
