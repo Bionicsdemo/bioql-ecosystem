@@ -384,18 +384,31 @@ def _sqd_energies(xyzs: List[str], *, charge: int, timeout_s: int, n_act_orb: in
 # Anclas por orden de prioridad. Cada una es una razón distinta para gastar
 # cuántico, y todas están declaradas en el gate de reactividad del repo.
 _ANCLAS = (
-    ("S-S", "[SX2][SX2]", "enlace disulfuro: el TS de ruptura S–S es multireferencial"),
-    ("C-S", "[CX4][SX2][CX4]", "puente tioéter: el enlace C–S del cierre"),
+    (
+        "S-S",
+        "[SX2][SX2]",
+        "enlace disulfuro: el TS de ruptura S–S es multireferencial",
+        "disulfide bond: the S–S cleavage TS is multireferential",
+    ),
+    (
+        "C-S",
+        "[CX4][SX2][CX4]",
+        "puente tioéter: el enlace C–S del cierre",
+        "thioether bridge: the C–S bond of the closure",
+    ),
     (
         "N-Me amida",
         "[NX3;H0]([CH3])[CX3]=O",
         "amida N-metilada: su equilibrio cis/trans decide qué confórmero domina",
+        "N-methylated amide: its cis/trans equilibrium decides which conformer dominates",
     ),
     (
         "amida",
         "[NX3][CX3]=O",
         "amida del esqueleto: en un cierre head-to-tail la nueva es químicamente "
         "idéntica a las demás, así que se toma la primera y se dice",
+        "backbone amide: in a head-to-tail closure the new one is chemically identical "
+        "to the rest, so the first is taken and that is stated",
     ),
 )
 
@@ -452,13 +465,13 @@ def closure_region(smiles: str, molblocks: List[str], radius: int = 2) -> Dict[s
     if plano is None:
         return {"available": False, "reason": "el SMILES no es una molécula válida"}
 
-    ancla_nombre = ancla_por_que = ""
+    ancla_nombre = ancla_por_que = ancla_why_en = ""
     match: Tuple[int, ...] = ()
-    for nombre, smarts, por_que in _ANCLAS:
+    for nombre, smarts, por_que, why_en in _ANCLAS:
         patt = Chem.MolFromSmarts(smarts)
         hits = plano.GetSubstructMatches(patt) if patt else ()
         if hits:
-            ancla_nombre, ancla_por_que, match = nombre, por_que, hits[0]
+            ancla_nombre, ancla_por_que, ancla_why_en, match = nombre, por_que, why_en, hits[0]
             break
     if not match:
         return {
@@ -580,6 +593,7 @@ def closure_region(smiles: str, molblocks: List[str], radius: int = 2) -> Dict[s
         "available": bool(geometrias),
         "anchor": ancla_nombre,
         "why": ancla_por_que,
+        "why_en": ancla_why_en,
         "n_heavy_region": len(nucleo_ord),
         "n_heavy_molecule": plano.GetNumHeavyAtoms(),
         "n_caps": len(cortes),
@@ -594,6 +608,12 @@ def closure_region(smiles: str, molblocks: List[str], radius: int = 2) -> Dict[s
             "capan con hidrógeno y el entorno queda fuera. Vale para COMPARAR "
             "confórmeros de la misma molécula, que es para lo que se usa, no para "
             "dar una energía de la molécula entera"
+        ),
+        "caveat_en": (
+            "a QM region is a declared approximation: severed bonds are capped with "
+            "hydrogen and the surroundings are left out. It is good for COMPARING "
+            "conformers of the same molecule, which is what it is used for, not for "
+            "giving an energy of the whole molecule"
         ),
     }
 

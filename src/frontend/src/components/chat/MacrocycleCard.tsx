@@ -31,6 +31,18 @@ interface Candidate {
   quantum?: { applies: boolean; places: string[] };
 }
 
+// Lo que el cuántico miró de verdad. No es la molécula: es el trozo que decide
+// el cierre, recortado y capado, y la card lo dice porque un lector que vea
+// "SQD" sin esto se creerá que se calculó el macrociclo entero.
+interface Region {
+  anchor?: string;
+  why?: string;
+  n_heavy_region?: number;
+  n_heavy_molecule?: number;
+  n_caps?: number;
+  n_absorbed_to_repair_boundary?: number;
+}
+
 interface Props {
   data: {
     target?: string;
@@ -89,7 +101,35 @@ export function MacrocycleCard({ data }: Props) {
           {' / '}<b style={{ fontFamily: mono }}>{Math.round((budget.achieved.quantum ?? 0) * 100)}% cuántico</b>.</>
         )}
       </div>
-      {budget.note_es && <div style={{ ...mutedText, marginBottom: 12 }}>{budget.note_es}</div>}
+      {budget.note_es && <div style={{ ...mutedText, marginBottom: 8 }}>{budget.note_es}</div>}
+
+      {/* La región: sin esto, "SQD" se lee como si se hubiera calculado la
+          molécula entera, y no es lo que pasó. */}
+      {(qrun.results || []).length > 0 && (
+        <div style={{ ...mutedText, marginBottom: 12 }}>
+          {(qrun.results as Array<{ sequence: string; region?: Region; n_significant?: number; n_total?: number; error?: string }>)
+            .map((rr) => {
+              const g = rr.region || {};
+              return (
+                <div key={rr.sequence} style={{ marginBottom: 4 }}>
+                  <span style={{ fontFamily: mono }}>{rr.sequence}</span>
+                  {g.n_heavy_region != null && (
+                    <> · región de <b>{g.n_heavy_region}</b> de {g.n_heavy_molecule} átomos pesados,
+                    anclada en <b>{g.anchor}</b>, {g.n_caps} enlaces capados</>
+                  )}
+                  {rr.error
+                    ? <span style={{ color: C.amber }}> · sin energías: {rr.error}</span>
+                    : <> · {rr.n_significant} de {rr.n_total} confórmeros se separan del de referencia</>}
+                </div>
+              );
+            })}
+          {(qrun.skipped || []).map((sk: { sequence: string; reason: string }) => (
+            <div key={sk.sequence} style={{ color: C.amber }}>
+              <span style={{ fontFamily: mono }}>{sk.sequence}</span> · saltado: {sk.reason}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* El orden */}
       <SectionHeader>Priorización</SectionHeader>

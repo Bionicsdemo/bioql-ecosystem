@@ -43,6 +43,9 @@ ALIASES = {
     "p": S3,
     "q": S4,
     "qr": S4B,
+    # El primer candidato que de verdad corrió: es de donde salen las cifras de
+    # la región, que son el argumento entero de este escenario.
+    "reg": f"{S4B}.results.0.region",
     "r": S5,
     "pop": f"{S2}.population",
     "conv": f"{S2}.convergence",
@@ -367,6 +370,25 @@ def chapters(
                     "were skipped.",
                 },
                 {"es": "{qr:note_es}", "en": "{qr:note_en}", "kind": "note"},
+                {
+                    "es": "El cálculo no se hace sobre la molécula entera sino sobre la "
+                    "región de cierre: {reg:n_heavy_region} átomos pesados de "
+                    "{reg:n_heavy_molecule}, anclados en {reg:anchor}.",
+                    "en": "The calculation does not run on the whole molecule but on the "
+                    "closure region: {reg:n_heavy_region} heavy atoms out of "
+                    "{reg:n_heavy_molecule}, anchored at {reg:anchor}.",
+                },
+                {"es": "Por qué ahí: {reg:why}", "en": "Why there: {reg:why_en}", "kind": "note"},
+                {
+                    "es": "Los {reg:n_caps} enlaces cortados se capan con hidrógeno, y antes "
+                    "de cortar se absorbieron {reg:n_absorbed_to_repair_boundary} átomos "
+                    "para que ningún corte cayera sobre un enlace que un hidrógeno no puede "
+                    "restituir.",
+                    "en": "The {reg:n_caps} severed bonds are capped with hydrogen, and "
+                    "before cutting, {reg:n_absorbed_to_repair_boundary} atoms were absorbed "
+                    "so that no cut landed on a bond a hydrogen cannot restore.",
+                },
+                {"es": "{reg:caveat}", "en": "{reg:caveat_en}", "kind": "note"},
                 {
                     "es": "Por debajo de {qr:differential_floor_ev} eV la diferencia no se "
                     "distingue del error del método, y ese orden no significa nada.",
