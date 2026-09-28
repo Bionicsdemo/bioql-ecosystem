@@ -395,12 +395,24 @@ class ComputeBudget:
         if abs(desvio) < 0.10:
             r["note"] = "el reparto conseguido está dentro de lo planeado"
         elif desvio < 0:
-            r["note"] = (
-                f"el cuántico se quedó en {got_q:.0%} frente al {self.target_quantum:.0%} "
-                f"planeado, porque {self.skipped_by_triage} candidatos no pasaron el "
-                f"triaje. Se declara en vez de rellenarlo con cálculos que no cambiarían "
-                f"ninguna decisión."
-            )
+            # Quedarse corto tiene DOS causas distintas y confundirlas era el
+            # propio informe mintiendo: que el triaje descartara a los candidatos,
+            # o que los eligiera y el cómputo cuántico no llegara a correr.
+            if self.quantum_seconds <= 0 and self.sent_to_quantum > 0:
+                r["note"] = (
+                    f"el triaje declaró {self.sent_to_quantum} candidatos elegibles para "
+                    f"cuántico y NO se ejecutó ninguno: no se gastó un solo segundo. El "
+                    f"0% no es que no hiciera falta, es que está pendiente."
+                )
+                r["quantum_eligible_but_not_run"] = self.sent_to_quantum
+            else:
+                r["note"] = (
+                    f"el cuántico se quedó en {got_q:.0%} frente al {self.target_quantum:.0%} "
+                    f"planeado, porque {self.skipped_by_triage} de "
+                    f"{self.skipped_by_triage + self.sent_to_quantum} candidatos no pasaron "
+                    f"el triaje. Se declara en vez de rellenarlo con cálculos que no "
+                    f"cambiarían ninguna decisión."
+                )
         else:
             r["note"] = (
                 f"el cuántico llegó al {got_q:.0%}, por encima del {self.target_quantum:.0%} "
