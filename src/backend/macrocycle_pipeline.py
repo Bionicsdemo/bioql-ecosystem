@@ -87,6 +87,56 @@ def _diversify(semilla: str, cyc: str, n: int) -> List[Tuple[str, str]]:
     return fuera[:n]
 
 
+def _streaming_wrapper() -> Any:
+    """El envoltorio de la plataforma, buscado SIN reimportar el monolito.
+
+    El servidor corre como `python script_executor_server.py`, así que dentro del
+    proceso vivo ese módulo se llama `__main__`. Un
+    `import_module("script_executor_server")` no lo encuentra cargado: lo IMPORTA
+    OTRA VEZ -- 35 000 líneas, registrando cada blueprint de nuevo en una segunda
+    instancia. Se vio en el log, con el arranque entero repetido.
+
+    Así que se busca entre los módulos ya cargados, y solo se importa como último
+    recurso, que es el caso de un test llamando a la ruta sin servidor detrás.
+    """
+    import sys
+
+    for nombre in ("__main__", "script_executor_server"):
+        mod = sys.modules.get(nombre)
+        fn = getattr(mod, "streaming_pipeline_response", None) if mod else None
+        if callable(fn):
+            return fn
+    return None
+
+
+def _save_result_artifact(result: Dict[str, Any]) -> None:
+    """Escribe `result.json` bajo la sesión, que es cosa del pipeline.
+
+    El envoltorio genérico NO lo hace: persiste en job_results, pero el
+    `~/.bioql/artifacts/<sesión>/result.json` del que vive el informe interactivo
+    lo escribe cada pipeline. Sin esto el informe no tiene de dónde leer.
+    """
+    sid = str(result.get("_pipeline_session_id") or "").strip()
+    if not sid:
+        return
+    try:
+        pe = _mod("pipeline_enhancements")
+        pe.save_pipeline_artifacts(sid, result=result)
+        return
+    except Exception:  # noqa: BLE001 — sin el helper, se escribe a mano
+        pass
+    try:
+        import json as _json
+        import os
+
+        d = os.path.expanduser(f"~/.bioql/artifacts/{os.path.basename(sid)}")
+        os.makedirs(d, exist_ok=True)
+        with open(os.path.join(d, "result.json"), "w") as fh:
+            _json.dump(result, fh, indent=1, default=str)
+    except Exception:  # noqa: BLE001
+        pass
+
+
 def run_macrocycle(data: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
     """Una corrida completa. Devuelve (result, http_status)."""
     t0 = time.perf_counter()
@@ -308,6 +358,7 @@ def run_macrocycle(data: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
     result["best_candidate"] = result["candidates"][0] if result["candidates"] else None
     result["status"] = "completed"
     result["elapsed_s"] = round(time.perf_counter() - t0, 2)
+    result["_pipeline_session_id"] = str(data.get("_pipeline_session_id") or "")
     result["compute_budget"] = presupuesto.report()
     result["disclaimer_es"] = (
         "Priorización in-silico para ensayo, no predicción de potencia. La química "
@@ -321,6 +372,7 @@ def run_macrocycle(data: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
         "declares its convergence; and quantum is applied only where triage finds a "
         "reason for it."
     )
+    _save_result_artifact(result)
     return result, 200
 
 
@@ -337,8 +389,10 @@ def register_macrocycle_routes(app: Any) -> None:
             # Por nombre, igual que el resto de dependencias de la plataforma: el
             # monolito son 35 000 líneas y arrastrarlo al type-check de este
             # fichero no aporta nada, además de que el wrapper es opcional.
-            srv = _mod("script_executor_server")
-            return srv.streaming_pipeline_response(run_macrocycle, data, pipeline_name=PIPELINE)
+            envoltura = _streaming_wrapper()
+            if envoltura is None:
+                raise RuntimeError("streaming_pipeline_response no disponible")
+            return envoltura(run_macrocycle, data, pipeline_name=PIPELINE)
         except Exception:  # noqa: BLE001 — sin el wrapper, la ciencia igual corre
             res, code = run_macrocycle(data)
             return jsonify(res), code
