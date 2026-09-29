@@ -45,7 +45,7 @@ ALIASES = {
     "qr": S4B,
     # El primer candidato que de verdad corrió: es de donde salen las cifras de
     # la región, que son el argumento entero de este escenario.
-    "reg": f"{S4B}.results.0.region",
+    "reg": f"{S4B}.results[0].region",
     "r": S5,
     "pop": f"{S2}.population",
     "conv": f"{S2}.convergence",
@@ -376,7 +376,7 @@ def chapters(
                     "{reg:n_heavy_molecule}, anclados en {reg:anchor}.",
                     "en": "The calculation does not run on the whole molecule but on the "
                     "closure region: {reg:n_heavy_region} heavy atoms out of "
-                    "{reg:n_heavy_molecule}, anchored at {reg:anchor}.",
+                    "{reg:n_heavy_molecule}, anchored at {reg:anchor_en}.",
                 },
                 {"es": "Por qué ahí: {reg:why}", "en": "Why there: {reg:why_en}", "kind": "note"},
                 {

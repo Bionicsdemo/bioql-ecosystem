@@ -386,11 +386,13 @@ def _sqd_energies(xyzs: List[str], *, charge: int, timeout_s: int, n_act_orb: in
 _ANCLAS = (
     (
         "S-S",
+        "S-S",
         "[SX2][SX2]",
         "enlace disulfuro: el TS de ruptura S–S es multireferencial",
         "disulfide bond: the S–S cleavage TS is multireferential",
     ),
     (
+        "C-S",
         "C-S",
         "[CX4][SX2][CX4]",
         "puente tioéter: el enlace C–S del cierre",
@@ -398,12 +400,14 @@ _ANCLAS = (
     ),
     (
         "N-Me amida",
+        "N-Me amide",
         "[NX3;H0]([CH3])[CX3]=O",
         "amida N-metilada: su equilibrio cis/trans decide qué confórmero domina",
         "N-methylated amide: its cis/trans equilibrium decides which conformer dominates",
     ),
     (
         "amida",
+        "amide",
         "[NX3][CX3]=O",
         "amida del esqueleto: en un cierre head-to-tail la nueva es químicamente "
         "idéntica a las demás, así que se toma la primera y se dice",
@@ -465,13 +469,19 @@ def closure_region(smiles: str, molblocks: List[str], radius: int = 2) -> Dict[s
     if plano is None:
         return {"available": False, "reason": "el SMILES no es una molécula válida"}
 
-    ancla_nombre = ancla_por_que = ancla_why_en = ""
+    ancla_nombre = ancla_nombre_en = ancla_por_que = ancla_why_en = ""
     match: Tuple[int, ...] = ()
-    for nombre, smarts, por_que, why_en in _ANCLAS:
+    for nombre, nombre_en, smarts, por_que, why_en in _ANCLAS:
         patt = Chem.MolFromSmarts(smarts)
         hits = plano.GetSubstructMatches(patt) if patt else ()
         if hits:
-            ancla_nombre, ancla_por_que, ancla_why_en, match = nombre, por_que, why_en, hits[0]
+            ancla_nombre, ancla_nombre_en, ancla_por_que, ancla_why_en, match = (
+                nombre,
+                nombre_en,
+                por_que,
+                why_en,
+                hits[0],
+            )
             break
     if not match:
         return {
@@ -592,6 +602,7 @@ def closure_region(smiles: str, molblocks: List[str], radius: int = 2) -> Dict[s
     return {
         "available": bool(geometrias),
         "anchor": ancla_nombre,
+        "anchor_en": ancla_nombre_en,
         "why": ancla_por_que,
         "why_en": ancla_why_en,
         "n_heavy_region": len(nucleo_ord),
@@ -697,6 +708,29 @@ class ComputeBudget:
                     f"not mean it was unnecessary, it means it is pending."
                 )
                 r["quantum_eligible_but_not_run"] = self.sent_to_quantum
+            elif self.skipped_by_triage == 0:
+                # Tercera causa, y la que aparece desde que el cuántico corre
+                # sobre la región: nadie fue descartado, todo lo elegible corrió,
+                # y aun así el reparto se queda corto porque el trabajo por
+                # candidato está topado. Decir aquí "no pasaron el triaje" sería
+                # el informe explicando el número con una causa que no ocurrió.
+                r["note_es"] = (
+                    f"el cuántico se quedó en {got_q:.0%} frente al "
+                    f"{self.target_quantum:.0%} planeado, y no porque se descartara "
+                    f"nada: los {self.sent_to_quantum} candidatos elegibles corrieron "
+                    f"enteros. Sobre la región de cierre el cálculo cuesta segundos, "
+                    f"así que alcanzar la cuota exigiría mandarle más confórmeros de "
+                    f"los que el tope permite. Se declara el reparto real."
+                )
+                r["note_en"] = (
+                    f"quantum came in at {got_q:.0%} against the "
+                    f"{self.target_quantum:.0%} planned, and not because anything was "
+                    f"discarded: all {self.sent_to_quantum} eligible candidates ran in "
+                    f"full. On the closure region the calculation costs seconds, so "
+                    f"meeting the quota would mean sending it more conformers than the "
+                    f"cap allows. The real split is what is declared."
+                )
+                r["quantum_bounded_by_conformer_cap"] = True
             else:
                 r["note_es"] = (
                     f"el cuántico se quedó en {got_q:.0%} frente al {self.target_quantum:.0%} "
