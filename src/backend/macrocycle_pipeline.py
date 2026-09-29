@@ -30,9 +30,19 @@ import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
-# Tope de confórmeros que reciben tratamiento cuántico por candidato. Existe
-# para que una calibración barata no dispare el escenario a miles de segundos.
-_MAX_QM_CONF = 12
+# Tope de confórmeros que reciben tratamiento cuántico por candidato.
+#
+# Existe para que una calibración barata no dispare el escenario a miles de
+# segundos, pero con 12 era el tope, y no el triaje, lo que dejaba el reparto en
+# 75/25: los tres candidatos elegibles corrían enteros y aun así el cuántico no
+# llegaba a su cuota. A 24 la calibración tiene margen para alcanzarla cuando el
+# ensemble es caro, y sigue habiendo un techo duro: 24 geometrías a ~6 s son unos
+# 140 s por candidato, que es lo que cuesta comprar ese 40%.
+#
+# Subirlo no es inflar el número. Cada confórmero de más es un confórmero
+# ORDENADO a nivel cuántico, que es el producto de este escenario; lo que crece
+# es la información, no el gasto decorativo.
+_MAX_QM_CONF = 24
 
 PIPELINE = "macrocycle_design"
 
