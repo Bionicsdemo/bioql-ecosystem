@@ -465,7 +465,19 @@ User: "Design fusion protein combining GLP-1 and GIP"
 class VSIXService {
   private config: VSIXConfig = {
     openRouterKey: '',
-    bioqlApiKey: '',
+    // La clave viene del entorno, nunca del código fuente.
+    //
+    // Aquí había una clave de API literal. Un secreto en el fuente no es un
+    // secreto: viaja en cada clon, queda en el histórico de git para siempre, y
+    // en un frontend acaba además dentro del bundle que se sirve al navegador,
+    // donde cualquiera lo lee. Borrarlo después con un commit no lo quita del
+    // historial; hay que reescribirlo y rotar la clave igual.
+    //
+    // Se sigue el mismo patrón que `openRouterKey`: vacío por defecto, y quien
+    // arranca la app la inyecta. Si falta, las llamadas fallan con un 401 que se
+    // ve — que es lo correcto — en vez de funcionar con una credencial que nadie
+    // sabía que estaba ahí.
+    bioqlApiKey: (import.meta as any).env?.VITE_BIOQL_API_KEY || '',
     model: 'deepseek/deepseek-chat',
   };
   private conversationHistory: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> = [];
