@@ -121,6 +121,15 @@ def _conformer_molblocks(r: Dict[str, Any], limit: int = 3) -> List[str]:
         return []
 
 
+def _sin_lider() -> Dict[str, Any]:
+    """Ningún candidato sobrevivió, así que no hay sobre quién correr esto."""
+    return {
+        "available": False,
+        "reason": "ningún candidato llegó hasta aquí",
+        "reason_en": "no candidate made it this far",
+    }
+
+
 def _streaming_wrapper() -> Any:
     """El envoltorio de la plataforma, buscado SIN reimportar el monolito.
 
@@ -493,6 +502,148 @@ def run_macrocycle(data: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
             "this is triage for assay. Nothing was docked and no affinity was "
             "measured, and macrocycle docking scores correlate poorly with measured "
             "affinity even when they are computed"
+        ),
+    }
+
+    # ── 6-11. lo que hace de esto un dossier y no un ranking ────────────────
+    # El pipeline se paraba en el orden, y por eso su JSON tenía 173 campos
+    # frente a los miles de los otros ocho: no estaba mal construido, hacía menos
+    # ciencia. Estos escenarios no reimplementan nada -- enchufan motores que ya
+    # estaban en el backend y ya estaban medidos.
+    #
+    # Todos son OPCIONALES y todos se declaran cuando no corren. `available:
+    # False` con su razón es un resultado; un hueco no lo es.
+    md = _mod("macrocycle_downstream")
+    top_n = int(data.get("downstream_top_k") or 3)
+    cabeza = ordenados[:top_n]
+    smiles_cabeza = [r["spec"]["smiles"] for r in cabeza]
+
+    t_gpu = time.perf_counter()
+
+    # 6. ADMET
+    result["stages"]["6_admet"] = md.admet_for(smiles_cabeza)
+
+    # 7. síntesis, por candidato: es lo que decide si esto se puede pedir
+    sintesis = [
+        dict(
+            md.synthesis_for(r["spec"]["smiles"], want_route=bool(data.get("synthesis_route"))),
+            sequence=r["spec"]["sequence"],
+        )
+        for r in cabeza
+    ]
+    for r, sx in zip(cabeza, sintesis):
+        r["synthesis"] = sx
+    result["stages"]["7_synthesis"] = {
+        "n_scored": len(sintesis),
+        "per_candidate": sintesis,
+        "note_es": (
+            "un macrociclo peptídico se hace en fase sólida y se cicla al final. "
+            "El paso que decide el rendimiento es esa ciclación, y SA no la modela"
+        ),
+        "note_en": (
+            "a peptide macrocycle is made on solid phase and cyclised at the end. "
+            "The step that decides the yield is that cyclisation, and SA does not "
+            "model it"
+        ),
+    }
+
+    # 8. toxicología y 9. PK: solo sobre el que encabeza, que es el que iría a
+    # ensayo. Correrlos sobre toda la lista gastaría en candidatos que nadie va a
+    # sintetizar.
+    lider = cabeza[0] if cabeza else None
+    result["stages"]["8_toxicology"] = (
+        md.toxicology_for(lider["spec"]["smiles"], list(data.get("tox_species") or []) or None)
+        if lider
+        else _sin_lider()
+    )
+    result["stages"]["9_pharmacokinetics"] = (
+        md.pharmacokinetics_for(
+            lider["spec"]["smiles"], dose_mg=float(data.get("dose_mg") or 100.0)
+        )
+        if lider
+        else _sin_lider()
+    )
+
+    # 10. estructura del target y docking
+    quiere_docking = bool(data.get("run_docking", True))
+    estructura = (
+        md.target_structure(target, str(data.get("pdb_id") or ""), str(data.get("chain") or ""))
+        if quiere_docking
+        else {
+            "available": False,
+            "reason": "no se pidió docking en esta corrida",
+            "reason_en": "docking was not requested in this run",
+        }
+    )
+    docking: Dict[str, Any] = {
+        "available": False,
+        "reason": "sin receptor no se dockea",
+        "reason_en": "with no receptor there is nothing to dock into",
+    }
+    if quiere_docking and estructura.get("available") and lider:
+        docking = md.dock_macrocycle(
+            estructura["pdb_text"],
+            lider["spec"]["smiles"],
+            num_poses=int(data.get("n_poses") or 10),
+        )
+        if docking.get("available"):
+            docking["pocket_check"] = md.pocket_check(
+                docking.get("ligand_atoms") or [], estructura.get("site_reference_xyz") or []
+            )
+            docking["sequence"] = lider["spec"]["sequence"]
+    result["stages"]["10_docking"] = {
+        "requested": quiere_docking,
+        "target_structure": {
+            k: v for k, v in estructura.items() if k not in ("pdb_text", "site_reference_xyz")
+        },
+        "docking": {k: v for k, v in docking.items() if k != "raw"},
+        "affinity": md.affinity_status(),
+        "note_es": (
+            "el docking dice DÓNDE se posa, y la comprobación de bolsillo lo mide "
+            "contra el sitio que ocupaba el ligando nativo. No dice con cuánta "
+            "fuerza: no hay afinidad en este informe y se explica por qué"
+        ),
+        "note_en": (
+            "docking says WHERE it sits, and the pocket check measures that against "
+            "the site the native ligand occupied. It does not say how tightly: there "
+            "is no affinity in this report and the reason is given"
+        ),
+    }
+    # el receptor y la pose viajan aparte: son geometría para dibujar, no cifras
+    if estructura.get("available"):
+        result["target_structure_pdb"] = estructura["pdb_text"]
+    if docking.get("available"):
+        result["docking_pose_atoms"] = docking.get("ligand_atoms")
+
+    presupuesto.add_gpu(time.perf_counter() - t_gpu)
+
+    # 11. compuesto, con su desglose y con lo que le faltó
+    extras = {
+        "admet": result["stages"]["6_admet"],
+        "toxicology": result["stages"]["8_toxicology"],
+    }
+    for c, r in zip(result["candidates"], ordenados):
+        c["synthesis"] = r.get("synthesis")
+        c["composite"] = md.composite(c, {**extras, "synthesis": r.get("synthesis") or {}})
+    result["stages"]["11_composite_score"] = {
+        "weights": md._PESOS,
+        "scored": [
+            {
+                "sequence": c["sequence"],
+                "score": c["composite"]["score"],
+                "missing": c["composite"]["components_missing"],
+            }
+            for c in result["candidates"]
+        ],
+        "note_es": (
+            "los pesos están escritos arriba para que se puedan discutir: un score "
+            "cuyos pesos se esconden en el código no es un score, es una opinión "
+            "con decimales. Se renormaliza sobre lo que SÍ se midió"
+        ),
+        "note_en": (
+            "the weights are written out so they can be argued with: a score whose "
+            "weights hide in the code is not a score, it is an opinion with decimals. "
+            "It renormalises over what WAS measured"
         ),
     }
 

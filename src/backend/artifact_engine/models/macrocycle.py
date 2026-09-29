@@ -36,6 +36,9 @@ TITLE = {"es": "Macrociclos peptídicos", "en": "Peptide macrocycles"}
 S1, S2 = "stages.1_build", "stages.2_conformers"
 S3, S4 = "stages.3_properties", "stages.4_quantum_triage"
 S4B, S5 = "stages.4b_quantum_run", "stages.5_rank"
+S6, S7 = "stages.6_admet", "stages.7_synthesis"
+S8, S9 = "stages.8_toxicology", "stages.9_pharmacokinetics"
+S10, S11 = "stages.10_docking", "stages.11_composite_score"
 
 ALIASES = {
     "b": S1,
@@ -51,6 +54,17 @@ ALIASES = {
     "conv": f"{S2}.convergence",
     "bud": "compute_budget",
     "top": "best_candidate",
+    "ad": S6,
+    "sy": S7,
+    "tx": S8,
+    "pkx": S9,
+    "dk": S10,
+    "cs": S11,
+    "dock": f"{S10}.docking",
+    "poc": f"{S10}.docking.pocket_check",
+    "rec": f"{S10}.target_structure",
+    "syn1": f"{S7}.per_candidate[0]",
+    "comp": "best_candidate.composite",
 }
 
 
@@ -86,12 +100,17 @@ def subject(r: Dict[str, Any]) -> str:
 
 
 def mesh_targets(r: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """No structures to draw.
+    """The receptor, when the run docked against one.
 
-    This pipeline builds ligands, not folds: there is no protein PDB in the run
-    unless a target structure was supplied, and a macrocycle conformer is a small
-    molecule rather than a cartoon. Returning nothing is the honest answer, and
-    every sentence that would have described a picture becomes a declared gap."""
+    This pipeline builds ligands, not folds, so for a long time there was nothing
+    here: a macrocycle conformer is a small molecule rather than a cartoon, and
+    returning nothing was the honest answer. Since the run can now pull the
+    target from the PDB and dock into it, there IS a structure worth drawing --
+    the prepared receptor, the one with the pocket emptied, which is the protein
+    the pose was actually computed against and not the file as it left RCSB."""
+    pdb = F.get(r, "target_structure_pdb")
+    if F.is_pdb(pdb):
+        return [{"key": "receptor", "pdb": pdb, "label": "target_structure_pdb"}]
     return []
 
 
@@ -157,6 +176,48 @@ def checks(r: Dict[str, Any]) -> List[Dict[str, Any]]:
                 f"The declared quantum share ({got.get('quantum')}) is {q} s out of {g + q} s.",
                 ["compute_budget.achieved", "compute_budget.seconds"],
             )
+
+    # 5 -- la pose aterrizó en el sitio, y no en cualquier otro punto de la
+    # superficie. Se recomprueba desde los átomos contados, no desde el booleano
+    # que el escenario ya trae: un check que lee la conclusión del escenario no
+    # comprueba nada.
+    poc = F.get(r, f"{S10}.docking.pocket_check")
+    if isinstance(poc, dict) and poc.get("available"):
+        n_tot, n_in = poc.get("n_pose_atoms"), poc.get("n_within_cutoff")
+        if isinstance(n_tot, int) and isinstance(n_in, int) and n_tot > 0:
+            add(
+                "pose_lands_in_site",
+                (n_in / n_tot) >= 0.5,
+                f"{n_in} de {n_tot} átomos de la pose caen dentro del sitio "
+                f"({poc.get('centroid_separation_angstrom')} Å entre centroides).",
+                f"{n_in} of {n_tot} pose atoms fall inside the site "
+                f"({poc.get('centroid_separation_angstrom')} Å between centroids).",
+                [f"{S10}.docking.pocket_check"],
+            )
+
+    # 6 -- el compuesto se renormaliza de verdad sobre lo medido. Se recalcula el
+    # peso vivo desde los componentes y se compara con el declarado: si un
+    # componente ausente estuviera contando como aprobado, los dos números no
+    # cuadran.
+    comp = F.get(r, "best_candidate.composite")
+    if isinstance(comp, dict) and isinstance(comp.get("components"), dict):
+        pesos = comp.get("weights") or {}
+        vivos = [k for k, v in comp["components"].items() if v is not None]
+        esperado = round(sum(float(pesos.get(k, 0)) for k in vivos), 3)
+        declarado = comp.get("renormalised_over")
+        faltan = sorted(k for k, v in comp["components"].items() if v is None)
+        add(
+            "composite_renormalised",
+            isinstance(declarado, (int, float))
+            and abs(float(declarado) - esperado) < 0.01
+            and faltan == sorted(comp.get("components_missing") or []),
+            f"El peso vivo declarado ({declarado}) es la suma de los "
+            f"{len(vivos)} componentes medidos, y los ausentes están listados.",
+            f"The declared live weight ({declarado}) is the sum of the "
+            f"{len(vivos)} measured components, and the missing ones are listed.",
+            ["best_candidate.composite"],
+        )
+
     return out
 
 
@@ -214,6 +275,48 @@ def _scene_ensembles(r: Dict[str, Any]) -> Dict[str, Any]:
                 }
             )
     return {"type": "endpoints", "items": items} if items else {"type": "panel", "root": S2}
+
+
+def _scene_binding(r: Dict[str, Any]) -> Dict[str, Any]:
+    """La pose sobre el receptor, animada entrando al bolsillo.
+
+    El anillo verde o rojo no es decoración: sale de la comprobación de bolsillo,
+    que mide la pose contra las coordenadas del ligando nativo que se apartó. Un
+    docking que aterriza a 30 Å del sitio también converge y también se dibuja
+    bonito; esto es lo que distingue una cosa de la otra a simple vista.
+    """
+    atomos = F.get(r, "docking_pose_atoms") or []
+    if not atomos:
+        return {"type": "panel", "root": S10}
+    acierta = F.get(r, f"{S10}.docking.pocket_check.lands_in_site")
+    frac = F.get(r, f"{S10}.docking.pocket_check.fraction_within_site")
+    sep = F.get(r, f"{S10}.docking.pocket_check.centroid_separation_angstrom")
+    etiqueta = (
+        f"{round(float(frac) * 100)}% del ligando en el sitio · {sep} Å"
+        if frac is not None and sep is not None
+        else None
+    )
+    return {
+        "type": "docking",
+        "mesh": "receptor",
+        "ligand": atomos,
+        "site_hit": acierta,
+        "site_label": etiqueta,
+    }
+
+
+def _scene_pk(r: Dict[str, Any]) -> Dict[str, Any]:
+    """La curva de un compartimento, si la corrida llegó a tener t½.
+
+    Si no lo tiene, se devuelve un panel en vez de una curva: la escena `pk`
+    dibuja una recta plana cuando le faltan los parámetros, y una recta plana es
+    una afirmación sobre este compuesto que la corrida nunca hizo.
+    """
+    t12 = F.get(r, f"{S9}.half_life_h")
+    if t12 is None:
+        return {"type": "panel", "root": S9}
+    bio = F.get(r, f"{S9}.profile.bioavailability_percent")
+    return {"type": "pk", "half_life_h": t12, "bioavailability": bio if bio is not None else 100}
 
 
 def chapters(
@@ -428,6 +531,148 @@ def chapters(
                     "en": "{r:not_a_potency_prediction_en}",
                     "kind": "note",
                 },
+            ],
+        },
+        {
+            "id": "admet",
+            "title": {"es": "ADMET y síntesis", "en": "ADMET and synthesis"},
+            "claims": [S6, S7],
+            "scene": {"type": "panel", "root": S7},
+            "beats": [
+                {
+                    "es": "ADMET: {ad:available?}. {ad:reason?}",
+                    "en": "ADMET: {ad:available?}. {ad:reason?}",
+                },
+                {"es": "{ad:note_es?}", "en": "{ad:note_en?}", "kind": "note"},
+                {
+                    "es": "Accesibilidad sintética del que encabeza: SA {syn1:sa_score}, "
+                    "que es {syn1:sa_interpretation_es}.",
+                    "en": "Synthetic accessibility of the leader: SA {syn1:sa_score}, "
+                    "which is {syn1:sa_interpretation_en}.",
+                },
+                {
+                    "es": "Sobre la ruta: {syn1:route.reason?}",
+                    "en": "On the route: {syn1:route.reason_en?}",
+                    "kind": "note",
+                },
+                {"es": "{sy:note_es}", "en": "{sy:note_en}", "kind": "note"},
+            ],
+        },
+        {
+            "id": "safety",
+            "title": {"es": "Toxicología", "en": "Toxicology"},
+            "claims": [S8],
+            "scene": {"type": "panel", "root": S8},
+            "beats": [
+                {
+                    "es": "Especies evaluadas: {tx:species_tested}.",
+                    "en": "Species assessed: {tx:species_tested}.",
+                },
+                {
+                    "es": "Clase de seguridad humana predicha: "
+                    "{tx:safety_assessment.human_safety_class}.",
+                    "en": "Predicted human safety class: "
+                    "{tx:safety_assessment.human_safety_class}.",
+                },
+                {
+                    "es": "{tx:safety_assessment.species_concordance.note?}",
+                    "en": "{tx:safety_assessment.species_concordance.note?}",
+                    "kind": "note",
+                },
+                {"es": "{tx:note_es}", "en": "{tx:note_en}", "kind": "note"},
+            ],
+        },
+        {
+            "id": "pk",
+            "title": {"es": "Farmacocinética", "en": "Pharmacokinetics"},
+            "claims": [S9],
+            "scene": _scene_pk(r),
+            "beats": [
+                {
+                    "es": "Aclaramiento hepático por IVIVE: {pkx:cl_hepatic_L_per_h} L/h, "
+                    "con fracción libre {pkx:fraction_unbound}.",
+                    "en": "Hepatic clearance by IVIVE: {pkx:cl_hepatic_L_per_h} L/h, "
+                    "with unbound fraction {pkx:fraction_unbound}.",
+                },
+                {
+                    "es": "La cadena está validada contra {pkx:validation.benchmark}.",
+                    "en": "The chain is validated against {pkx:validation.benchmark}.",
+                },
+                {
+                    "es": "Sobre la curva: {pkx:profile.reason?}",
+                    "en": "On the curve: {pkx:profile.reason_en?}",
+                    "kind": "note",
+                },
+                {"es": "{pkx:note_es}", "en": "{pkx:note_en}", "kind": "note"},
+            ],
+        },
+        {
+            "id": "binding",
+            "title": {"es": "Dónde se posa", "en": "Where it sits"},
+            "claims": [S10, "docking_pose_atoms"],
+            "scene": _scene_binding(r),
+            "beats": [
+                {
+                    "es": "Receptor: {rec:pdb_id} de RCSB, cadena {rec:receptor_chain}, "
+                    "{rec:n_atoms_receptor} átomos.",
+                    "en": "Receptor: {rec:pdb_id} from RCSB, chain "
+                    "{rec:receptor_chain}, {rec:n_atoms_receptor} atoms.",
+                },
+                {"es": "{rec:prepared_es}", "en": "{rec:prepared_en}", "kind": "note"},
+                {
+                    "es": "Acoplamiento con {dock:engine}, {dock:n_poses} poses.",
+                    "en": "Docked with {dock:engine}, {dock:n_poses} poses.",
+                },
+                {"es": "{poc:note_es}", "en": "{poc:note_en}"},
+                {
+                    "es": "Comprobado aquí: la pose cae dentro del sitio que ocupaba el "
+                    "ligando nativo, y no en cualquier otro punto de la superficie.",
+                    "en": "Checked here: the pose falls inside the site the native ligand "
+                    "occupied, not somewhere else on the surface.",
+                    "kind": "check",
+                    "requires_check": "pose_lands_in_site",
+                },
+                {"es": "{dock:caveat_es}", "en": "{dock:caveat_en}", "kind": "note"},
+                {
+                    "es": "No hay afinidad en este informe: {dk:affinity.reason}",
+                    "en": "There is no affinity in this report: {dk:affinity.reason_en}",
+                    "kind": "note",
+                },
+                {
+                    "es": "{dk:affinity.removed_scorer}",
+                    "en": "{dk:affinity.removed_scorer_en}",
+                    "kind": "note",
+                },
+            ],
+        },
+        {
+            "id": "composite",
+            "title": {"es": "El número, y lo que le falta", "en": "The number, and what it lacks"},
+            "claims": [S11],
+            "scene": {"type": "panel", "root": S11},
+            "beats": [
+                {
+                    "es": "El candidato que encabeza puntúa {comp:score} sobre 1.",
+                    "en": "The leading candidate scores {comp:score} out of 1.",
+                },
+                {
+                    "es": "Los pesos: bRo5 {cs:weights.bro5}, riesgos {cs:weights.liabilities}, "
+                    "ensemble {cs:weights.ensemble}, síntesis {cs:weights.synthesis}, "
+                    "seguridad {cs:weights.safety}.",
+                    "en": "The weights: bRo5 {cs:weights.bro5}, liabilities "
+                    "{cs:weights.liabilities}, ensemble {cs:weights.ensemble}, synthesis "
+                    "{cs:weights.synthesis}, safety {cs:weights.safety}.",
+                },
+                {"es": "{comp:note_es}", "en": "{comp:note_en}", "kind": "note"},
+                {
+                    "es": "Comprobado aquí: el compuesto se renormaliza sobre los "
+                    "componentes medidos, así que lo que falta no puntúa como un aprobado.",
+                    "en": "Checked here: the composite renormalises over the measured "
+                    "components, so what is missing does not score as a pass.",
+                    "kind": "check",
+                    "requires_check": "composite_renormalised",
+                },
+                {"es": "{cs:note_es}", "en": "{cs:note_en}", "kind": "note"},
             ],
         },
     ]

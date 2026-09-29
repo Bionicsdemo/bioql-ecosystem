@@ -584,6 +584,96 @@ const SCENES = {
     return { tick: (dt) => spin(dt, 0.12) };
   },
 
+  /* El acoplamiento, animado.
+
+     La escena `complex` enseña un complejo quieto y girando, que sirve cuando lo
+     que se quiere es mirar la forma. Aquí la pregunta es otra: CÓMO entra el
+     ligando en el bolsillo. Así que la pose -- que son coordenadas reales, las
+     que devolvió el docking -- se aparta a lo largo del eje que va del centro de
+     la proteína al centro del sitio, y se la trae de vuelta hasta su posición
+     medida. El punto de llegada no es decorativo: es la pose.
+
+     Lo que se anima es la aproximación, no el resultado. El resultado es donde
+     acaba, y acaba exactamente donde el docking dijo. */
+  async docking(sc) {
+    const mesh = sc.mesh ? await addCartoon(sc.mesh, { grow: true, mode: "ss" }) : null;
+    const atoms = (sc.ligand || []).filter(a => a.e !== "H");
+    if (!atoms.length) return gapScene(true, sc);
+
+    /* La pose viene en ångströms del PDB y la malla NO: mesh.py la empaqueta como
+       round((V - center)/scale) y aquí se deshace multiplicando por scale, así
+       que lo que se dibuja está centrado en el centroide de la proteína. Poner
+       los átomos con sus coordenadas crudas los manda a decenas de ångströms de
+       la proteína -- se renderiza perfecto y es completamente falso, que es la
+       peor clase de error de visualización. Se les resta el MISMO centro. */
+    const off = (R.meshes[sc.mesh] || {}).center || [0, 0, 0];
+    const P = atoms.map(a => [a.p[0] - off[0], a.p[1] - off[1], a.p[2] - off[2]]);
+
+    const c = P.reduce((v, q) => [v[0] + q[0], v[1] + q[1], v[2] + q[2]], [0, 0, 0])
+      .map(v => v / P.length);
+    const centro = new THREE.Vector3(c[0], c[1], c[2]);
+    /* La dirección de entrada: del centro del receptor (que ahora es el origen)
+       hacia el sitio. Si el sitio cayera justo en el origen, se entra por arriba
+       -- una dirección declarada, no un número inventado. */
+    const desde = centro.length() > 1e-6 ? centro.clone().normalize()
+                                         : new THREE.Vector3(0, 1, 0);
+    const VUELO = 32;
+
+    const g = new THREE.Group();
+    const sph = new THREE.IcosahedronGeometry(1, 2);
+    const COL = { N: 0x5b8def, O: 0xe4574c, S: 0xe9c46a, C: 0xe9a032 };
+    const inst = new THREE.InstancedMesh(
+      sph,
+      new THREE.MeshStandardMaterial({ roughness: 0.3, emissive: 0x2a1e06 }),
+      atoms.length
+    );
+    const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), V = new THREE.Vector3();
+    atoms.forEach((a, i) => {
+      M.compose(new THREE.Vector3(P[i][0], P[i][1], P[i][2]), Q.identity(), V.setScalar(a.r * 0.42));
+      inst.setMatrixAt(i, M);
+      inst.setColorAt(i, new THREE.Color(COL[a.e] || COL.C));
+    });
+    if (inst.instanceColor) inst.instanceColor.needsUpdate = true;
+    g.add(inst);
+    world.add(g);
+
+    /* El sitio, marcado: sin esto el lector no puede juzgar si la pose aterrizó
+       donde debía, que es justo lo que la comprobación de bolsillo mide. */
+    if (sc.site_hit != null) {
+      const anillo = new THREE.Mesh(
+        new THREE.TorusGeometry(7, 0.22, 10, 48),
+        new THREE.MeshBasicMaterial({ color: sc.site_hit ? 0x7ed08a : 0xe4574c })
+      );
+      anillo.position.copy(centro);
+      world.add(anillo);
+      const t = label(sc.site_label || (sc.site_hit ? "en el sitio" : "fuera del sitio"), "reg");
+      t.position.copy(centro).add(new THREE.Vector3(0, 10, 0));
+      world.add(t);
+    }
+
+    fit(mesh ? mesh.userData.fit * 1.3 : 90);
+    let t = 0;
+    const ENTRA = 2.6, ESPERA = 0.7;
+    return {
+      tick: (dt) => {
+        t += dt;
+        const ciclo = ENTRA + ESPERA + 4.0;
+        const u = (t % ciclo);
+        if (u < ENTRA) {
+          /* easing suave: entra deprisa y frena al llegar, que es como se lee
+             una aproximación y no como se lee una interpolación lineal */
+          const k = 1 - Math.pow(1 - u / ENTRA, 3);
+          g.position.copy(desde).multiplyScalar(VUELO * (1 - k));
+          g.rotation.y = (1 - k) * 2.2;
+        } else {
+          g.position.set(0, 0, 0);
+          g.rotation.y = 0;
+          spin(dt, 0.1);
+        }
+      },
+    };
+  },
+
   async binders(sc) {
     const bs = (sc.binders || []).slice(0, 12);
     if (!bs.length) return gapScene();

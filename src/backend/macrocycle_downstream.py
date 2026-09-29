@@ -66,13 +66,18 @@ def _mod(nombre: str) -> Any:
     return importlib.import_module(nombre)
 
 
-def _sin(razon: str, **extra: Any) -> Dict[str, Any]:
+def _sin(razon: str, reason_en: str = "", **extra: Any) -> Dict[str, Any]:
     """La forma canónica de un escenario que no pudo correr.
 
     Existe para que 'no disponible' sea un valor de primera clase con su causa,
     y no un hueco que el lector rellena con optimismo.
+
+    Lleva las DOS lenguas porque el informe se publica en inglés y una razón que
+    solo existe en castellano se cuela en él tal cual -- ya pasó dos veces en
+    este mismo fichero. Cuando la razón viene de un motor (que la escribe en
+    inglés), se pasa una sola vez y sirve para ambos.
     """
-    d: Dict[str, Any] = {"available": False, "reason": razon}
+    d: Dict[str, Any] = {"available": False, "reason": razon, "reason_en": reason_en or razon}
     d.update(extra)
     return d
 
@@ -160,7 +165,9 @@ def synthesis_for(smiles: str, *, want_route: bool = False) -> Dict[str, Any]:
     if not motores.get("aizynthfinder"):
         out["route"] = _sin(
             "AiZynthFinder no está instalado en este proceso, así que no hay ruta "
-            "validada: SA es una heurística de fragmentos, no una síntesis"
+            "validada: SA es una heurística de fragmentos, no una síntesis",
+            "AiZynthFinder is not installed in this process, so there is no validated "
+            "route: SA is a fragment heuristic, not a synthesis",
         )
     elif want_route:
         try:
@@ -168,7 +175,10 @@ def synthesis_for(smiles: str, *, want_route: bool = False) -> Dict[str, Any]:
         except Exception as e:  # noqa: BLE001
             out["route"] = _sin(f"la búsqueda de ruta falló: {type(e).__name__}: {e}")
     else:
-        out["route"] = _sin("no se pidió ruta en esta corrida (`synthesis_route: true`)")
+        out["route"] = _sin(
+            "no se pidió ruta en esta corrida (`synthesis_route: true`)",
+            "no route was requested in this run (`synthesis_route: true`)",
+        )
 
     out["wall_seconds"] = round(time.perf_counter() - t0, 2)
     out["note_es"] = (
@@ -286,7 +296,9 @@ def pharmacokinetics_for(
     else:
         out["profile"] = _sin(
             "falta el volumen de distribución, y sin él no hay t½ que dibujar. "
-            "Una curva plana sería una afirmación que esta corrida no hizo"
+            "Una curva plana sería una afirmación que esta corrida no hizo",
+            "the volume of distribution is missing, and without it there is no t½ to "
+            "draw. A flat curve would be a claim this run never made",
         )
     out["wall_seconds"] = round(time.perf_counter() - t0, 2)
     out["note_es"] = (
@@ -341,6 +353,9 @@ def target_structure(target: str, pdb_id: str = "", chain: str = "") -> Dict[str
             f"no hay estructura conocida para «{target}» y no se pasó `pdb_id`: "
             f"sin receptor no se puede dockear, y dockear contra otra proteína "
             f"sería peor que no dockear",
+            f"there is no known structure for «{target}» and no `pdb_id` was given: "
+            f"without a receptor there is nothing to dock into, and docking against a "
+            f"different protein would be worse than not docking",
             known_targets=sorted(_PDB_CONOCIDOS),
         )
     try:
@@ -525,11 +540,13 @@ def pocket_check(
     contestable.
     """
     if not pose_atoms_list:
-        return _sin("sin pose no hay nada que comprobar")
+        return _sin("sin pose no hay nada que comprobar", "with no pose there is nothing to check")
     if not reference_xyz:
         return _sin(
             "la estructura no traía ligando ni cadena nativa que apartar, así que "
-            "no hay sitio de referencia contra el que comprobar la pose"
+            "no hay sitio de referencia contra el que comprobar la pose",
+            "the structure carried no native ligand or chain to set aside, so there is "
+            "no reference site to check the pose against",
         )
     try:
         import numpy as np
@@ -576,14 +593,17 @@ def affinity_status() -> Dict[str, Any]:
     qué hoy no corre, no.
     """
     razon = "MM-GBSA (`mmgbsa_ensemble`) es el camino honesto y no está disponible"
+    razon_en = "MM-GBSA (`mmgbsa_ensemble`) is the honest path and it is not available"
     try:
         mcl = _mod("modal_compute_layer")
         if not mcl.modal_enabled():
             razon = "MM-GBSA corre en Modal y Modal no está habilitado en este proceso"
+            razon_en = "MM-GBSA runs on Modal and Modal is not enabled in this process"
     except Exception:  # noqa: BLE001
         pass
     return _sin(
         razon,
+        reason_en=razon_en,
         removed_scorer=(
             "el `estimate_binding_affinity_quantum` del repo está retirado porque "
             "fabricaba ΔG a partir del peso de Hamming de un qubit. No se usa"
@@ -636,13 +656,28 @@ def composite(cand: Dict[str, Any], extras: Dict[str, Any]) -> Dict[str, Any]:
     sa = (extras.get("synthesis") or {}).get("sa_score")
     partes["synthesis"] = None if sa is None else max(0.0, min(1.0, (10.0 - float(sa)) / 6.0))
 
+    # Seguridad. La primera versión de esto contaba las banderas de ADMET y, con
+    # ADMET caído, contaba CERO banderas -- es decir, puntuaba un candidato sin
+    # datos de seguridad como si los tuviera y fueran perfectos. Es exactamente
+    # el fallo que el desglose existe para impedir, cometido dentro del desglose.
+    #
+    # Que el motor de toxicología esté disponible tampoco basta: en esta corrida
+    # devolvió `human_safety_class: "unknown"` con la nota «requires an
+    # efficacious dose». Un motor que responde "no lo sé" no ha medido nada.
     tox = extras.get("toxicology") or {}
     admet = extras.get("admet") or {}
-    if not tox.get("available") and not admet.get("available"):
-        partes["safety"] = None
-    else:
+    banderas = None
+    if admet.get("available"):
         banderas = len(((admet.get("safety_flags") or [{}])[0] or {}).get("flags") or [])
+    clase_tox = str(((tox.get("safety_assessment") or {}).get("human_safety_class") or "")).lower()
+    tox_dice_algo = bool(tox.get("available")) and clase_tox not in ("", "unknown", "not assessed")
+
+    if banderas is None and not tox_dice_algo:
+        partes["safety"] = None
+    elif banderas is not None:
         partes["safety"] = max(0.0, 1.0 - 0.15 * banderas)
+    else:
+        partes["safety"] = {"low": 1.0, "moderate": 0.6, "high": 0.25}.get(clase_tox, 0.5)
 
     vivos = {k: v for k, v in partes.items() if v is not None}
     faltan = sorted(k for k, v in partes.items() if v is None)
