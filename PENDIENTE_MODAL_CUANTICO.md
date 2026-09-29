@@ -46,6 +46,42 @@ entonces, nada de esto se ejecuta por iniciativa propia.
 | Clusters duros a SQD | `ewf_embedding.hard_clusters()` | listados con sus orbitales activos; hoy resueltos con CCSD |
 | EWF + SQD en A100 | `modal_ewf_sqd.ewf_multifragment` | la ruta del paper completa, sin tocar |
 
+## EWF en CPU: lento a propósito, NO se optimiza
+
+Corrida medida el 2026-09-29 sobre el macrociclo de 8 residuos
+(`F-G-K-L-A-W-T-S`), 126 átomos, 382 funciones de base, fragmentado por
+residuo:
+
+| | |
+|---|---|
+| E(RHF) | −2957,739393 Ha (99 s) |
+| E(EWF) | −2961,828146 Ha |
+| Correlación | −4,088754 Ha = −2 566 kcal/mol |
+| Fragmentos | 8, uno por residuo |
+| Tiempo EWF | 4 826 s (1 h 20 min) |
+| Orbitales activos por cluster | 116, 96, 91, 87, 75, 65, 57, 45 |
+| Clusters duros (>6 orbitales) | **8 de 8** |
+
+Los ocho fragmentos los resolvió CCSD emitiendo, en cada uno,
+`at least one diagnostic indicates that CCSD is not adequate`. Es decir:
+el propio cálculo identificó dónde hace falta cuántico, sobre esta molécula
+y fragmento a fragmento. No es una conjetura del pipeline.
+
+**DECISIÓN DEL USUARIO (2026-09-29): esa hora y veinte NO es un problema a
+arreglar.** Esto no debe terminar corriendo en CPU — se va a escalar a
+cuántico real y a GPU. Por ahora se deja como está.
+
+Consecuencia práctica: **no** poner topes de átomos en `4c_ewf`, **no**
+optimizar la fragmentación para CPU, **no** cambiar el solver por uno más
+barato. Todo eso sería trabajo tirado, y además taparía la señal útil —
+que los ocho clusters salgan marcados como duros es exactamente lo que
+justifica subirlos a SQD.
+
+Nota de tamaño para cuando llegue el momento: el cluster mayor tiene 116
+orbitales activos ≈ 232 qubits, por encima de los 156 de un Heron r2. Los
+de 45–65 orbitales (90–130 qubits) sí entran. Apretar el baño para bajar
+los mayores será una decisión de método, no de presupuesto.
+
 ## Por qué importa no rellenarlo mientras tanto
 
 Todo eso ya está cableado y **declarando su ausencia** con `available: False` y
