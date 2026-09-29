@@ -437,14 +437,27 @@ def run_macrocycle(data: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
             )
             continue
         t_q = time.perf_counter()
+        # La escalada a hardware no la decide el pipeline.
+        #
+        # `allow_qpu` y `allow_cudaq` van en la petición y por defecto están
+        # apagados. No es una barrera técnica -- la cascada sabe subir sola desde
+        # CPU -- es que los minutos de Heron son escasos y quien los gasta debe
+        # ser quien los paga. Lo que sí hace el pipeline es DEJAR CONSTANCIA de
+        # con qué permiso corrió, para que un resultado de simulador no se lea
+        # nunca como uno de hardware.
+        permisos = {
+            "allow_qpu": bool(data.get("allow_qpu", False)),
+            "allow_cudaq": bool(data.get("allow_cudaq", False)),
+        }
         rk = (
-            mq.rank_conformers_clusters(region, timeout_s=3600)
+            mq.rank_conformers_clusters(region, timeout_s=3600, **permisos)
             if multi
             else mq.rank_conformers(
                 region["geometries"],
                 method="sqd",
                 charge=int(region.get("charge", 0)),  # la de la REGIÓN, no la de la molécula
                 timeout_s=3600,
+                **permisos,
             )
         )
         gastado = time.perf_counter() - t_q
@@ -494,6 +507,24 @@ def run_macrocycle(data: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
         "n_skipped": len(q_saltados),
         "skipped": q_saltados,
         "conformer_plan": plan_conf,
+        "escalation": {
+            "allow_qpu": bool(data.get("allow_qpu", False)),
+            "allow_cudaq": bool(data.get("allow_cudaq", False)),
+            "note_es": (
+                "la cascada sabe subir de CPU a CUDA-Q y a QPU, y NO lo hace sola: "
+                "los dos peldaños gastan presupuesto real. Se suben pasando "
+                "`allow_cudaq` o `allow_qpu` en la petición, y aquí queda escrito "
+                "con cuál corrió, para que un resultado de simulador no se lea "
+                "nunca como uno de hardware"
+            ),
+            "note_en": (
+                "the cascade can climb from CPU to CUDA-Q and to QPU, and it does "
+                "NOT do so on its own: both rungs spend real budget. They are "
+                "enabled with `allow_cudaq` or `allow_qpu` in the request, and what "
+                "it ran with is written here, so a simulator result is never read "
+                "as a hardware one"
+            ),
+        },
         "seconds_per_geometry": round(seg_por_geom, 2) if seg_por_geom else None,
         "results": q_resultados,
         "differential_floor_ev": mq.DIFFERENTIAL_FLOOR_EV,

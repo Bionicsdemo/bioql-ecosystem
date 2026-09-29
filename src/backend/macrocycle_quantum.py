@@ -204,6 +204,8 @@ def rank_conformers(
     method: str = "xtb",
     reference: int = 0,
     timeout_s: int = 120,
+    allow_qpu: bool = False,
+    allow_cudaq: bool = False,
 ) -> Dict[str, Any]:
     """Ordena confórmeros por energía RELATIVA al de referencia.
 
@@ -226,6 +228,7 @@ def rank_conformers(
         "energies": [],
         "degradations": [],
         "absolute_energies_emitted": False,
+        "escalation_allowed": {"qpu": bool(allow_qpu), "cudaq": bool(allow_cudaq)},
     }
     if not conformer_xyz:
         out["error"] = "no se recibió ningún confórmero"
@@ -245,7 +248,13 @@ def rank_conformers(
     if usar == "xtb":
         crudas, err = _xtb_energies(conformer_xyz, charge=charge, timeout_s=timeout_s)
     else:
-        crudas, err, razones = _sqd_energies(conformer_xyz, charge=charge, timeout_s=timeout_s)
+        crudas, err, razones = _sqd_energies(
+            conformer_xyz,
+            charge=charge,
+            timeout_s=timeout_s,
+            allow_qpu=allow_qpu,
+            allow_cudaq=allow_cudaq,
+        )
     if err:
         out["error"] = err
         return out
@@ -337,7 +346,15 @@ def _quantum_available() -> Tuple[bool, str]:
         return False, f"modal_compute_layer no disponible: {type(e).__name__}: {e}"
 
 
-def _sqd_energies(xyzs: List[str], *, charge: int, timeout_s: int, n_act_orb: int = 6):
+def _sqd_energies(
+    xyzs: List[str],
+    *,
+    charge: int,
+    timeout_s: int,
+    n_act_orb: int = 6,
+    allow_qpu: bool = False,
+    allow_cudaq: bool = False,
+):
     """Peldaño cuántico real: pyscf sobre la geometría -> SQD por la cascada.
 
     La primera versión de esto llamaba a `quantum_gpu` con `{"xyz", "charge"}`, y
@@ -349,6 +366,11 @@ def _sqd_energies(xyzs: List[str], *, charge: int, timeout_s: int, n_act_orb: in
     y `sqd_cascade.run(mf, n_act_orb=...)`, que elige peldaño (CPU -> CUDA-Q ->
     QPU) y NUNCA sube solo: `allow_qpu` y `allow_cudaq` son False por defecto
     porque los dos gastan presupuesto real.
+
+    Se pueden subir, y ahora llegan hasta aquí desde la petición en vez de estar
+    clavados. Sigue sin ser automático a propósito: la escalada a hardware gasta
+    minutos de Heron, que son escasos, y esa es una decisión de quien paga y no
+    del pipeline. Quien la tome la escribe en la petición y queda en el JSON.
 
     No se implementa ningún sustituto clásico disfrazado: si la cascada no da
     valor, ese confórmero sale como None y el llamante lo declara.
@@ -367,7 +389,12 @@ def _sqd_energies(xyzs: List[str], *, charge: int, timeout_s: int, n_act_orb: in
             cuerpo = "\n".join(xyz.strip().splitlines()[2:])  # quita cabecera XYZ
             mol = pyscf_gto.M(atom=cuerpo, basis="sto-3g", charge=charge, spin=0, verbose=0)
             mf = pyscf_scf.RHF(mol).run()
-            r = cascade.run(mf, n_act_orb=n_act_orb, allow_qpu=False, allow_cudaq=False)
+            r = cascade.run(
+                mf,
+                n_act_orb=n_act_orb,
+                allow_qpu=bool(allow_qpu),
+                allow_cudaq=bool(allow_cudaq),
+            )
             energia = (r or {}).get("e_sqd")
             energias.append(float(energia) if energia is not None else None)
             razones.append("" if energia is not None else "la cascada SQD no devolvió e_sqd")
@@ -1057,6 +1084,8 @@ def rank_conformers_clusters(
     reference: int = 0,
     timeout_s: int = 3600,
     method: str = "sqd",
+    allow_qpu: bool = False,
+    allow_cudaq: bool = False,
 ) -> Dict[str, Any]:
     """Ordena confórmeros sumando las diferencias de cada cluster.
 
@@ -1082,6 +1111,7 @@ def rank_conformers_clusters(
         "per_cluster": [],
         "degradations": [],
         "absolute_energies_emitted": False,
+        "escalation_allowed": {"qpu": bool(allow_qpu), "cudaq": bool(allow_cudaq)},
     }
     if not descomposicion.get("available"):
         out["error"] = f"sin descomposición: {descomposicion.get('reason', '')}"
@@ -1107,6 +1137,8 @@ def rank_conformers_clusters(
             charge=int(c.get("charge", 0)),
             reference=reference,
             timeout_s=timeout_s,
+            allow_qpu=allow_qpu,
+            allow_cudaq=allow_cudaq,
         )
         resumen = {
             "cluster": c["index"],
