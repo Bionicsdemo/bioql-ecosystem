@@ -162,3 +162,234 @@ def test_un_recorte_de_capa_abierta_se_declara_no_disponible():
 
 
 # MOLEVERA / BIOQL
+
+# ── la descomposición multi-cluster ──────────────────────────────────────────
+# Todo lo que sigue protege UNA afirmación: que la suma de las energías por
+# cluster es la energía de algo. Eso solo es cierto si la partición es de verdad
+# una partición. En cuanto dos clusters comparten un átomo, ese átomo se cuenta
+# dos veces y el total deja de ser una aproximación de nada -- sin lanzar ninguna
+# excepción, sin que ningún número salga raro, y con el informe tan convencido
+# como antes.
+#
+# Por eso el primer test es el de disyunción, y por eso no se apoya en el campo
+# `disjoint: True` que la propia función escribe: comprueba los índices.
+
+
+@pytest.fixture(scope="module")
+def descomp(caso):
+    smiles, _ = caso
+    d = mq.closure_clusters(smiles, _molblocks(smiles, 3), radius=2, max_clusters=6)
+    if not d.get("available"):
+        pytest.fail(f"la descomposición no se pudo hacer: {d.get('reason')}")
+    return smiles, d
+
+
+def test_los_clusters_son_disjuntos(descomp):
+    """Ningún átomo pertenece a dos clusters.
+
+    Es la condición que hace que sumar signifique algo. Se comprueba contando
+    índices, no leyendo la bandera `disjoint` que la función se pone a sí misma.
+    """
+    _, d = descomp
+    visto: dict = {}
+    choques = []
+    for c in d["clusters"]:
+        for a in c["atom_indices"]:
+            if a in visto:
+                choques.append((a, visto[a], c["index"]))
+            visto[a] = c["index"]
+    assert not choques, (
+        "hay átomos en dos clusters, así que la suma de energías los cuenta dos "
+        f"veces y no es la energía de nada: {choques[:6]}"
+    )
+
+
+def test_cada_cluster_corta_solo_enlaces_capables(descomp):
+    """La regla del átomo-enlace vale para cada trozo, no solo para el primero."""
+    smiles, d = descomp
+    mol = Chem.MolFromSmiles(smiles)
+    malos = []
+    for c in d["clusters"]:
+        dentro = set(c["atom_indices"])
+        for i in dentro:
+            for nb in mol.GetAtomWithIdx(i).GetNeighbors():
+                if nb.GetIdx() in dentro:
+                    continue
+                b = mol.GetBondBetweenAtoms(i, nb.GetIdx())
+                if (
+                    b.GetIsAromatic()
+                    or b.GetBondTypeAsDouble() != 1.0
+                    or mol.GetAtomWithIdx(i).GetAtomicNum() != 6
+                    or nb.GetAtomicNum() != 6
+                ):
+                    malos.append((c["index"], i, nb.GetIdx(), b.GetBondTypeAsDouble()))
+    assert not malos, f"cortes que un hidrógeno no puede capar: {malos[:6]}"
+
+
+def test_cada_cluster_es_de_capa_cerrada(descomp):
+    """Un cluster con electrones impares no lo describe RHF, y no debe emitirse."""
+    _, d = descomp
+    impares = [(c["index"], c["n_electrons"]) for c in d["clusters"] if c["n_electrons"] % 2]
+    assert not impares, f"clusters de capa abierta emitidos como válidos: {impares}"
+
+
+def test_la_superficie_de_acoplamiento_esta_bien_contada(descomp):
+    """El término despreciado se declara con su tamaño, y ese tamaño es correcto.
+
+    Los enlaces que cruzan de un cluster a otro son por dónde pasa la correlación
+    que esta aproximación no calcula. Declararla mal sería peor que no
+    declararla: daría una falsa idea de cuánto se está dejando fuera.
+    """
+    smiles, d = descomp
+    mol = Chem.MolFromSmiles(smiles)
+    de_cluster = {a: c["index"] for c in d["clusters"] for a in c["atom_indices"]}
+    esperado = sum(
+        1
+        for b in mol.GetBonds()
+        if de_cluster.get(b.GetBeginAtomIdx()) is not None
+        and de_cluster.get(b.GetEndAtomIdx()) is not None
+        and de_cluster[b.GetBeginAtomIdx()] != de_cluster[b.GetEndAtomIdx()]
+    )
+    assert (
+        d["n_coupling_bonds"] == esperado
+    ), f"declara {d['n_coupling_bonds']} enlaces de acoplamiento y hay {esperado}"
+
+
+def test_la_cobertura_declarada_es_la_real(descomp):
+    """La fracción de molécula que ve el cuántico se cuenta, no se estima."""
+    smiles, d = descomp
+    mol = Chem.MolFromSmiles(smiles)
+    dentro = {a for c in d["clusters"] for a in c["atom_indices"]}
+    assert d["n_heavy_in_clusters"] == len(dentro)
+    assert abs(d["coverage"] - len(dentro) / mol.GetNumHeavyAtoms()) < 1e-3
+
+
+def test_partir_ve_mas_molecula_que_recortar_una_region(caso, descomp):
+    """La descomposición tiene que APORTAR algo, o no vale lo que cuesta.
+
+    Un método nuevo que mira lo mismo que el viejo, pero cuatro veces más caro,
+    es una regresión con buena prensa. Se exige que cubra estrictamente más
+    átomos pesados que el recorte de una sola región.
+    """
+    _, reg = caso
+    _, d = descomp
+    assert d["n_heavy_in_clusters"] > reg["n_heavy_region"], (
+        f"partir cubre {d['n_heavy_in_clusters']} átomos pesados y recortar una "
+        f"sola región cubre {reg['n_heavy_region']}: la descomposición no aporta"
+    )
+
+
+def test_la_suma_publicada_es_la_suma_de_los_clusters():
+    """El total es la suma de las partes, comprobado con aritmética y no con fe.
+
+    Se construye un resultado sintético para no gastar SQD: lo que se comprueba
+    es la contabilidad de `rank_conformers_clusters`, que es donde un signo
+    cambiado o un cluster contado dos veces pasaría inadvertido.
+    """
+    import macrocycle_quantum as m
+
+    llamadas = {"n": 0}
+    guardado = m.rank_conformers
+
+    def falso(geoms, **kw):
+        llamadas["n"] += 1
+        base = [0.0, -0.5, 0.25][: len(geoms)]
+        k = llamadas["n"]
+        return {
+            "method_used": "sqd",
+            "energies": [
+                {"conformer_id": i, "delta_ev": round(v * k, 4), "below_floor": abs(v * k) < 0.08}
+                for i, v in enumerate(base)
+            ],
+            "degradations": [],
+            "n_significant": 2,
+        }
+
+    desc = {
+        "available": True,
+        "coverage": 0.6,
+        "n_coupling_bonds": 4,
+        "clusters": [
+            {
+                "index": i,
+                "anchor": "amida",
+                "anchor_en": "amide",
+                "n_heavy_region": 9,
+                "n_electrons": 70,
+                "charge": 0,
+                "geometries": ["g0", "g1", "g2"],
+            }
+            for i in range(3)
+        ],
+    }
+    m.rank_conformers = falso
+    try:
+        out = m.rank_conformers_clusters(desc)
+    finally:
+        m.rank_conformers = guardado
+
+    assert out.get("error") is None, out.get("error")
+    assert out["n_clusters_used"] == 3
+    for i, e in enumerate(out["energies"]):
+        esperado = round(sum(pc["deltas_ev"][i] for pc in out["per_cluster"]), 4)
+        assert abs(e["delta_ev"] - esperado) < 1e-6, (
+            f"confórmero {i}: publica {e['delta_ev']} y la suma de sus clusters " f"es {esperado}"
+        )
+
+
+def test_un_cluster_sin_energias_no_se_suma_como_cero():
+    """Un cluster caído invalida la suma de ese confórmero, no vale cero.
+
+    Sumar cero por un cluster que no respondió es decir que ese trozo de molécula
+    no cambia entre confórmeros, que es una afirmación, y no la hizo nadie.
+    """
+    import macrocycle_quantum as m
+
+    guardado = m.rank_conformers
+    estado = {"n": 0}
+
+    def falso(geoms, **kw):
+        estado["n"] += 1
+        if estado["n"] == 2:
+            return {
+                "method_used": "sqd",
+                "energies": [],
+                "error": "no convergió",
+                "degradations": [],
+            }
+        return {
+            "method_used": "sqd",
+            "energies": [
+                {"conformer_id": i, "delta_ev": v, "below_floor": False}
+                for i, v in enumerate([0.0, -0.5])
+            ],
+            "degradations": [],
+            "n_significant": 1,
+        }
+
+    desc = {
+        "available": True,
+        "coverage": 0.4,
+        "n_coupling_bonds": 1,
+        "clusters": [
+            {
+                "index": i,
+                "anchor": "amida",
+                "anchor_en": "amide",
+                "n_heavy_region": 9,
+                "n_electrons": 70,
+                "charge": 0,
+                "geometries": ["g0", "g1"],
+            }
+            for i in range(2)
+        ],
+    }
+    m.rank_conformers = falso
+    try:
+        out = m.rank_conformers_clusters(desc)
+    finally:
+        m.rank_conformers = guardado
+
+    assert out["n_clusters_failed"] == 1, "el cluster caído no se contabilizó"
+    assert out["clusters_failed"], "cayó un cluster y no se dice cuál ni por qué"
+    assert out["n_clusters_used"] == 1

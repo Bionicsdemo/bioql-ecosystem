@@ -438,6 +438,85 @@ def _cortable(mol, dentro: int, fuera: int) -> bool:
     )
 
 
+def _geometrias_de(plano, molblocks, nucleo_ord):
+    """Geometrías capadas de un conjunto de átomos pesados, con sus hidrógenos.
+
+    Es el cuerpo que `closure_region` tenía dentro y que ahora comparte con la
+    descomposición multi-cluster. Vive aquí, y no duplicado, porque las tres
+    reglas que lo hacen correcto -- solo se corta C-C simple, los hidrógenos de
+    la región entran, y la paridad se cuenta sobre la geometría emitida -- ya se
+    incumplieron una vez cada una, y dos copias divergen.
+    """
+    from rdkit import Chem
+
+    nucleo = set(nucleo_ord)
+    cortes = []
+    for i in nucleo_ord:
+        for nb in plano.GetAtomWithIdx(i).GetNeighbors():
+            if nb.GetIdx() not in nucleo:
+                cortes.append((i, nb.GetIdx()))
+    carga_region = sum(plano.GetAtomWithIdx(i).GetFormalCharge() for i in nucleo_ord)
+
+    geometrias: List[str] = []
+    n_electrones: Optional[int] = None
+    for mbk in molblocks:
+        m3d = Chem.MolFromMolBlock(mbk, removeHs=False)
+        if m3d is None:
+            continue
+        pesados = [a.GetIdx() for a in m3d.GetAtoms() if a.GetAtomicNum() > 1]
+        if len(pesados) != plano.GetNumAtoms():
+            return {
+                "available": False,
+                "reason": (
+                    "la conformación no casa átomo a átomo con el SMILES; sin esa "
+                    "correspondencia el recorte sería de otra molécula"
+                ),
+            }
+        conf = m3d.GetConformer()
+        incluidos: List[int] = []
+        for i in nucleo_ord:
+            j = pesados[i]
+            incluidos.append(j)
+            incluidos += [
+                n.GetIdx() for n in m3d.GetAtomWithIdx(j).GetNeighbors() if n.GetAtomicNum() == 1
+            ]
+        lineas, carga_nuclear = [], 0
+        for j in incluidos:
+            pos = conf.GetAtomPosition(j)
+            at = m3d.GetAtomWithIdx(j)
+            carga_nuclear += at.GetAtomicNum()
+            lineas.append(f"{at.GetSymbol()} {pos.x:.5f} {pos.y:.5f} {pos.z:.5f}")
+        for dentro, fuera in cortes:
+            a, b = conf.GetAtomPosition(pesados[dentro]), conf.GetAtomPosition(pesados[fuera])
+            vx, vy, vz = b.x - a.x, b.y - a.y, b.z - a.z
+            d = (vx * vx + vy * vy + vz * vz) ** 0.5 or 1.0
+            f = _CAP_CH / d
+            carga_nuclear += 1
+            lineas.append(f"H {a.x + vx * f:.5f} {a.y + vy * f:.5f} {a.z + vz * f:.5f}")
+        n_electrones = carga_nuclear - carga_region
+        geometrias.append(f"{len(lineas)}\nregión de cierre\n" + "\n".join(lineas))
+
+    if n_electrones is not None and n_electrones % 2:
+        return {
+            "available": False,
+            "reason": (
+                f"la región saldría con {n_electrones} electrones, impar: es una capa "
+                f"abierta y RHF no la describe. Se declara en vez de forzar un espín "
+                f"que nadie ha medido"
+            ),
+        }
+    if not geometrias:
+        return {"available": False, "reason": "ninguna conformación dio geometría"}
+    return {
+        "available": True,
+        "n_heavy_region": len(nucleo_ord),
+        "n_caps": len(cortes),
+        "charge": carga_region,
+        "n_electrons": n_electrones,
+        "geometries": geometrias,
+    }
+
+
 def closure_region(smiles: str, molblocks: List[str], radius: int = 2) -> Dict[str, Any]:
     """Recorta la región que de verdad decide, y deja el resto a la GPU.
 
@@ -759,3 +838,357 @@ class ComputeBudget:
 
 
 # MOLEVERA / BIOQL
+
+
+# ── descomposición multi-cluster ─────────────────────────────────────────────
+# Por qué existe esto, y qué NO es.
+#
+# `closure_region` recorta UNA región: coge el primer ancla que encuentra y crece
+# por radio. Es lo que hacía falta para ordenar confórmeros por el enlace de
+# cierre, y para eso sigue valiendo. Pero deja fuera el resto de la molécula por
+# construcción, y en un macrociclo de 8 residuos eso son 50 de 64 átomos pesados
+# que el cuántico nunca mira.
+#
+# Cleveland Clinic y RIKEN publicaron en 2025 el camino: T4-lisozima (11 608
+# átomos) y tripsina (12 635) NO se metieron enteras en un ordenador cuántico.
+# Se fragmentaron con embedding de función de onda en «clusters»; los fáciles los
+# resolvió el clásico y solo las regiones muy entrelazadas fueron a SQD en dos
+# Heron r2. El coste no crece con la molécula, crece con cuántos trozos decides
+# tratar cuánticamente. Esa es la idea que esto implementa.
+#
+# LA DECISIÓN QUE HACE QUE LA SUMA SIGNIFIQUE ALGO
+# ------------------------------------------------
+# Los clusters son DISJUNTOS. Si dos regiones comparten átomos, sumar sus
+# energías cuenta esos átomos dos veces y el número resultante no es la energía
+# de nada. Con una partición de verdad, la suma de las diferencias por cluster ES
+# una aproximación bien definida de la diferencia total, con un único término
+# despreciado: la correlación ENTRE clusters.
+#
+# Y ese término despreciado no se esconde: se mide. Los enlaces que cruzan de un
+# cluster a otro son la superficie de acoplamiento, y cuantos más haya, más se
+# está dejando fuera. Va en el resultado con ese nombre.
+#
+# Lo que esto NO es: no es EWF. No hay acoplamiento auto-consistente entre
+# clusters ni orbitales de frontera compartidos. Es una partición aditiva con su
+# error declarado, que es un peldaño por debajo -- y decirlo es la diferencia
+# entre un método y una imitación.
+
+# Prioridad de ancla: qué merece más el gasto cuántico cuando dos clusters se
+# pelean por el mismo átomo. El orden es el de _ANCLAS.
+_PRIORIDAD = {nombre: i for i, (nombre, *_r) in enumerate(_ANCLAS)}
+
+
+def _anclas_todas(plano) -> List[Tuple[int, str, str, str, str, Tuple[int, ...]]]:
+    """Todas las coincidencias de todas las anclas, ordenadas por prioridad.
+
+    `closure_region` se queda con la primera y sigue. Aquí hacen falta todas,
+    porque cada una es una región candidata a recibir cuántico.
+    """
+    from rdkit import Chem
+
+    fuera: List[Tuple[int, str, str, str, str, Tuple[int, ...]]] = []
+    for nombre, nombre_en, smarts, por_que, why_en in _ANCLAS:
+        patt = Chem.MolFromSmarts(smarts)
+        if patt is None:
+            continue
+        for hit in plano.GetSubstructMatches(patt):
+            fuera.append((_PRIORIDAD[nombre], nombre, nombre_en, por_que, why_en, tuple(hit)))
+    fuera.sort(key=lambda t: (t[0], t[5]))
+    return fuera
+
+
+def _particionar(plano, semillas, radius: int, max_clusters: int) -> List[Dict[str, Any]]:
+    """Crece cada semilla reclamando átomos, sin pisar lo ya reclamado.
+
+    El reparto es por prioridad: un disulfuro se queda con sus átomos antes que
+    una amida del esqueleto, porque su TS es multireferencial y el de la amida
+    no. Lo que no reclama nadie se queda para el campo de fuerzas, que es
+    exactamente lo que el método dice hacer con él.
+    """
+    reclamado: Dict[int, int] = {}  # átomo -> índice de cluster
+    clusters: List[Dict[str, Any]] = []
+
+    for _prio, nombre, nombre_en, por_que, why_en, hit in semillas:
+        if len(clusters) >= max_clusters:
+            break
+        if any(a in reclamado for a in hit):
+            continue  # su ancla ya pertenece a un cluster de más prioridad
+        idx = len(clusters)
+        nucleo = set(hit)
+        for _ in range(max(0, int(radius))):
+            crecido = {
+                n.GetIdx()
+                for i in list(nucleo)
+                for n in plano.GetAtomWithIdx(i).GetNeighbors()
+                if n.GetIdx() not in reclamado
+            }
+            nucleo |= crecido
+
+        # Reparación de frontera, igual que en el recorte simple: solo se corta
+        # un C-C simple no aromático. La diferencia es que aquí un átomo que hace
+        # falta absorber puede pertenecer ya a otro cluster; si eso pasa, los dos
+        # son químicamente inseparables y el de menos prioridad cede el sitio.
+        ok = True
+        for _ in range(_MAX_REPARACIONES):
+            pendientes = {
+                nb.GetIdx()
+                for i in nucleo
+                for nb in plano.GetAtomWithIdx(i).GetNeighbors()
+                if nb.GetIdx() not in nucleo and not _cortable(plano, i, nb.GetIdx())
+            }
+            if not pendientes:
+                break
+            if any(a in reclamado for a in pendientes):
+                ok = False  # la frontera choca con otro cluster: este no entra
+                break
+            nucleo |= pendientes
+        else:
+            ok = False
+        if not ok:
+            continue
+
+        for a in nucleo:
+            reclamado[a] = idx
+        clusters.append(
+            {
+                "index": idx,
+                "anchor": nombre,
+                "anchor_en": nombre_en,
+                "why": por_que,
+                "why_en": why_en,
+                "atom_indices": sorted(nucleo),
+            }
+        )
+    return clusters
+
+
+def closure_clusters(
+    smiles: str, molblocks: List[str], radius: int = 2, max_clusters: int = 4
+) -> Dict[str, Any]:
+    """Parte la molécula en clusters disjuntos y devuelve la geometría de cada uno.
+
+    Cada cluster sale con lo mismo que devolvía el recorte simple -- sus
+    geometrías capadas, su carga, sus electrones -- y además se declara la
+    cobertura (cuántos átomos pesados quedan dentro de algún cluster) y la
+    superficie de acoplamiento (cuántos enlaces cruzan de un cluster a otro),
+    que es el término que esta aproximación desprecia.
+    """
+    try:
+        from rdkit import Chem
+    except Exception as e:  # noqa: BLE001
+        return {"available": False, "reason": f"rdkit no disponible: {e}"}
+    if not molblocks:
+        return {"available": False, "reason": "no se recibió ninguna conformación"}
+    plano = Chem.MolFromSmiles(smiles or "")
+    if plano is None:
+        return {"available": False, "reason": "el SMILES no es una molécula válida"}
+
+    semillas = _anclas_todas(plano)
+    if not semillas:
+        return {"available": False, "reason": "no se encontró ningún ancla donde partir"}
+    clusters = _particionar(plano, semillas, radius, max_clusters)
+    if not clusters:
+        return {"available": False, "reason": "ninguna semilla dio un cluster con frontera sana"}
+
+    # Geometrías por cluster, con la misma maquinaria que el recorte simple.
+    vivos: List[Dict[str, Any]] = []
+    for c in clusters:
+        g = _geometrias_de(plano, molblocks, c["atom_indices"])
+        if not g.get("available"):
+            c.update({"available": False, "reason": g.get("reason", "")})
+            continue
+        c.update(g)
+        c["available"] = True
+        vivos.append(c)
+    if not vivos:
+        return {
+            "available": False,
+            "reason": "ningún cluster sobrevivió a la comprobación de capa cerrada",
+            "clusters": clusters,
+        }
+
+    dentro = {a for c in vivos for a in c["atom_indices"]}
+    de_cluster = {a: c["index"] for c in vivos for a in c["atom_indices"]}
+    acoplamiento = [
+        (b.GetBeginAtomIdx(), b.GetEndAtomIdx())
+        for b in plano.GetBonds()
+        if de_cluster.get(b.GetBeginAtomIdx()) is not None
+        and de_cluster.get(b.GetEndAtomIdx()) is not None
+        and de_cluster[b.GetBeginAtomIdx()] != de_cluster[b.GetEndAtomIdx()]
+    ]
+    n_pesados = plano.GetNumHeavyAtoms()
+    return {
+        "available": True,
+        "n_clusters": len(vivos),
+        "n_clusters_rejected": len(clusters) - len(vivos),
+        "clusters": vivos,
+        "rejected": [c for c in clusters if not c.get("available")],
+        "n_heavy_molecule": n_pesados,
+        "n_heavy_in_clusters": len(dentro),
+        "coverage": round(len(dentro) / n_pesados, 3) if n_pesados else 0.0,
+        "n_coupling_bonds": len(acoplamiento),
+        "coupling_bonds": acoplamiento,
+        "radius_bonds": int(radius),
+        "disjoint": True,
+        "caveat": (
+            "los clusters son DISJUNTOS a propósito: si compartieran átomos, sumar "
+            "sus energías los contaría dos veces y el total no sería la energía de "
+            "nada. Con una partición de verdad la suma es una aproximación bien "
+            f"definida con un término despreciado -- la correlación entre clusters, "
+            f"que atraviesa los {len(acoplamiento)} enlaces de acoplamiento que se "
+            f"cuentan arriba. Esto NO es EWF: no hay acoplamiento auto-consistente "
+            f"ni orbitales de frontera compartidos"
+        ),
+        "caveat_en": (
+            "the clusters are DISJOINT on purpose: were they to share atoms, summing "
+            "their energies would count those atoms twice and the total would be the "
+            "energy of nothing. With a real partition the sum is a well-defined "
+            "approximation with one neglected term -- inter-cluster correlation, "
+            f"which runs across the {len(acoplamiento)} coupling bonds counted above. "
+            f"This is NOT EWF: there is no self-consistent coupling and no shared "
+            f"frontier orbitals"
+        ),
+    }
+
+
+def rank_conformers_clusters(
+    descomposicion: Dict[str, Any],
+    *,
+    reference: int = 0,
+    timeout_s: int = 3600,
+    method: str = "sqd",
+) -> Dict[str, Any]:
+    """Ordena confórmeros sumando las diferencias de cada cluster.
+
+    Con la partición delante, la diferencia total entre dos confórmeros es la
+    suma de las diferencias por cluster más la correlación entre clusters, que
+    esta aproximación desprecia. Así que se corre SQD cluster a cluster y se
+    suman -- y se dice, en el mismo sitio y con el mismo énfasis, que el término
+    que falta atraviesa los enlaces de acoplamiento que la descomposición contó.
+
+    El desglose por cluster va entero en el resultado. No es adorno: si el orden
+    de los confórmeros lo decide un solo cluster, el lector tiene derecho a
+    verlo, porque entonces la descomposición no estaba aportando nada que el
+    recorte simple no diera ya.
+    """
+    t0 = time.perf_counter()
+    out: Dict[str, Any] = {
+        "method_requested": method,
+        "method_used": None,
+        "reference_conformer": reference,
+        "unit": "eV (diferencia contra el confórmero de referencia, sumada sobre clusters)",
+        "differential_floor_ev": DIFFERENTIAL_FLOOR_EV,
+        "energies": [],
+        "per_cluster": [],
+        "degradations": [],
+        "absolute_energies_emitted": False,
+    }
+    if not descomposicion.get("available"):
+        out["error"] = f"sin descomposición: {descomposicion.get('reason', '')}"
+        return out
+    clusters = descomposicion.get("clusters") or []
+    if not clusters:
+        out["error"] = "la descomposición no trajo ningún cluster"
+        return out
+
+    n_conf = min(len(c["geometries"]) for c in clusters)
+    if n_conf < 2:
+        out["error"] = "hacen falta al menos dos confórmeros para una diferencia"
+        return out
+
+    # Suma por confórmero, y la contabilidad de qué clusters entraron en ella.
+    total = [0.0] * n_conf
+    valido = [True] * n_conf
+    usados, caidos = 0, []
+    for c in clusters:
+        rk = rank_conformers(
+            c["geometries"][:n_conf],
+            method=method,
+            charge=int(c.get("charge", 0)),
+            reference=reference,
+            timeout_s=timeout_s,
+        )
+        resumen = {
+            "cluster": c["index"],
+            "anchor": c["anchor"],
+            "anchor_en": c.get("anchor_en", c["anchor"]),
+            "n_heavy_region": c["n_heavy_region"],
+            "n_electrons": c.get("n_electrons"),
+            "method_used": rk.get("method_used"),
+            "error": rk.get("error"),
+            "deltas_ev": [e.get("delta_ev") for e in rk.get("energies", [])],
+            "n_significant": rk.get("n_significant"),
+        }
+        out["per_cluster"].append(resumen)
+        out["degradations"] += rk.get("degradations", [])
+        if rk.get("error") or not rk.get("energies"):
+            caidos.append({"cluster": c["index"], "reason": rk.get("error", "sin energías")})
+            continue
+        usados += 1
+        out["method_used"] = rk.get("method_used")
+        for i, e in enumerate(rk["energies"][:n_conf]):
+            d = e.get("delta_ev")
+            if d is None:
+                valido[i] = False
+            else:
+                total[i] += float(d)
+
+    if not usados:
+        out["error"] = "ningún cluster devolvió energías, así que no hay suma que publicar"
+        out["clusters_failed"] = caidos
+        return out
+
+    for i in range(n_conf):
+        d = total[i] if valido[i] else None
+        out["energies"].append(
+            ConformerEnergy(
+                conformer_id=i,
+                delta_ev=None if d is None else round(d, 4),
+                method=out["method_used"] or method,
+                reference_id=reference,
+                below_floor=(d is not None and abs(d) < DIFFERENTIAL_FLOOR_EV),
+                note=(
+                    "algún cluster no dio energía para este confórmero, así que su "
+                    "suma estaría incompleta y no se publica"
+                    if d is None
+                    else (
+                        "por debajo del suelo diferencial: el orden frente a la "
+                        "referencia no es significativo"
+                        if abs(d) < DIFFERENTIAL_FLOOR_EV
+                        else ""
+                    )
+                ),
+            ).__dict__
+        )
+
+    n_sig = sum(1 for e in out["energies"] if e["delta_ev"] is not None and not e["below_floor"])
+    n_acop = int(descomposicion.get("n_coupling_bonds") or 0)
+    out.update(
+        {
+            "n_significant": n_sig,
+            "n_total": n_conf,
+            "n_clusters_used": usados,
+            "n_clusters_failed": len(caidos),
+            "clusters_failed": caidos,
+            "coverage": descomposicion.get("coverage"),
+            "n_coupling_bonds": n_acop,
+            "wall_seconds": round(time.perf_counter() - t0, 3),
+            "honest_note": (
+                f"la diferencia es la SUMA sobre {usados} clusters disjuntos que "
+                f"cubren el {float(descomposicion.get('coverage') or 0):.0%} de los "
+                f"átomos pesados. Falta la correlación entre clusters, que atraviesa "
+                f"{n_acop} enlaces de acoplamiento; no se calcula y por eso se cuenta. "
+                f"{n_sig} de {n_conf} confórmeros se separan de la referencia por "
+                f"encima de {DIFFERENTIAL_FLOOR_EV} eV"
+            ),
+            "honest_note_en": (
+                f"the difference is the SUM over {usados} disjoint clusters covering "
+                f"{float(descomposicion.get('coverage') or 0):.0%} of the heavy atoms. "
+                f"Inter-cluster correlation is missing -- it runs across {n_acop} "
+                f"coupling bonds -- and it is counted precisely because it is not "
+                f"computed. {n_sig} of {n_conf} conformers separate from the reference "
+                f"above {DIFFERENTIAL_FLOOR_EV} eV"
+            ),
+        }
+    )
+    return _forbid_absolute(out)

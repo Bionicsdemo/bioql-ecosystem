@@ -406,7 +406,28 @@ def run_macrocycle(data: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
                 }
             )
             continue
-        region = mq.closure_region(r["spec"]["smiles"], blocks, radius=2)
+        # Una región o varias.
+        #
+        # El recorte simple ordena confórmeros mirando UN enlace: en un candidato
+        # de 8 residuos, 15 átomos pesados de 64. Los otros 49 podían estar
+        # diciendo otra cosa y nadie se enteraba. La descomposición parte la
+        # molécula en clusters disjuntos y suma -- es la idea que Cleveland
+        # Clinic y RIKEN usaron para llegar a 11 608 átomos, en pequeño y sin el
+        # acoplamiento auto-consistente, que se declara ausente.
+        #
+        # Y no es un refinamiento cosmético: en la primera corrida los clusters
+        # discreparon ENTRE SÍ en el signo para el mismo confórmero.
+        multi = bool(data.get("quantum_multicluster", True))
+        region = (
+            mq.closure_clusters(
+                r["spec"]["smiles"],
+                blocks,
+                radius=2,
+                max_clusters=int(data.get("max_clusters") or 6),
+            )
+            if multi
+            else mq.closure_region(r["spec"]["smiles"], blocks, radius=2)
+        )
         if not region.get("available"):
             q_saltados.append(
                 {
@@ -416,19 +437,53 @@ def run_macrocycle(data: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
             )
             continue
         t_q = time.perf_counter()
-        rk = mq.rank_conformers(
-            region["geometries"],
-            method="sqd",
-            charge=int(region.get("charge", 0)),  # la de la REGIÓN, no la de la molécula
-            timeout_s=3600,
+        rk = (
+            mq.rank_conformers_clusters(region, timeout_s=3600)
+            if multi
+            else mq.rank_conformers(
+                region["geometries"],
+                method="sqd",
+                charge=int(region.get("charge", 0)),  # la de la REGIÓN, no la de la molécula
+                timeout_s=3600,
+            )
         )
         gastado = time.perf_counter() - t_q
         presupuesto.add_quantum(gastado)
-        if region["geometries"]:
-            seg_por_geom = gastado / len(region["geometries"])
+        # Cuánto costó UNA geometría, que es lo que calibra el número de
+        # confórmeros del siguiente candidato. Con varios clusters, una geometría
+        # de confórmero cuesta tantas diagonalizaciones como clusters haya, y
+        # dividir solo entre confórmeros dejaría la calibración corta por ese
+        # factor -- y el presupuesto se pasaría de largo sin que nadie lo viera.
+        n_geom = (
+            len(region["clusters"]) * min(len(c["geometries"]) for c in region["clusters"])
+            if multi
+            else len(region["geometries"])
+        )
+        if n_geom:
+            seg_por_geom = gastado / n_geom
         rk["sequence"] = r["spec"]["sequence"]
-        rk["n_conformers_quantum"] = len(region["geometries"])
-        rk["region"] = {k: v for k, v in region.items() if k != "geometries"}
+        rk["n_conformers_quantum"] = rk.get("n_total") or n_geom
+        rk["region"] = (
+            {
+                **{k: v for k, v in region.items() if k not in ("clusters", "rejected")},
+                "clusters": [
+                    {k: v for k, v in c.items() if k != "geometries"} for c in region["clusters"]
+                ],
+                # el recorte simple expone estos dos y el informe los nombra: con
+                # varios clusters, el que manda es el de más prioridad
+                "anchor": region["clusters"][0]["anchor"],
+                "anchor_en": region["clusters"][0]["anchor_en"],
+                "why": region["clusters"][0]["why"],
+                "why_en": region["clusters"][0]["why_en"],
+                "n_heavy_region": region["n_heavy_in_clusters"],
+                "n_caps": sum(c["n_caps"] for c in region["clusters"]),
+                "n_absorbed_to_repair_boundary": 0,
+                "charge": sum(c["charge"] for c in region["clusters"]),
+                "n_electrons": sum(c["n_electrons"] for c in region["clusters"]),
+            }
+            if multi
+            else {k: v for k, v in region.items() if k != "geometries"}
+        )
         q_resultados.append(rk)
         r["quantum_energies"] = rk
 
