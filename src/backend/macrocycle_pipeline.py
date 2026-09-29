@@ -364,6 +364,10 @@ def run_macrocycle(data: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
     # saltaba por tamaño corre en decenas de segundos.
     quantum_on = bool(data.get("run_quantum", True))
     top_k = int(data.get("quantum_top_k") or 2)
+    # El candidato sobre el que corre el EWF. Se elige aquí, antes del orden,
+    # porque el EWF describe UNA molécula entera y correrlo sobre toda la lista
+    # gastaría en candidatos que nadie va a sintetizar.
+    lider_ewf = construidos[0] if construidos else None
     q_resultados: List[Dict[str, Any]] = []
     q_saltados: List[Dict[str, Any]] = []
     elegibles = [r for r in construidos if r["quantum"]["applies"]]
@@ -549,6 +553,53 @@ def run_macrocycle(data: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
             "differential"
         ),
     }
+
+    # ── 4c. EWF: la molécula ENTERA, con acoplamiento de verdad ─────────────
+    # Los escenarios 4 y 4b miran trozos: el 4b recorta la región del cierre, o
+    # parte en clusters disjuntos y suma. Los dos dan DIFERENCIAS entre
+    # confórmeros y los dos dejan fuera la correlación entre trozos, cada uno con
+    # su caveat escrito.
+    #
+    # Esto es otra cosa. Vayesta fragmenta por IAO y construye un BAÑO de
+    # orbitales para cada fragmento desde la matriz de densidad de campo medio;
+    # ese baño ES el acoplamiento, y por eso la energía que sale es la de la
+    # molécula entera y no una diferencia. Es el método del paper de Cleveland
+    # Clinic y RIKEN, el que les permitió tratar 11 608 átomos.
+    #
+    # Lo que aquí todavía no es el paper: sus clusters duros van a SQD y los
+    # nuestros los resuelve CCSD. `hard_clusters` los deja listados con sus
+    # orbitales activos para que ese peldaño se suba cuando haya con qué, en vez
+    # de darlo por hecho.
+    ewf_on = bool(data.get("run_ewf", True))
+    ewf_res: Dict[str, Any] = {
+        "available": False,
+        "reason": "no se pidió EWF en esta corrida",
+        "reason_en": "EWF was not requested in this run",
+    }
+    if ewf_on and lider_ewf is not None:
+        ew = _mod("ewf_embedding")
+        blocks_ewf = _conformer_molblocks(lider_ewf, limit=1)
+        if not blocks_ewf:
+            ewf_res = {
+                "available": False,
+                "reason": "no se pudo embeber una conformación para el EWF",
+                "reason_en": "no conformation could be embedded for EWF",
+            }
+        else:
+            t_ewf = time.perf_counter()
+            ewf_res = ew.embed(
+                ew.atoms_from_molblock(blocks_ewf[0]),
+                basis=str(data.get("ewf_basis") or "sto-3g"),
+                bath_threshold=float(data.get("ewf_bath") or ew.BATH_DEFAULT),
+            )
+            # El EWF corre en CPU con solver clásico, así que su tiempo es GPU/
+            # clásico en la contabilidad. El día que los clusters duros suban a
+            # SQD, esa parte pasará a contar como cuántica y no antes.
+            presupuesto.add_gpu(time.perf_counter() - t_ewf)
+            if ewf_res.get("available"):
+                ewf_res["sequence"] = lider_ewf["spec"]["sequence"]
+                ewf_res["hard_clusters"] = ew.hard_clusters(ewf_res)[:12]
+    result["stages"]["4c_ewf"] = ewf_res
 
     # ── 5. orden ────────────────────────────────────────────────────────────
     def clave(r: Dict[str, Any]) -> Tuple[int, int, float]:
